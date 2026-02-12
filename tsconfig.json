@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@core/*": ["./src/core/*"],
+      "@domain/*": ["./src/core/domain/*"],
+      "@application/*": ["./src/core/application/*"],
+      "@ports/*": ["./src/core/ports/*"],
+      "@infrastructure/*": ["./src/core/infrastructure/*"],
+      "@presentation/*": ["./src/core/presentation/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@config/*": ["./src/config/*"],
+      "@http/*": ["./src/http/*"],
+      "@bootstrap/*": ["./src/bootstrap/*"]
+    }
+  },
+  "include": ["src/**/*", "prisma/seed.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

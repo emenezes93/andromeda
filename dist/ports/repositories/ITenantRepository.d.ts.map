@@ -1,0 +1,1 @@
+{"version":3,"file":"ITenantRepository.d.ts","sourceRoot":"","sources":["../../../src/ports/repositories/ITenantRepository.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,MAAM,EAAE,MAAM,iCAAiC,CAAC;AAE9D;;GAEG;AACH,MAAM,WAAW,iBAAiB;IAChC,QAAQ,CAAC,EAAE,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,GAAG,IAAI,CAAC,CAAC;IAC7C,MAAM,CAAC,MAAM,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,CAAC,CAAC;CACzC"}

@@ -1,0 +1,35 @@
+# Dependencies (installed in container)
+node_modules
+npm-debug.log*
+
+# Build output (rebuilt in container)
+dist
+
+# Git and IDE
+.git
+.gitignore
+.cursor
+.vscode
+.claude
+
+# Env (injected at runtime)
+.env
+.env.local
+.env.*.local
+
+# Tests and docs (not needed for build)
+tests
+*.test.ts
+*.spec.ts
+docs
+*.md
+!README.md
+
+# Prisma (keep schema and migrations; seed runs separately)
+# prisma/migrations and prisma/schema.prisma are needed
+
+# Misc
+.DS_Store
+coverage
+.nyc_output
+*.log
