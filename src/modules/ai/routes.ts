@@ -30,8 +30,23 @@ function normalizeRisksJson(raw: unknown): Record<string, number> {
   };
 }
 
-function insightWithNormalizedRisks<T extends { risksJson: unknown }>(insight: T): Omit<T, 'risksJson'> & { risksJson: Record<string, number> } {
-  return { ...insight, risksJson: normalizeRisksJson(insight.risksJson) };
+/** Build a plain response object with normalized risksJson (safe for serialization). */
+function toInsightResponse(insight: {
+  id: string;
+  sessionId: string;
+  summary: string | null;
+  risksJson: unknown;
+  recommendationsJson: unknown;
+  createdAt: Date;
+}) {
+  return {
+    id: insight.id,
+    sessionId: insight.sessionId,
+    summary: insight.summary ?? '',
+    risksJson: normalizeRisksJson(insight.risksJson),
+    recommendationsJson: insight.recommendationsJson,
+    createdAt: insight.createdAt,
+  };
 }
 
 /** Try to create an insight; on unique constraint race, return existing record. */
@@ -88,7 +103,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         where: { sessionId },
       });
       if (existing) {
-        return reply.status(200).send(insightWithNormalizedRisks(existing));
+        return reply.status(200).send(toInsightResponse(existing));
       }
 
       const answersList = await fastify.prisma.anamnesisAnswer.findMany({
@@ -130,11 +145,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(insightWithNormalizedRisks(result.response));
+        return reply.status(result.statusCode).send(toInsightResponse(result.response));
       }
 
       const insight = await createInsightSafe(fastify.prisma, insightData);
-      return reply.status(200).send(insightWithNormalizedRisks(insight));
+      return reply.status(200).send(toInsightResponse(insight));
     }
   );
 
@@ -157,7 +172,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         where: { sessionId, tenantId },
       });
       if (!insight) throw new NotFoundError('Insights not found for this session');
-      return reply.status(200).send(insightWithNormalizedRisks(insight));
+      return reply.status(200).send(toInsightResponse(insight));
     }
   );
 }

@@ -154,7 +154,16 @@ export function registerSchemas(app: FastifyInstance): void {
       id: { type: 'string' },
       sessionId: { type: 'string' },
       summary: { type: 'string' },
-      risksJson: { type: 'object' },
+      risksJson: {
+        type: 'object',
+        properties: {
+          readiness: { type: 'number' },
+          dropoutRisk: { type: 'number' },
+          stress: { type: 'number' },
+          sleepQuality: { type: 'number' },
+        },
+        additionalProperties: true,
+      },
       recommendationsJson: { type: 'object' },
       createdAt: { type: 'string' },
     },
