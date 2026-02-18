@@ -4,10 +4,51 @@ import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
 import { NotFoundError } from '@shared/errors/index.js';
+import { skipFor } from '@shared/utils/pagination.js';
+import { paginationQuerySchema } from '@shared/utils/pagination.js';
 import { getIdempotencyKey, getRequestHash, withIdempotency } from '@shared/utils/idempotency.js';
 import { env } from '@config/env.js';
 
 export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
+  fastify.get(
+    '/v1/anamnesis/sessions',
+    {
+      config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
+      schema: {
+        querystring: { page: { type: 'number' }, limit: { type: 'number' } },
+        response: { 200: { $ref: 'SessionListResponse#' } },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      requireAuth(request);
+      Guards.readOnly(request.user!.role);
+
+      const { page, limit } = paginationQuerySchema.parse(request.query);
+      const skip = skipFor(page, limit);
+      const [items, total] = await Promise.all([
+        fastify.prisma.anamnesisSession.findMany({
+          where: { tenantId },
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: { template: true },
+        }),
+        fastify.prisma.anamnesisSession.count({ where: { tenantId } }),
+      ]);
+      return reply.status(200).send({
+        data: items,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+          hasMore: page * limit < total,
+        },
+      });
+    }
+  );
+
   fastify.post(
     '/v1/anamnesis/sessions',
     {

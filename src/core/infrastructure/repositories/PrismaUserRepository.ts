@@ -36,7 +36,14 @@ export class PrismaUserRepository implements IUserRepository {
     return count > 0;
   }
 
-  private toDomain(prismaUser: { id: string; email: string; passwordHash: string; name: string | null; createdAt: Date; deletedAt: Date | null }): User {
+  private toDomain(prismaUser: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    name: string | null;
+    createdAt: Date;
+    deletedAt: Date | null;
+  }): User {
     return new User(
       prismaUser.id,
       prismaUser.email,

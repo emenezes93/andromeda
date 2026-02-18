@@ -72,11 +72,18 @@ export class LoginUseCase {
     const refreshTokenExpiry = this.tokenService.calculateRefreshTokenExpiry();
 
     // Create refresh token entity
-    const refreshToken = RefreshToken.create(user.id, membership.tenantId, refreshTokenValue, refreshTokenExpiry);
+    const refreshToken = RefreshToken.create(
+      user.id,
+      membership.tenantId,
+      refreshTokenValue,
+      refreshTokenExpiry
+    );
     await this.refreshTokenRepository.create(refreshToken);
 
     // Audit log
-    await this.auditService.log(membership.tenantId, 'login', 'user', user.id, user.id, { email: user.email });
+    await this.auditService.log(membership.tenantId, 'login', 'user', user.id, user.id, {
+      email: user.email,
+    });
 
     return {
       token: accessToken,

@@ -38,3 +38,8 @@ PROMPT_MELHORIAS.md
 *.swp
 *.swo
 *~
+
+# TypeScript / Vite build artifacts
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js

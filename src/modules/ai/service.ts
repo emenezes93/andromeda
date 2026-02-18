@@ -114,10 +114,7 @@ function buildSummary(risks: RisksPayload): string {
   return parts.join(' ');
 }
 
-function buildRecommendations(
-  risks: RisksPayload,
-  rules: RecommendationRule[]
-): string[] {
+function buildRecommendations(risks: RisksPayload, rules: RecommendationRule[]): string[] {
   const recs: string[] = [];
   for (const rule of rules) {
     if (rule.condition(risks)) {

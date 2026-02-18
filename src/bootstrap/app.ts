@@ -32,14 +32,25 @@ export async function buildApp() {
   });
 
   await app.register(helmet, { contentSecurityPolicy: false });
-  const corsOrigin = env.CORS_ORIGINS === '*' ? true : env.CORS_ORIGINS.split(',').map((o) => o.trim());
+  const corsOrigin =
+    env.CORS_ORIGINS === '*' ? true : env.CORS_ORIGINS.split(',').map((o) => o.trim());
   await app.register(cors, { origin: corsOrigin, credentials: true });
   registerSchemas(app);
   await app.register(prismaPlugin);
   await app.register(tenantPlugin);
   await app.register(authPlugin, {
     secret: env.JWT_SECRET,
-    skipPaths: ['/', '/favicon.ico', '/health', '/ready', '/v1/auth/login', '/v1/auth/refresh', '/v1/auth/logout', '/documentation', '/documentation/json'],
+    skipPaths: [
+      '/',
+      '/favicon.ico',
+      '/health',
+      '/ready',
+      '/v1/auth/login',
+      '/v1/auth/refresh',
+      '/v1/auth/logout',
+      '/documentation',
+      '/documentation/json',
+    ],
   });
   await app.register(rateLimitPlugin, {
     global: env.RATE_LIMIT_GLOBAL,

@@ -18,7 +18,12 @@ export interface PaginatedResult<T> {
   };
 }
 
-export function paginate<T>(items: T[], total: number, page: number, limit: number): PaginatedResult<T> {
+export function paginate<T>(
+  items: T[],
+  total: number,
+  page: number,
+  limit: number
+): PaginatedResult<T> {
   const totalPages = Math.ceil(total / limit) || 1;
   return {
     data: items,

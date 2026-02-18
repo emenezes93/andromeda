@@ -42,10 +42,7 @@ function scoreNumber(value: unknown): number | null {
  * Score a `single` question: map the position of the selected option
  * inside `options[]` to 0-100 linearly.
  */
-function scoreSingle(
-  value: unknown,
-  options: string[] | undefined
-): number | null {
+function scoreSingle(value: unknown, options: string[] | undefined): number | null {
   if (!options || options.length === 0) return null;
   const idx = options.indexOf(String(value));
   if (idx === -1) return null;
@@ -70,8 +67,18 @@ export const defaultScoringRules: ScoringRule[] = [
 export const defaultRiskAggregations: RiskAggregation[] = [
   { riskKey: 'stress', sourceTags: ['stress'], aggregation: 'avg', defaultScore: 50 },
   { riskKey: 'sleepQuality', sourceTags: ['sleep'], aggregation: 'avg', defaultScore: 50 },
-  { riskKey: 'readiness', sourceTags: ['readiness', 'exercise', 'physical_activity'], aggregation: 'avg', defaultScore: 50 },
-  { riskKey: 'dropoutRisk', sourceTags: ['food_emotional', 'dropout'], aggregation: 'avg', defaultScore: 30 },
+  {
+    riskKey: 'readiness',
+    sourceTags: ['readiness', 'exercise', 'physical_activity'],
+    aggregation: 'avg',
+    defaultScore: 50,
+  },
+  {
+    riskKey: 'dropoutRisk',
+    sourceTags: ['food_emotional', 'dropout'],
+    aggregation: 'avg',
+    defaultScore: 30,
+  },
 ];
 
 export const defaultRecommendationRules: RecommendationRule[] = [

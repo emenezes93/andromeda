@@ -63,10 +63,7 @@ async function createInsightSafe(
   try {
     return await prisma.aiInsight.create({ data });
   } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === 'P2002'
-    ) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       const existing = await prisma.aiInsight.findUnique({
         where: { sessionId: data.sessionId },
       });

@@ -33,6 +33,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             <Link to="/sessions" className="text-sm text-slate-600 hover:text-slate-900">
               Sessões
             </Link>
+            <Link to="/audit" className="text-sm text-slate-600 hover:text-slate-900">
+              Auditoria
+            </Link>
             <span className="text-sm text-slate-500">{user?.email}</span>
             <Button variant="ghost" onClick={handleLogout}>
               Sair
@@ -42,9 +45,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {title && (
-          <h1 className="mb-6 text-2xl font-semibold text-slate-900">{title}</h1>
-        )}
+        {title && <h1 className="mb-6 text-2xl font-semibold text-slate-900">{title}</h1>}
         {children}
       </main>
     </div>

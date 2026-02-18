@@ -49,12 +49,7 @@ async function errorHandlerPlugin(fastify: FastifyInstance): Promise<void> {
     const status = statusFromError(err);
     const rawMessage = messageFromError(err);
     const isDev = env.NODE_ENV !== 'production';
-    const message =
-      status >= 500
-        ? isDev
-          ? rawMessage
-          : 'Internal server error'
-        : rawMessage;
+    const message = status >= 500 ? (isDev ? rawMessage : 'Internal server error') : rawMessage;
 
     const payload: { error: string; requestId: string; details?: string } = {
       error: message,

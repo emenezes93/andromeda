@@ -65,9 +65,7 @@ export function LoginPage() {
           />
 
           {apiError && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {apiError}
-            </div>
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{apiError}</div>
           )}
 
           <Button type="submit" className="w-full" loading={isSubmitting}>
@@ -75,9 +73,7 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
-          Demo: owner@demo.com / owner123
-        </p>
+        <p className="mt-4 text-center text-xs text-slate-500">Demo: owner@demo.com / owner123</p>
       </Card>
     </div>
   );

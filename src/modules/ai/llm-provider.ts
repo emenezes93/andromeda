@@ -66,20 +66,14 @@ Responda APENAS com o JSON, sem markdown, sem explicações.`;
 function sanitizeAnswer(value: unknown): string {
   if (value === undefined || value === null) return '(não respondida)';
   const str = String(value);
-  return str.length > MAX_ANSWER_LENGTH
-    ? str.slice(0, MAX_ANSWER_LENGTH) + '...'
-    : str;
+  return str.length > MAX_ANSWER_LENGTH ? str.slice(0, MAX_ANSWER_LENGTH) + '...' : str;
 }
 
-function buildUserMessage(
-  template: TemplateSchemaJson,
-  answers: Record<string, unknown>
-): string {
+function buildUserMessage(template: TemplateSchemaJson, answers: Record<string, unknown>): string {
   const questionsText = template.questions
     .map((q) => {
       const answerStr = sanitizeAnswer(answers[q.id]);
-      const tagsStr =
-        q.tags && q.tags.length > 0 ? ` [tags: ${q.tags.join(', ')}]` : '';
+      const tagsStr = q.tags && q.tags.length > 0 ? ` [tags: ${q.tags.join(', ')}]` : '';
       return `- ${q.text}${tagsStr}\n  Resposta: <answer>${answerStr}</answer>`;
     })
     .join('\n');
@@ -123,17 +117,13 @@ async function withRetry<T>(
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 
 function truncateErrorBody(body: string): string {
-  return body.length > MAX_ERROR_BODY_LENGTH
-    ? body.slice(0, MAX_ERROR_BODY_LENGTH) + '...'
-    : body;
+  return body.length > MAX_ERROR_BODY_LENGTH ? body.slice(0, MAX_ERROR_BODY_LENGTH) + '...' : body;
 }
 
 function handleHttpError(provider: string, status: number, body: string): never {
   const safeBody = truncateErrorBody(body);
   if (status >= 400 && status < 500 && status !== 429) {
-    throw new NonRetryableError(
-      `${provider} API client error ${status}: ${safeBody}`
-    );
+    throw new NonRetryableError(`${provider} API client error ${status}: ${safeBody}`);
   }
   throw new Error(`${provider} API error ${status}: ${safeBody}`);
 }
@@ -151,9 +141,7 @@ function parseAndValidate(content: string, provider: string): AiInsightPayload {
     const parsed = JSON.parse(cleaned);
     return llmResponseSchema.parse(parsed);
   } catch {
-    throw new ExternalAiError(
-      `Invalid JSON response from ${provider}`
-    );
+    throw new ExternalAiError(`Invalid JSON response from ${provider}`);
   }
 }
 
@@ -269,9 +257,7 @@ export function createLlmProvider(config?: {
   const apiKey = config?.apiKey;
 
   if (!provider || !apiKey) {
-    throw new Error(
-      'LLM mode requires AI_PROVIDER and AI_API_KEY environment variables'
-    );
+    throw new Error('LLM mode requires AI_PROVIDER and AI_API_KEY environment variables');
   }
 
   if (provider === 'openai') {

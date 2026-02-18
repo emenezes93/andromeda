@@ -11,13 +11,19 @@ function shouldShowByCondition(
   const answer = currentAnswers[rule.ifQuestion];
   const ifVal = rule.ifValue;
   if (Array.isArray(ifVal)) {
-    return Array.isArray(answer) ? answer.some((a) => ifVal.includes(String(a))) : ifVal.includes(String(answer));
+    return Array.isArray(answer)
+      ? answer.some((a) => ifVal.includes(String(a)))
+      : ifVal.includes(String(answer));
   }
   return String(answer) === String(ifVal);
 }
 
 function getAnsweredIds(currentAnswers: Record<string, unknown>): Set<string> {
-  return new Set(Object.keys(currentAnswers).filter((k) => currentAnswers[k] !== undefined && currentAnswers[k] !== ''));
+  return new Set(
+    Object.keys(currentAnswers).filter(
+      (k) => currentAnswers[k] !== undefined && currentAnswers[k] !== ''
+    )
+  );
 }
 
 function nextByRules(
@@ -102,7 +108,8 @@ export function getNextQuestion(
   const totalVisible = schema.questions.filter((q) =>
     shouldShowByCondition(q, currentAnswers, schema.conditionalLogic ?? [])
   ).length;
-  const completionPercent = totalVisible === 0 ? 100 : Math.round((answered.size / totalVisible) * 100);
+  const completionPercent =
+    totalVisible === 0 ? 100 : Math.round((answered.size / totalVisible) * 100);
 
   const byRules = nextByRules(schema, currentAnswers);
   if (byRules.question) {

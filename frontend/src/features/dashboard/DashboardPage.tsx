@@ -8,6 +8,7 @@ export function DashboardPage() {
   const links = [
     { to: '/templates', label: 'Templates de anamnese', desc: 'Criar e listar questionários' },
     { to: '/sessions', label: 'Sessões', desc: 'Iniciar e acompanhar sessões' },
+    { to: '/audit', label: 'Auditoria', desc: 'Log de ações do sistema' },
   ];
 
   return (

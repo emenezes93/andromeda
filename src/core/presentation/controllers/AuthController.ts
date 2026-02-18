@@ -1,5 +1,10 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { loginBodySchema, registerBodySchema, refreshBodySchema, logoutBodySchema } from '../../../modules/auth/schemas.js';
+import {
+  loginBodySchema,
+  registerBodySchema,
+  refreshBodySchema,
+  logoutBodySchema,
+} from '../../../modules/auth/schemas.js';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
@@ -24,7 +29,9 @@ export class AuthController {
     app.post(
       '/v1/auth/login',
       {
-        config: { rateLimit: { max: Number(process.env.RATE_LIMIT_AUTH) || 10, timeWindow: '1 minute' } },
+        config: {
+          rateLimit: { max: Number(process.env.RATE_LIMIT_AUTH) || 10, timeWindow: '1 minute' },
+        },
         schema: {
           body: { $ref: 'LoginBody#' },
           response: { 200: { $ref: 'LoginResponse#' } },

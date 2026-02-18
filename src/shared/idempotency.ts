@@ -9,7 +9,9 @@ const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export function getRequestHash(req: FastifyRequest): string {
   const body = req.body ?? {};
   const sorted = JSON.stringify(body, Object.keys(body).sort());
-  return createHash('sha256').update(req.method + req.url + sorted).digest('hex');
+  return createHash('sha256')
+    .update(req.method + req.url + sorted)
+    .digest('hex');
 }
 
 export function getIdempotencyKey(req: FastifyRequest): string | undefined {
@@ -62,5 +64,7 @@ export async function withIdempotency<T>(
 }
 
 export function idempotencyKeyOptionalSchema() {
-  return { [HEADER_KEY]: { type: 'string', description: 'Optional idempotency key for safe retries' } };
+  return {
+    [HEADER_KEY]: { type: 'string', description: 'Optional idempotency key for safe retries' },
+  };
 }

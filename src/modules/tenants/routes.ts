@@ -24,7 +24,9 @@ export async function tenantsRoutes(fastify: FastifyInstance): Promise<void> {
       const tenant = await fastify.prisma.tenant.create({
         data: { name: body.name, status: body.status },
       });
-      await auditLog(fastify.prisma, user.tenantId, 'create', 'tenant', tenant.id, user.userId, { name: tenant.name });
+      await auditLog(fastify.prisma, user.tenantId, 'create', 'tenant', tenant.id, user.userId, {
+        name: tenant.name,
+      });
       return reply.status(201).send(tenant);
     }
   );

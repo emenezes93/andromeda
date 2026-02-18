@@ -29,7 +29,9 @@ async function prismaPlugin(fastify: FastifyInstance): Promise<void> {
     next: (params: PrismaUseParams) => Promise<unknown>
   ): Promise<unknown> => {
     if (
-      (params.action === 'findMany' || params.action === 'findFirst' || params.action === 'findUnique') &&
+      (params.action === 'findMany' ||
+        params.action === 'findFirst' ||
+        params.action === 'findUnique') &&
       params.model &&
       SOFT_DELETE_MODELS.includes(params.model)
     ) {

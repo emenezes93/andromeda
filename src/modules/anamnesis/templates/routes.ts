@@ -104,7 +104,13 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
       ]);
       return reply.status(200).send({
         data: items,
-        meta: { page, limit, total, totalPages: Math.ceil(total / limit) || 1, hasMore: page * limit < total },
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+          hasMore: page * limit < total,
+        },
       });
     }
   );

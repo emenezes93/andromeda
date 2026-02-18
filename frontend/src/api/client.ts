@@ -52,7 +52,7 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
     const msg = err.error ?? err.message ?? res.statusText ?? `Erro ${res.status}`;
     throw new Error(msg);
   }

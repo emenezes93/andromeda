@@ -57,7 +57,8 @@ export function isAppError(err: unknown): err is AppError {
 
 export function statusFromError(err: unknown): number {
   if (isAppError(err)) return err.statusCode;
-  if (err instanceof Error && 'statusCode' in err) return (err as { statusCode: number }).statusCode;
+  if (err instanceof Error && 'statusCode' in err)
+    return (err as { statusCode: number }).statusCode;
   return 500;
 }
 

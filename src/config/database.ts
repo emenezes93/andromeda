@@ -13,7 +13,9 @@ interface PrismaUseParams {
  * Centralizes Prisma client configuration and lifecycle
  */
 
-export function createPrismaClient(logLevel: 'trace' | 'info' | 'warn' | 'error' = 'warn'): PrismaClient {
+export function createPrismaClient(
+  logLevel: 'trace' | 'info' | 'warn' | 'error' = 'warn'
+): PrismaClient {
   const prisma = new PrismaClientConstructor({
     log: logLevel === 'trace' ? ['query', 'info', 'warn', 'error'] : ['warn', 'error'],
   });
@@ -26,7 +28,9 @@ export function createPrismaClient(logLevel: 'trace' | 'info' | 'warn' | 'error'
     next: (params: PrismaUseParams) => Promise<unknown>
   ): Promise<unknown> => {
     if (
-      (params.action === 'findMany' || params.action === 'findFirst' || params.action === 'findUnique') &&
+      (params.action === 'findMany' ||
+        params.action === 'findFirst' ||
+        params.action === 'findUnique') &&
       params.model &&
       SOFT_DELETE_MODELS.includes(params.model)
     ) {

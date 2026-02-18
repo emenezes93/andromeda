@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { loginBodySchema, registerBodySchema, refreshBodySchema, logoutBodySchema } from '../modules/auth/schemas.js';
+import {
+  loginBodySchema,
+  registerBodySchema,
+  refreshBodySchema,
+  logoutBodySchema,
+} from '../modules/auth/schemas.js';
 import { createTenantSchema } from '../modules/tenants/schemas.js';
 import { createUserSchema } from '../modules/users/schemas.js';
 import { createTemplateSchema } from '../modules/anamnesis/templates/schemas.js';
@@ -54,7 +59,12 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'UserResponse',
     type: 'object',
-    properties: { id: { type: 'string' }, email: { type: 'string' }, name: { type: 'string' }, role: { type: 'string' } },
+    properties: {
+      id: { type: 'string' },
+      email: { type: 'string' },
+      name: { type: 'string' },
+      role: { type: 'string' },
+    },
   });
   app.addSchema({
     $id: 'CreateTenantBody',
@@ -63,7 +73,12 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'TenantResponse',
     type: 'object',
-    properties: { id: { type: 'string' }, name: { type: 'string' }, status: { type: 'string' }, createdAt: { type: 'string' } },
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' },
+      status: { type: 'string' },
+      createdAt: { type: 'string' },
+    },
   });
   app.addSchema({
     $id: 'CreateUserBody',
@@ -76,7 +91,14 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'TemplateResponse',
     type: 'object',
-    properties: { id: { type: 'string' }, tenantId: { type: 'string' }, name: { type: 'string' }, version: { type: 'number' }, schemaJson: { type: 'object' }, createdAt: { type: 'string' } },
+    properties: {
+      id: { type: 'string' },
+      tenantId: { type: 'string' },
+      name: { type: 'string' },
+      version: { type: 'number' },
+      schemaJson: { type: 'object' },
+      createdAt: { type: 'string' },
+    },
   });
   app.addSchema({
     $id: 'TemplateListResponse',
@@ -114,13 +136,35 @@ export function registerSchemas(app: FastifyInstance): void {
     },
   });
   app.addSchema({
+    $id: 'SessionListResponse',
+    type: 'object',
+    properties: {
+      data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+      meta: {
+        type: 'object',
+        properties: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          total: { type: 'number' },
+          totalPages: { type: 'number' },
+          hasMore: { type: 'boolean' },
+        },
+      },
+    },
+  });
+  app.addSchema({
     $id: 'CreateAnswersBody',
     ...zodToJsonSchema(createAnswersSchema),
   });
   app.addSchema({
     $id: 'AnswerResponse',
     type: 'object',
-    properties: { id: { type: 'string' }, sessionId: { type: 'string' }, answersJson: { type: 'object' }, createdAt: { type: 'string' } },
+    properties: {
+      id: { type: 'string' },
+      sessionId: { type: 'string' },
+      answersJson: { type: 'object' },
+      createdAt: { type: 'string' },
+    },
   });
   app.addSchema({
     $id: 'NextQuestionBody',

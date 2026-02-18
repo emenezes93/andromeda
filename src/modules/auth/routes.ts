@@ -2,7 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { loginBodySchema, registerBodySchema, refreshBodySchema, logoutBodySchema } from './schemas.js';
+import {
+  loginBodySchema,
+  registerBodySchema,
+  refreshBodySchema,
+  logoutBodySchema,
+} from './schemas.js';
 import { UnauthorizedError, ForbiddenError, BadRequestError } from '@shared/errors/index.js';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
@@ -24,7 +29,9 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post(
     '/v1/auth/login',
     {
-      config: { rateLimit: { max: Number(process.env.RATE_LIMIT_AUTH) || 10, timeWindow: '1 minute' } },
+      config: {
+        rateLimit: { max: Number(process.env.RATE_LIMIT_AUTH) || 10, timeWindow: '1 minute' },
+      },
       schema: {
         body: { $ref: 'LoginBody#' },
         response: { 200: { $ref: 'LoginResponse#' } },
@@ -67,13 +74,21 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
         },
       });
 
-      await auditLog(fastify.prisma, membership.tenantId, 'login', 'user', user.id, user.id, { email: user.email });
+      await auditLog(fastify.prisma, membership.tenantId, 'login', 'user', user.id, user.id, {
+        email: user.email,
+      });
 
       return reply.status(200).send({
         token,
         refreshToken,
         expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS,
-        user: { id: user.id, email: user.email, name: user.name, role: membership.role, tenantId: membership.tenantId },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: membership.role,
+          tenantId: membership.tenantId,
+        },
       });
     }
   );

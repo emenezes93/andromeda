@@ -6,10 +6,7 @@ export async function cleanupExpiredTokens(prisma: PrismaClient): Promise<number
 
   const result = await prisma.refreshToken.deleteMany({
     where: {
-      OR: [
-        { expiresAt: { lt: new Date() } },
-        { revokedAt: { not: null, lt: sevenDaysAgo } },
-      ],
+      OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null, lt: sevenDaysAgo } }],
     },
   });
 

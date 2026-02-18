@@ -15,11 +15,11 @@ export interface AuthPluginOptions {
   skipPaths?: string[];
 }
 
-async function authPlugin(
-  fastify: FastifyInstance,
-  opts: AuthPluginOptions
-): Promise<void> {
-  const { secret, skipPaths = ['/health', '/ready', '/v1/auth/login', '/documentation', '/documentation/json'] } = opts;
+async function authPlugin(fastify: FastifyInstance, opts: AuthPluginOptions): Promise<void> {
+  const {
+    secret,
+    skipPaths = ['/health', '/ready', '/v1/auth/login', '/documentation', '/documentation/json'],
+  } = opts;
 
   fastify.decorateRequest('user', undefined);
 
@@ -36,7 +36,12 @@ async function authPlugin(
 
     const token = authHeader.slice(7);
     try {
-      const payload = jwt.verify(token, secret) as { userId: string; email: string; role: string; tenantId: string };
+      const payload = jwt.verify(token, secret) as {
+        userId: string;
+        email: string;
+        role: string;
+        tenantId: string;
+      };
       request.user = {
         userId: payload.userId,
         email: payload.email,

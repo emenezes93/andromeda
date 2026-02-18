@@ -28,8 +28,10 @@ export function requireOneOfRoles(userRole: Role | undefined, allowed: Role[]): 
 // Route-level guards
 export const Guards = {
   tenants: (role: Role | undefined) => requireOneOfRoles(role, ['owner', 'admin']),
-  templates: (role: Role | undefined) => requireOneOfRoles(role, ['owner', 'admin', 'practitioner']),
+  templates: (role: Role | undefined) =>
+    requireOneOfRoles(role, ['owner', 'admin', 'practitioner']),
   sessions: (role: Role | undefined) => requireOneOfRoles(role, ['owner', 'admin', 'practitioner']),
-  readOnly: (role: Role | undefined) => requireOneOfRoles(role, ['owner', 'admin', 'practitioner', 'viewer']),
+  readOnly: (role: Role | undefined) =>
+    requireOneOfRoles(role, ['owner', 'admin', 'practitioner', 'viewer']),
   audit: (role: Role | undefined) => requireOneOfRoles(role, ['owner', 'admin']),
 } as const;
