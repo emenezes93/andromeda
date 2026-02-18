@@ -420,7 +420,7 @@ export function PatientEvolutionPage() {
           <div className="px-5 py-10 text-center">
             <p className="text-body text-content-muted">Nenhum registro de evolução ainda.</p>
             <p className="mt-1 text-body-sm text-content-subtle">
-              Use o botão "Adicionar registro" para inserir o primeiro.
+              Use o botão &quot;Adicionar registro&quot; para inserir o primeiro.
             </p>
             {!showForm && (
               <Button className="mt-4" onClick={() => setShowForm(true)}>
