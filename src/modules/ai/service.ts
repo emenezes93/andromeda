@@ -1,91 +1,158 @@
-import type { TemplateSchemaJson, AiInsightPayload, RisksPayload } from '@shared/types/index.js';
+import type {
+  TemplateSchemaJson,
+  QuestionSchema,
+  AiInsightPayload,
+  RisksPayload,
+} from '@shared/types/index.js';
+import {
+  clamp,
+  scoreNumber,
+  scoreSingle,
+  defaultRiskAggregations,
+  defaultRecommendationRules,
+  defaultFallbackRecommendation,
+  type RiskAggregation,
+  type RecommendationRule,
+} from './rules.js';
+import { createLlmProvider } from './llm-provider.js';
 
-function clamp(n: number): number {
-  return Math.max(0, Math.min(100, Math.round(n)));
+/* ── Generic rule-based engine ───────────────────────────────────────── */
+
+interface TagScore {
+  scores: number[];
+}
+
+function collectScores(
+  template: TemplateSchemaJson,
+  answers: Record<string, unknown>
+): Map<string, TagScore> {
+  const tagMap = new Map<string, TagScore>();
+
+  for (const q of template.questions) {
+    const value = answers[q.id];
+    if (value === undefined || value === '') continue;
+
+    const tags = q.tags && q.tags.length > 0 ? q.tags : [];
+    if (tags.length === 0) continue;
+
+    const score = scoreQuestion(q, value);
+    if (score === null) continue;
+
+    for (const tag of tags) {
+      let entry = tagMap.get(tag);
+      if (!entry) {
+        entry = { scores: [] };
+        tagMap.set(tag, entry);
+      }
+      entry.scores.push(score);
+    }
+  }
+
+  return tagMap;
+}
+
+function scoreQuestion(q: QuestionSchema, value: unknown): number | null {
+  if (q.type === 'number') {
+    return scoreNumber(value);
+  }
+  if (q.type === 'single') {
+    return scoreSingle(value, q.options);
+  }
+  return null;
+}
+
+function aggregateScores(
+  scores: number[],
+  aggregation: 'avg' | 'max' | 'min' | 'weighted'
+): number {
+  if (scores.length === 0) return 0;
+  switch (aggregation) {
+    case 'avg':
+      return scores.reduce((a, b) => a + b, 0) / scores.length;
+    case 'max':
+      return Math.max(...scores);
+    case 'min':
+      return Math.min(...scores);
+    case 'weighted': {
+      // Weight later scores more (recency bias)
+      const weights = scores.map((_, i) => i + 1);
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      return scores.reduce((acc, s, i) => acc + s * weights[i], 0) / totalWeight;
+    }
+  }
+}
+
+function computeRisks(
+  tagMap: Map<string, TagScore>,
+  aggregations: RiskAggregation[]
+): RisksPayload {
+  const risks: RisksPayload = { readiness: 50, dropoutRisk: 30, stress: 50, sleepQuality: 50 };
+
+  for (const agg of aggregations) {
+    const allScores: number[] = [];
+    for (const tag of agg.sourceTags) {
+      const entry = tagMap.get(tag);
+      if (entry) allScores.push(...entry.scores);
+    }
+
+    if (allScores.length > 0) {
+      risks[agg.riskKey] = clamp(aggregateScores(allScores, agg.aggregation));
+    } else {
+      risks[agg.riskKey] = agg.defaultScore;
+    }
+  }
+
+  return risks;
+}
+
+function buildSummary(risks: RisksPayload): string {
+  const parts: string[] = [];
+  if (risks.stress > 70) parts.push('Nível de estresse elevado identificado.');
+  if (risks.sleepQuality < 50) parts.push('Qualidade de sono pode ser melhorada.');
+  if (risks.readiness >= 60) parts.push('Disposição para mudança positiva.');
+  if (parts.length === 0) parts.push('Perfil inicial registrado com sucesso.');
+  return parts.join(' ');
+}
+
+function buildRecommendations(
+  risks: RisksPayload,
+  rules: RecommendationRule[]
+): string[] {
+  const recs: string[] = [];
+  for (const rule of rules) {
+    if (rule.condition(risks)) {
+      recs.push(rule.recommendation);
+    }
+  }
+  if (recs.length === 0) recs.push(defaultFallbackRecommendation);
+  return recs;
 }
 
 /**
- * Rule-based strategy: derive summary, risks (0-100), and recommendations from answers.
+ * Generic rule-based insights: iterates all template questions,
+ * scores by type, aggregates by tag, produces risks/summary/recommendations.
  */
 export function generateInsightsRuleBased(
   template: TemplateSchemaJson,
   answers: Record<string, unknown>
 ): AiInsightPayload {
-  const parts: string[] = [];
-  let stressScore = 50;
-  let sleepScore = 50;
-  let readinessScore = 50;
-  let dropoutRisk = 30;
-
-  for (const q of template.questions) {
-    const v = answers[q.id];
-    if (v === undefined || v === '') continue;
-
-    if (q.tags?.includes('stress')) {
-      if (q.id === 'q3') {
-        const map: Record<string, number> = {
-          Nunca: 10,
-          Raramente: 30,
-          'Às vezes': 50,
-          Frequentemente: 75,
-          Sempre: 95,
-        };
-        stressScore = map[String(v)] ?? 50;
-      }
-      if (q.id === 'q4' && typeof v === 'number') stressScore = clamp(Number(v) * 10);
-    }
-    if (q.tags?.includes('sleep')) {
-      if (q.id === 'q1' && typeof v === 'number') sleepScore = clamp(Number(v) * 10);
-      if (q.id === 'q2' && typeof v === 'number') {
-        const h = Number(v);
-        if (h < 6) sleepScore = Math.min(sleepScore, 40);
-        else if (h >= 7) sleepScore = Math.max(sleepScore, 60);
-      }
-    }
-    if (q.id === 'q6') {
-      const map: Record<string, number> = {
-        Nunca: 40,
-        '1-2x/semana': 55,
-        '3-4x/semana': 70,
-        '5+ vezes/semana': 85,
-      };
-      readinessScore = map[String(v)] ?? 50;
-    }
-    if (q.tags?.includes('food_emotional') && (v === 'Frequentemente' || v === 'Às vezes')) {
-      dropoutRisk = Math.min(100, dropoutRisk + 15);
-    }
-  }
-
-  if (stressScore > 70) parts.push('Nível de estresse elevado identificado.');
-  if (sleepScore < 50) parts.push('Qualidade de sono pode ser melhorada.');
-  if (readinessScore >= 60) parts.push('Disposição para mudança positiva.');
-  if (parts.length === 0) parts.push('Perfil inicial registrado com sucesso.');
-
-  const summary = parts.join(' ');
-  const risks: RisksPayload = {
-    readiness: clamp(readinessScore),
-    dropoutRisk: clamp(dropoutRisk),
-    stress: clamp(stressScore),
-    sleepQuality: clamp(sleepScore),
-  };
-
-  const recommendations: string[] = [];
-  if (risks.stress > 60) recommendations.push('Considerar técnicas de manejo de estresse e respiração.');
-  if (risks.sleepQuality < 50) recommendations.push('Priorizar higiene do sono e horários regulares.');
-  if (risks.dropoutRisk > 50) recommendations.push('Acompanhamento mais frequente pode aumentar adesão.');
-  if (recommendations.length === 0) recommendations.push('Manter hábitos atuais e acompanhar evolução.');
+  const tagMap = collectScores(template, answers);
+  const risks = computeRisks(tagMap, defaultRiskAggregations);
+  const summary = buildSummary(risks);
+  const recommendations = buildRecommendations(risks, defaultRecommendationRules);
 
   return { summary, risks, recommendations };
 }
 
-/**
- * LLM mock: deterministic varied text using seed from answers (no external API).
- */
+/* ── LLM mock (unchanged) ───────────────────────────────────────────── */
+
 export function generateInsightsLlmMock(
   _template: TemplateSchemaJson,
   answers: Record<string, unknown>
 ): AiInsightPayload {
-  const seed = JSON.stringify(answers).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const seed = JSON.stringify(answers)
+    .split('')
+    .reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const rng = (): number => {
     const x = Math.sin(seed * 9999 + 1) * 10000;
     return x - Math.floor(x);
@@ -116,12 +183,18 @@ export function generateInsightsLlmMock(
   return { summary, risks, recommendations };
 }
 
-export function generateInsights(
-  mode: 'ruleBased' | 'llmMock',
+/* ── Main dispatcher ─────────────────────────────────────────────────── */
+
+export async function generateInsights(
+  mode: 'ruleBased' | 'llmMock' | 'llm',
   template: TemplateSchemaJson,
-  answers: Record<string, unknown>
-): AiInsightPayload {
-  return mode === 'llmMock'
-    ? generateInsightsLlmMock(template, answers)
-    : generateInsightsRuleBased(template, answers);
+  answers: Record<string, unknown>,
+  llmConfig?: { provider?: string; apiKey?: string; model?: string }
+): Promise<AiInsightPayload> {
+  if (mode === 'llm') {
+    const provider = createLlmProvider(llmConfig);
+    return provider.generateInsights(template, answers);
+  }
+  if (mode === 'llmMock') return generateInsightsLlmMock(template, answers);
+  return generateInsightsRuleBased(template, answers);
 }

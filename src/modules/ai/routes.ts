@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
@@ -10,6 +11,33 @@ import type { TemplateSchemaJson } from '@shared/types/index.js';
 import { getIdempotencyKey, getRequestHash, withIdempotency } from '@shared/utils/idempotency.js';
 
 const insightsBodySchema = z.object({ sessionId: z.string() });
+
+/** Try to create an insight; on unique constraint race, return existing record. */
+async function createInsightSafe(
+  prisma: FastifyInstance['prisma'],
+  data: {
+    tenantId: string;
+    sessionId: string;
+    summary: string;
+    risksJson: object;
+    recommendationsJson: object;
+  }
+) {
+  try {
+    return await prisma.aiInsight.create({ data });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      const existing = await prisma.aiInsight.findUnique({
+        where: { sessionId: data.sessionId },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
+}
 
 export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post(
@@ -51,25 +79,28 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const template = session.template.schemaJson as unknown as TemplateSchemaJson;
-      const payload = generateInsights(env.AI_MODE, template, mergedAnswers);
+      const payload = await generateInsights(env.AI_MODE, template, mergedAnswers, {
+        provider: env.AI_PROVIDER,
+        apiKey: env.AI_API_KEY,
+        model: env.AI_MODEL,
+      });
+
+      const insightData = {
+        tenantId,
+        sessionId,
+        summary: payload.summary,
+        risksJson: payload.risks as object,
+        recommendationsJson: payload.recommendations as unknown as object,
+      };
 
       const idempotencyKey = getIdempotencyKey(request);
       const requestHash = getRequestHash(request);
 
-      const handler = async () => {
-        const insight = await fastify.prisma.aiInsight.create({
-          data: {
-            tenantId,
-            sessionId,
-            summary: payload.summary,
-            risksJson: payload.risks as object,
-            recommendationsJson: payload.recommendations as unknown as object,
-          },
-        });
-        return { response: insight, statusCode: 200 };
-      };
-
       if (idempotencyKey) {
+        const handler = async () => {
+          const insight = await createInsightSafe(fastify.prisma, insightData);
+          return { response: insight, statusCode: 200 };
+        };
         const result = await withIdempotency(
           fastify.prisma,
           tenantId,
@@ -80,15 +111,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.status(result.statusCode).send(result.response);
       }
 
-      const insight = await fastify.prisma.aiInsight.create({
-        data: {
-          tenantId,
-          sessionId,
-          summary: payload.summary,
-          risksJson: payload.risks as object,
-          recommendationsJson: payload.recommendations as unknown as object,
-        },
-      });
+      const insight = await createInsightSafe(fastify.prisma, insightData);
       return reply.status(200).send(insight);
     }
   );
