@@ -10,6 +10,9 @@ import {
   IconAudit,
   IconLogout,
   IconPulse,
+  IconPatients,
+  IconUsers,
+  IconTenants,
 } from '@/components/icons';
 
 interface PageLayoutProps {
@@ -21,6 +24,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: IconDashboard },
   { to: '/templates', label: 'Templates', icon: IconTemplates },
   { to: '/sessions', label: 'Sessões', icon: IconSessions },
+  { to: '/patients', label: 'Pacientes', icon: IconPatients },
   { to: '/audit', label: 'Auditoria', icon: IconAudit },
 ];
 
@@ -75,6 +79,13 @@ function IconX() {
   );
 }
 
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `min-h-touch flex items-center gap-3 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+    isActive
+      ? 'bg-primary-light text-primary'
+      : 'text-content-muted hover:bg-primary-light hover:text-content'
+  }`;
+
 export function PageLayout({ children, title }: PageLayoutProps) {
   const user = getStoredUser();
   const navigate = useNavigate();
@@ -90,6 +101,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
     clearAuth();
     navigate('/login');
   };
+
+  const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
+  const isOwner = user?.role === 'owner';
 
   const sidebarContent = (
     <>
@@ -111,18 +125,24 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             key={to}
             to={to}
             end={to === '/'}
-            className={({ isActive }) =>
-              `min-h-touch flex items-center gap-3 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                isActive
-                  ? 'bg-primary-light text-primary'
-                  : 'text-content-muted hover:bg-primary-light hover:text-content'
-              }`
-            }
+            className={navLinkClass}
           >
             <Icon />
             {label}
           </NavLink>
         ))}
+        {isAdminOrOwner && (
+          <NavLink to="/users" className={navLinkClass}>
+            <IconUsers />
+            Usuários
+          </NavLink>
+        )}
+        {isOwner && (
+          <NavLink to="/tenants" className={navLinkClass}>
+            <IconTenants />
+            Tenants
+          </NavLink>
+        )}
       </nav>
 
       {/* User / Logout */}

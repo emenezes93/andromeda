@@ -34,6 +34,7 @@ PROMPT_MELHORIAS.md
 
 # Temp / editor
 *.tmp
+.tmp_docx
 *.temp
 *.swp
 *.swo

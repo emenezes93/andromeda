@@ -1,3 +1,5 @@
+import { getApiErrorHandler } from './globalErrorHandler';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 function getAuthHeaders(skipAuth = false): HeadersInit {
@@ -54,6 +56,18 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
     const msg = err.error ?? err.message ?? res.statusText ?? `Erro ${res.status}`;
+    const notify = getApiErrorHandler();
+    if (notify && (res.status === 403 || res.status === 404 || res.status >= 500)) {
+      const friendly =
+        res.status === 403
+          ? 'Ação não permitida.'
+          : res.status === 404
+            ? 'Recurso não encontrado.'
+            : res.status >= 500
+              ? 'Erro no servidor. Tente novamente mais tarde.'
+              : msg;
+      notify(friendly, 'error');
+    }
     throw new Error(msg);
   }
 

@@ -4,7 +4,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["debian-openssl-3.0.x"]
+  binaryTargets = ["debian-openssl-3.0.x", "native"]
 }
 
 datasource db {
@@ -27,6 +27,8 @@ model Tenant {
   auditLogs          AuditLog[]
   idempotencyKeys    IdempotencyKey[]
   refreshTokens      RefreshToken[]
+  patients           Patient[]
+  patientEvolutions PatientEvolution[]
 
   @@map("tenants")
 }
@@ -83,19 +85,76 @@ model AnamnesisSession {
   tenantId   String    @map("tenant_id")
   templateId String    @map("template_id")
   subjectId  String?   @map("subject_id") // optional external subject ref
+  patientId  String?   @map("patient_id") // cadastro completo do paciente (Medidas & Evolução)
   status     String    @default("in_progress") // in_progress | completed
   createdAt  DateTime  @default(now()) @map("created_at")
   deletedAt  DateTime? @map("deleted_at")
 
   tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   template AnamnesisTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  patient  Patient?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
   answers  AnamnesisAnswer[]
   aiInsights AiInsight[]
 
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
   @@index([templateId])
+  @@index([patientId])
   @@map("anamnesis_sessions")
+}
+
+// Cadastro completo do paciente (Medidas & Evolução)
+model Patient {
+  id             String    @id @default(cuid())
+  tenantId       String    @map("tenant_id")
+  fullName       String    @map("full_name")
+  birthDate      DateTime? @map("birth_date")
+  gender         String?   // M | F | Other | Prefer not to say
+  cpf            String?   @unique
+  email          String?
+  phone          String?
+  profession     String?   @map("profession")
+  mainGoal       String?   @map("main_goal")   @db.Text
+  mainComplaint  String?   @map("main_complaint") @db.Text
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  evolutions PatientEvolution[]
+  sessions  AnamnesisSession[]
+
+  @@index([tenantId])
+  @@index([tenantId, fullName])
+  @@map("patients")
+}
+
+// Registros de medidas e evolução ao longo do tempo
+model PatientEvolution {
+  id                      String   @id @default(cuid())
+  tenantId                String   @map("tenant_id")
+  patientId               String   @map("patient_id")
+  recordedAt              DateTime @map("recorded_at") // data da consulta/registro
+  weightKg                Float?   @map("weight_kg")
+  heightCm                Float?   @map("height_cm")
+  bmi                     Float?   // calculado ou armazenado
+  waistCm                 Float?   @map("waist_cm")
+  hipCm                   Float?   @map("hip_cm")
+  waistHipRatio           Float?   @map("waist_hip_ratio")
+  bodyFatPercent          Float?   @map("body_fat_percent")
+  bloodPressureSystolic   Int?     @map("blood_pressure_systolic")
+  bloodPressureDiastolic  Int?     @map("blood_pressure_diastolic")
+  heartRateBpm            Int?     @map("heart_rate_bpm")
+  notes                   String?  @db.Text
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, recordedAt])
+  @@index([tenantId])
+  @@map("patient_evolutions")
 }
 
 model AnamnesisAnswer {

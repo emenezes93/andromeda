@@ -46,3 +46,13 @@ export async function createTemplate(body: CreateTemplateBody): Promise<Template
     body: JSON.stringify(body),
   });
 }
+
+export async function updateTemplate(
+  id: string,
+  body: Partial<CreateTemplateBody>
+): Promise<Template> {
+  return apiFetch<Template>(`/v1/anamnesis/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}

@@ -1,8 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { listAudit } from '@/api/audit';
 import type { AuditLog } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+
+const ACTION_OPTIONS = ['create', 'update', 'delete', 'login', 'logout', 'register'];
+const ENTITY_OPTIONS = ['tenant', 'user', 'template', 'session', 'insight', 'patient', 'patient_evolution'];
 
 export function AuditListPage() {
   const [data, setData] = useState<{
@@ -14,40 +17,41 @@ export function AuditListPage() {
   const [page, setPage] = useState(1);
   const [filterAction, setFilterAction] = useState('');
   const [filterEntity, setFilterEntity] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
   const limit = 20;
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    listAudit({ page, limit })
+    listAudit({
+      page,
+      limit,
+      action: filterAction || undefined,
+      entity: filterEntity || undefined,
+      from: filterFrom ? new Date(filterFrom).toISOString() : undefined,
+      to: filterTo ? new Date(filterTo + 'T23:59:59').toISOString() : undefined,
+    })
       .then((res) => setData(res))
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, filterAction, filterEntity, filterFrom, filterTo]);
 
-  // Opções únicas de action e entity para os filtros
-  const { actionOptions, entityOptions } = useMemo(() => {
-    const actions = new Set<string>();
-    const entities = new Set<string>();
-    (data?.data ?? []).forEach((log) => {
-      if (log.action) actions.add(log.action);
-      if (log.entity) entities.add(log.entity);
-    });
-    return {
-      actionOptions: Array.from(actions).sort(),
-      entityOptions: Array.from(entities).sort(),
-    };
-  }, [data?.data]);
+  const hasFilters = filterAction !== '' || filterEntity !== '' || filterFrom !== '' || filterTo !== '';
 
-  const filteredLogs = useMemo(() => {
-    return (data?.data ?? []).filter((log) => {
-      if (filterAction && log.action !== filterAction) return false;
-      if (filterEntity && log.entity !== filterEntity) return false;
-      return true;
-    });
-  }, [data?.data, filterAction, filterEntity]);
+  const clearFilters = () => {
+    setFilterAction('');
+    setFilterEntity('');
+    setFilterFrom('');
+    setFilterTo('');
+    setPage(1);
+  };
 
-  const hasFilters = filterAction !== '' || filterEntity !== '';
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    setPage(1);
+    setter(e.target.value);
+  };
 
   if (loading && !data) {
     return (
@@ -68,25 +72,23 @@ export function AuditListPage() {
     );
   }
 
-  const logs = filteredLogs;
+  const logs = data?.data ?? [];
   const meta = data?.meta;
 
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4">
         <div className="flex flex-col gap-1">
           <label className="text-body-sm font-medium text-content-muted">Ação</label>
           <select
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
+            onChange={handleFilterChange(setFilterAction)}
           >
             <option value="">Todas</option>
-            {actionOptions.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
+            {ACTION_OPTIONS.map((a) => (
+              <option key={a} value={a}>{a}</option>
             ))}
           </select>
         </div>
@@ -95,32 +97,39 @@ export function AuditListPage() {
           <select
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterEntity}
-            onChange={(e) => setFilterEntity(e.target.value)}
+            onChange={handleFilterChange(setFilterEntity)}
           >
             <option value="">Todas</option>
-            {entityOptions.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
+            {ENTITY_OPTIONS.map((e) => (
+              <option key={e} value={e}>{e}</option>
             ))}
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-body-sm font-medium text-content-muted">De</label>
+          <input
+            type="date"
+            className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            value={filterFrom}
+            onChange={handleFilterChange(setFilterFrom)}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-body-sm font-medium text-content-muted">Até</label>
+          <input
+            type="date"
+            className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            value={filterTo}
+            onChange={handleFilterChange(setFilterTo)}
+          />
+        </div>
         {hasFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFilterAction('');
-              setFilterEntity('');
-            }}
-          >
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
             Limpar filtros
           </Button>
         )}
         <p className="ml-auto text-body-sm text-content-muted">
-          {hasFilters
-            ? `${logs.length} de ${meta?.total ?? 0} registro(s)`
-            : `${meta?.total ?? 0} registro(s)`}
+          {meta?.total ?? 0} registro(s)
         </p>
       </div>
 
@@ -136,21 +145,11 @@ export function AuditListPage() {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-surface-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">
-                    Data
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">
-                    Ação
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">
-                    Entidade
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">
-                    ID da entidade
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">
-                    Ator
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">Data</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">Ação</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">Entidade</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">ID da entidade</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-content-muted">Ator</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -164,16 +163,12 @@ export function AuditListPage() {
                     <td className="px-4 py-3 font-mono text-xs text-content-subtle">
                       {log.entityId ? (
                         <span title={log.entityId}>{log.entityId.slice(0, 8)}…</span>
-                      ) : (
-                        '—'
-                      )}
+                      ) : '—'}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-content-muted">
                       {log.actorUserId ? (
                         <span title={log.actorUserId}>{log.actorUserId.slice(0, 8)}…</span>
-                      ) : (
-                        '—'
-                      )}
+                      ) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -181,23 +176,15 @@ export function AuditListPage() {
             </table>
           </div>
 
-          {!hasFilters && meta && meta.totalPages > 1 && (
+          {meta && meta.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
               <span className="text-sm text-content-muted">
                 Página {page} de {meta.totalPages}
               </span>
-              <Button
-                variant="secondary"
-                disabled={page >= meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
+              <Button variant="secondary" disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)}>
                 Próxima
               </Button>
             </div>

@@ -53,7 +53,13 @@ Plugins register in order in `buildApp()`:
 ### Module Pattern (src/modules/)
 Each module follows: `routes.ts` (Fastify route registration) → `service.ts` (business logic) → `schemas.ts` (Zod request/response validation).
 
-Modules: `health`, `auth`, `tenants`, `users`, `anamnesis/templates`, `anamnesis/sessions`, `anamnesis/engine`, `ai`, `audit`
+Modules: `health`, `auth`, `tenants`, `users`, `anamnesis/templates`, `anamnesis/sessions`, `anamnesis/engine`, `ai`, `audit`, `patients`
+
+### Backend: core (hexagonal) vs modules (legacy)
+- **Entry:** `src/bootstrap/app.ts` builds the app; it uses `@config/env`, `@http/*` (plugins/middleware) and registers **both** the hexagonal auth and legacy routes.
+- **src/core/** — Arquitetura hexagonal: domain, application (use cases), infrastructure (Prisma, JWT), ports. O **auth** (login, register, refresh, logout) é atendido pelo `AuthController` e use cases. Use para **novo código** de domínio crítico ou quando quiser testabilidade e inversão de dependência.
+- **src/modules/** — Rotas Fastify “legacy” (tenants, users, templates, sessions, engine, ai, audit, patients). Use para **manutenção e novas features** que não migraram para core. Novas rotas podem ser adicionadas aqui; migração para core é opcional e incremental.
+- **Fonte de env:** usar apenas `src/config/env.ts`; `src/plugins/env.ts` existe mas o app usa `@config/env`.
 
 ### Multi-Tenancy via RLS
 - Every request includes `x-tenant-id` header

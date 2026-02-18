@@ -13,7 +13,7 @@ export function AnamnesisFlowPage() {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [question, setQuestion] = useState<QuestionSchema | null>(null);
   const [completionPercent, setCompletionPercent] = useState(0);
-  const [currentValue, setCurrentValue] = useState<string | number>('');
+  const [currentValue, setCurrentValue] = useState<string | number | string[]>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,12 +59,20 @@ export function AnamnesisFlowPage() {
     const value =
       question.type === 'number'
         ? Number(currentValue)
-        : typeof currentValue === 'string'
+        : question.type === 'multiple' && Array.isArray(currentValue)
           ? currentValue
-          : currentValue;
-    if (question.required && (value === '' || value === undefined)) {
-      setError('Responda à pergunta para continuar.');
-      return;
+          : typeof currentValue === 'string'
+            ? currentValue
+            : currentValue;
+    if (question.required) {
+      const empty =
+        value === '' ||
+        value === undefined ||
+        (Array.isArray(value) && value.length === 0);
+      if (empty) {
+        setError('Responda à pergunta para continuar.');
+        return;
+      }
     }
     const newAnswers = { ...answers, [question.id]: value };
     setSubmitting(true);
@@ -85,7 +93,7 @@ export function AnamnesisFlowPage() {
       .finally(() => setSubmitting(false));
   };
 
-  if (!id) return <p className="text-slate-600">Sessão não informada.</p>;
+  if (!id) return <p className="text-content-muted">Sessão não informada.</p>;
 
   if (loading && !question) {
     return (
@@ -97,8 +105,8 @@ export function AnamnesisFlowPage() {
 
   if (error && !question) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <p className="text-red-700">{error}</p>
+      <Card className="border-error bg-error-light">
+        <p className="text-error">{error}</p>
         <Button className="mt-4" onClick={() => navigate(`/sessions/${id}`)}>
           Voltar à sessão
         </Button>
@@ -109,7 +117,7 @@ export function AnamnesisFlowPage() {
   if (question === null && completionPercent === 100) {
     return (
       <Card>
-        <p className="text-slate-700">Concluído! Enviando respostas…</p>
+        <p className="text-content">Concluído! Enviando respostas…</p>
       </Card>
     );
   }
@@ -117,7 +125,7 @@ export function AnamnesisFlowPage() {
   if (!question) {
     return (
       <Card>
-        <p className="text-slate-600">Nenhuma pergunta no momento.</p>
+        <p className="text-content-muted">Nenhuma pergunta no momento.</p>
         <Button className="mt-4" onClick={() => navigate(`/sessions/${id}`)}>
           Voltar à sessão
         </Button>
@@ -125,29 +133,63 @@ export function AnamnesisFlowPage() {
     );
   }
 
+  const currentStep = Object.keys(answers).length + 1;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between text-sm text-slate-600">
-        <span>Progresso: {completionPercent}%</span>
-        <div className="h-2 w-48 overflow-hidden rounded-full bg-slate-200">
+      {/* Step UX: etapa atual + barra de progresso */}
+      <div className="rounded-card border border-border bg-surface p-4 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full bg-primary-light text-body-sm font-bold text-primary"
+              aria-hidden
+            >
+              {currentStep}
+            </span>
+            <span className="text-body-sm font-medium text-content-muted">
+              Pergunta {currentStep}
+            </span>
+          </div>
+          <span
+            className="text-body-sm font-semibold tabular-nums text-content"
+            aria-live="polite"
+          >
+            {completionPercent}% concluído
+          </span>
+        </div>
+        <div
+          className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-surface-muted"
+          role="progressbar"
+          aria-valuenow={completionPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Progresso do questionário"
+        >
           <div
-            className="h-full bg-primary transition-all"
+            className="h-full rounded-full bg-primary transition-all duration-normal ease-calm"
             style={{ width: `${completionPercent}%` }}
           />
         </div>
       </div>
 
       <Card>
-        <h3 className="text-lg font-semibold text-slate-900">{question.text}</h3>
+        <h2 className="text-heading-sm font-semibold text-content">{question.text}</h2>
         {question.type === 'number' && (
           <div className="mt-4">
             <Input
               type="number"
-              min={1}
-              max={10}
-              value={typeof currentValue === 'number' ? currentValue : ''}
-              onChange={(e) => setCurrentValue(e.target.value ? Number(e.target.value) : '')}
-              placeholder="1 a 10"
+              value={
+                typeof currentValue === 'number'
+                  ? currentValue
+                  : currentValue === ''
+                    ? ''
+                    : Number(currentValue) || ''
+              }
+              onChange={(e) =>
+                setCurrentValue(e.target.value === '' ? '' : Number(e.target.value) || e.target.value)
+              }
+              placeholder="Digite o valor"
             />
           </div>
         )}
@@ -161,17 +203,44 @@ export function AnamnesisFlowPage() {
                   value={opt}
                   checked={currentValue === opt}
                   onChange={() => setCurrentValue(opt)}
-                  className="border-border text-primary focus:ring-primary"
+                  className="border-border text-primary focus:ring-2 focus:ring-primary/20"
                 />
-                <span className="text-slate-700">{opt}</span>
+                <span className="text-content">{opt}</span>
               </label>
             ))}
           </div>
         )}
-        {(question.type === 'text' || question.type === 'multiple') && (
+        {question.type === 'multiple' && question.options && question.options.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-body-sm text-content-muted">Marque todas que se aplicam:</p>
+            {question.options.map((opt: string) => {
+              const selected: string[] = Array.isArray(currentValue) ? currentValue : [];
+              const checked = selected.includes(opt);
+              return (
+                <label key={opt} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name={question.id}
+                    value={opt}
+                    checked={checked}
+                    onChange={() => {
+                      const next: string[] = checked
+                        ? selected.filter((v) => v !== opt)
+                        : [...selected, opt];
+                      setCurrentValue(next);
+                    }}
+                    className="rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  <span className="text-content">{opt}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        {(question.type === 'text' || (question.type === 'multiple' && !question.options?.length)) && (
           <div className="mt-4">
             <textarea
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="min-h-touch w-full rounded-button border border-border bg-surface px-3 py-2.5 text-content transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               rows={3}
               value={typeof currentValue === 'string' ? currentValue : ''}
               onChange={(e) => setCurrentValue(e.target.value)}
@@ -179,10 +248,17 @@ export function AnamnesisFlowPage() {
             />
           </div>
         )}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        <div className="mt-6">
-          <Button onClick={handleNext} loading={submitting}>
-            Próxima
+        {error && (
+          <p className="mt-2 text-body-sm text-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex items-center justify-between gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/sessions/${id}`)}>
+            Voltar à sessão
+          </Button>
+          <Button onClick={handleNext} loading={submitting} size="lg">
+            {completionPercent >= 90 ? 'Concluir' : 'Próxima'}
           </Button>
         </div>
       </Card>

@@ -18,6 +18,7 @@ import { sessionsRoutes } from '../modules/anamnesis/sessions/routes.js';
 import { engineRoutes } from '../modules/anamnesis/engine/routes.js';
 import { aiRoutes } from '../modules/ai/routes.js';
 import { auditRoutes } from '../modules/audit/routes.js';
+import { patientsRoutes } from '../modules/patients/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
@@ -76,6 +77,7 @@ export async function buildApp() {
   await app.register(engineRoutes, { prefix: '' });
   await app.register(aiRoutes);
   await app.register(auditRoutes);
+  await app.register(patientsRoutes);
 
   return app;
 }

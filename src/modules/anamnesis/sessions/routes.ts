@@ -15,7 +15,12 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        querystring: { page: { type: 'number' }, limit: { type: 'number' } },
+        querystring: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          status: { type: 'string' },
+          templateId: { type: 'string' },
+        },
         response: { 200: { $ref: 'SessionListResponse#' } },
       },
     },
@@ -24,17 +29,23 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
       requireAuth(request);
       Guards.readOnly(request.user!.role);
 
-      const { page, limit } = paginationQuerySchema.parse(request.query);
+      const query = request.query as { page?: number; limit?: number; status?: string; templateId?: string };
+      const { page, limit } = paginationQuerySchema.parse(query);
       const skip = skipFor(page, limit);
+
+      const where: { tenantId: string; status?: string; templateId?: string } = { tenantId };
+      if (query.status) where.status = query.status;
+      if (query.templateId) where.templateId = query.templateId;
+
       const [items, total] = await Promise.all([
         fastify.prisma.anamnesisSession.findMany({
-          where: { tenantId },
+          where,
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
-          include: { template: true },
+          include: { template: true, patient: true },
         }),
-        fastify.prisma.anamnesisSession.count({ where: { tenantId } }),
+        fastify.prisma.anamnesisSession.count({ where }),
       ]);
       return reply.status(200).send({
         data: items,
@@ -73,13 +84,20 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
       const requestHash = getRequestHash(request);
 
       const handler = async () => {
+        if (body.patientId) {
+          const patient = await fastify.prisma.patient.findFirst({
+            where: { id: body.patientId, tenantId },
+          });
+          if (!patient) throw new NotFoundError('Patient not found');
+        }
         const session = await fastify.prisma.anamnesisSession.create({
           data: {
             tenantId,
             templateId: body.templateId,
             subjectId: body.subjectId ?? null,
+            patientId: body.patientId ?? null,
           },
-          include: { template: true },
+          include: { template: true, patient: true },
         });
         return { response: session, statusCode: 201 };
       };
@@ -116,7 +134,7 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
       const { id } = request.params as { id: string };
       const session = await fastify.prisma.anamnesisSession.findFirst({
         where: { id, tenantId },
-        include: { template: true, answers: true },
+        include: { template: true, patient: true, answers: true },
       });
       if (!session) throw new NotFoundError('Session not found');
       return reply.status(200).send(session);

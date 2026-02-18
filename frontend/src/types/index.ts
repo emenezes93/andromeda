@@ -102,6 +102,70 @@ export interface PatientEvolution {
   createdAt: string;
 }
 
+export interface PatientWithCount extends Patient {
+  _count: {
+    sessions: number;
+    evolutions: number;
+  };
+}
+
+export interface PatientListResponse {
+  data: PatientWithCount[];
+  meta: PaginationMeta;
+}
+
+export interface CreatePatientBody {
+  fullName: string;
+  birthDate?: string | null;
+  gender?: 'M' | 'F' | 'Other' | 'Prefer not to say' | null;
+  cpf?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  profession?: string | null;
+  mainGoal?: string | null;
+  mainComplaint?: string | null;
+  notes?: string | null;
+}
+
+export interface CreateEvolutionBody {
+  recordedAt: string;
+  weightKg?: number | null;
+  heightCm?: number | null;
+  bmi?: number | null;
+  waistCm?: number | null;
+  hipCm?: number | null;
+  waistHipRatio?: number | null;
+  bodyFatPercent?: number | null;
+  bloodPressureSystolic?: number | null;
+  bloodPressureDiastolic?: number | null;
+  heartRateBpm?: number | null;
+  notes?: string | null;
+}
+
+export interface TenantMember {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+}
+
+export interface TenantMembersResponse {
+  data: TenantMember[];
+  meta: PaginationMeta;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface TenantListResponse {
+  data: Tenant[];
+  meta: PaginationMeta;
+}
+
 export type SessionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Session {

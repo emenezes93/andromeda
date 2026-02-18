@@ -33,9 +33,12 @@ export const createTemplateSchema = z.object({
   schemaJson: schemaJsonSchema,
 });
 
+export const updateTemplateSchema = createTemplateSchema.partial();
+
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 export type CreateTemplateBody = z.infer<typeof createTemplateSchema>;
+export type UpdateTemplateBody = z.infer<typeof updateTemplateSchema>;

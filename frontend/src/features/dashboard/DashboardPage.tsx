@@ -13,6 +13,7 @@ import {
   type DayCount,
   type TemplateCount,
 } from '@/components/charts';
+import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 
 const CHART_SESSIONS_LIMIT = 30;
 
@@ -22,6 +23,7 @@ export function DashboardPage() {
   const [chartSessions, setChartSessions] = useState<Session[]>([]);
   const [totalSessions, setTotalSessions] = useState<number | null>(null);
   const [totalTemplates, setTotalTemplates] = useState<number | null>(null);
+  const [completedCount, setCompletedCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,13 +32,15 @@ export function DashboardPage() {
     Promise.all([
       listSessions({ page: 1, limit: 5 }),
       listSessions({ page: 1, limit: CHART_SESSIONS_LIMIT }),
+      listSessions({ status: 'completed', page: 1, limit: 1 }),
       listTemplates({ page: 1, limit: 1 }),
     ])
-      .then(([recentRes, chartRes, templatesRes]) => {
+      .then(([recentRes, chartRes, completedRes, templatesRes]) => {
         if (!cancelled) {
           setSessions(recentRes.data);
           setChartSessions(chartRes.data);
           setTotalSessions(recentRes.meta?.total ?? 0);
+          setCompletedCount(completedRes.meta?.total ?? 0);
           setTotalTemplates(templatesRes.meta?.total ?? 0);
         }
       })
@@ -45,6 +49,7 @@ export function DashboardPage() {
           setSessions([]);
           setChartSessions([]);
           setTotalSessions(0);
+          setCompletedCount(0);
           setTotalTemplates(0);
         }
       })
@@ -105,7 +110,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Stats cards */}
+      {/* Stats cards + gamificação */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card padding="md" className="border-l-4 border-l-primary">
           <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
@@ -126,6 +131,9 @@ export function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Conquistas (gamificação) */}
+      <AchievementsCard completedTotal={completedCount} loading={loading} />
 
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">

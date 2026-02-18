@@ -6,6 +6,8 @@ export interface ListAuditParams {
   limit?: number;
   action?: string;
   entity?: string;
+  from?: string;
+  to?: string;
 }
 
 export async function listAudit(params: ListAuditParams = {}): Promise<AuditListResponse> {
@@ -14,6 +16,8 @@ export async function listAudit(params: ListAuditParams = {}): Promise<AuditList
   if (params.limit != null) search.set('limit', String(params.limit));
   if (params.action) search.set('action', params.action);
   if (params.entity) search.set('entity', params.entity);
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
   const qs = search.toString();
   return apiFetch<AuditListResponse>(`/v1/audit${qs ? `?${qs}` : ''}`);
 }

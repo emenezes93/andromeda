@@ -6,7 +6,7 @@ import {
   refreshBodySchema,
   logoutBodySchema,
 } from '../modules/auth/schemas.js';
-import { createTenantSchema } from '../modules/tenants/schemas.js';
+import { createTenantSchema, updateTenantSchema } from '../modules/tenants/schemas.js';
 import { createUserSchema } from '../modules/users/schemas.js';
 import { createTemplateSchema } from '../modules/anamnesis/templates/schemas.js';
 import { createSessionSchema, createAnswersSchema } from '../modules/anamnesis/sessions/schemas.js';
@@ -71,6 +71,10 @@ export function registerSchemas(app: FastifyInstance): void {
     ...zodToJsonSchema(createTenantSchema),
   });
   app.addSchema({
+    $id: 'UpdateTenantBody',
+    ...zodToJsonSchema(updateTenantSchema),
+  });
+  app.addSchema({
     $id: 'TenantResponse',
     type: 'object',
     properties: {
@@ -78,6 +82,26 @@ export function registerSchemas(app: FastifyInstance): void {
       name: { type: 'string' },
       status: { type: 'string' },
       createdAt: { type: 'string' },
+    },
+  });
+  app.addSchema({
+    $id: 'TenantListResponse',
+    type: 'object',
+    properties: {
+      data: {
+        type: 'array',
+        items: { $ref: 'TenantResponse#' },
+      },
+      meta: {
+        type: 'object',
+        properties: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          total: { type: 'number' },
+          totalPages: { type: 'number' },
+          hasMore: { type: 'boolean' },
+        },
+      },
     },
   });
   app.addSchema({

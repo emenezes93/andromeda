@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { createTemplateSchema, paginationQuerySchema } from './schemas.js';
+import { createTemplateSchema, updateTemplateSchema, paginationQuerySchema } from './schemas.js';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
@@ -51,6 +51,38 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
 
       const { response, statusCode } = await handler();
       return reply.status(statusCode).send(response);
+    }
+  );
+
+  fastify.patch(
+    '/v1/anamnesis/templates/:id',
+    {
+      config: { rateLimit: { max: env.RATE_LIMIT_TEMPLATES, timeWindow: '1 minute' } },
+      schema: {
+        params: { id: { type: 'string' } },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      const user = requireAuth(request);
+      Guards.templates(user.role);
+
+      const { id } = request.params as { id: string };
+      const body = updateTemplateSchema.parse(request.body);
+
+      const existing = await fastify.prisma.anamnesisTemplate.findFirst({
+        where: { id, tenantId },
+      });
+      if (!existing) throw new NotFoundError('Template not found');
+
+      const updated = await fastify.prisma.anamnesisTemplate.update({
+        where: { id },
+        data: {
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.schemaJson !== undefined ? { schemaJson: body.schemaJson as object } : {}),
+        },
+      });
+      return reply.status(200).send(updated);
     }
   );
 

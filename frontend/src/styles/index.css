@@ -2,9 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens – single source of truth */
+:root {
+  /* Colors – primary (soft blue health identity) */
+  --color-primary: #0ea5e9;
+  --color-primary-hover: #0284c7;
+  --color-primary-light: #e0f2fe;
+  --color-primary-muted: #bae6fd;
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-calm: #f0f9ff;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-muted: #f1f5f9;
+  --color-border-soft: #cbd5e1;
+
+  /* Content (high contrast a11y) */
+  --color-content: #0f172a;
+  --color-content-muted: #475569;
+  --color-content-subtle: #64748b;
+
+  /* Feedback */
+  --color-success: #059669;
+  --color-success-light: #d1fae5;
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+
+  /* Radius */
+  --radius-button: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-input: 0.5rem;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-soft: 0 2px 8px rgb(14 165 233 / 0.08);
+  --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
+}
+
 @layer base {
+  html {
+    @apply scroll-smooth;
+  }
   body {
-    @apply bg-surface-muted text-slate-900 antialiased;
+    background-color: var(--color-surface-calm);
+    color: var(--color-content);
     font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Animação de respiração (breathwork) – expandir/contrair */
+@keyframes breath-in {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes breath-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.7);
+    opacity: 0.85;
+  }
+}
+
+.animate-breath {
+  animation: breath-in 4s ease-in-out forwards;
+}
+.animate-breath.exhale {
+  animation: breath-out 4s ease-in-out forwards;
+}
+
+/* Login: entrada suave e minimalista */
+@keyframes login-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes login-logo-glow {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px rgb(14 165 233 / 0.25));
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 20px rgb(14 165 233 / 0.4));
+  }
+}
+@keyframes login-bg-blob {
+  0%,
+  100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.08) translate(2%, 2%);
+    opacity: 0.55;
+  }
+}
+.login-enter {
+  animation: login-fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.login-enter-stagger-1 { animation-delay: 0.08s; opacity: 0; }
+.login-enter-stagger-2 { animation-delay: 0.16s; opacity: 0; }
+.login-enter-stagger-3 { animation-delay: 0.24s; opacity: 0; }
+.login-logo-pulse {
+  animation: login-logo-glow 3s ease-in-out infinite;
+}
+.login-bg-blob {
+  animation: login-bg-blob 8s ease-in-out infinite;
+}
+
+/* Microinteração tátil: efeito "vidro líquido" / profundidade no active */
+.btn-tactile {
+  transition:
+    transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 180ms ease,
+    background-color 200ms ease;
+}
+.btn-tactile:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgb(14 165 233 / 0.2),
+    0 2px 4px rgb(0 0 0 / 0.05);
+}
+.btn-tactile:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 0 2px 8px rgb(0 0 0 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+/* Textura sutil tipo borracha/mate (opcional para botão tactile) */
+.btn-texture {
+  background-image: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 0.12) 0%,
+    transparent 50%,
+    rgb(0 0 0 / 0.04) 100%
+  );
+  background-blend-mode: overlay;
+}
+
+@layer utilities {
+  .transition-calm {
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
