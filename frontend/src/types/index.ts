@@ -64,13 +64,56 @@ export interface TemplateListResponse {
   meta: PaginationMeta;
 }
 
+/** Cadastro completo do paciente (Medidas & Evolução) */
+export interface Patient {
+  id: string;
+  tenantId: string;
+  fullName: string;
+  birthDate: string | null;
+  gender: string | null;
+  cpf: string | null;
+  email: string | null;
+  phone: string | null;
+  profession: string | null;
+  mainGoal: string | null;
+  mainComplaint: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Registro de medidas e evolução em uma data */
+export interface PatientEvolution {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  recordedAt: string;
+  weightKg: number | null;
+  heightCm: number | null;
+  bmi: number | null;
+  waistCm: number | null;
+  hipCm: number | null;
+  waistHipRatio: number | null;
+  bodyFatPercent: number | null;
+  bloodPressureSystolic: number | null;
+  bloodPressureDiastolic: number | null;
+  heartRateBpm: number | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export type SessionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
 export interface Session {
   id: string;
   tenantId: string;
   templateId: string;
   subjectId: string | null;
+  patientId: string | null;
+  status: SessionStatus;
   createdAt: string;
   template?: Template;
+  patient?: Patient | null;
   answers?: { id: string; answersJson: Record<string, unknown>; createdAt: string }[];
 }
 

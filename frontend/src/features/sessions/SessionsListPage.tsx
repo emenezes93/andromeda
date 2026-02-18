@@ -4,6 +4,7 @@ import { listSessions } from '@/api/sessions';
 import type { Session } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 
 export function SessionsListPage() {
   const [data, setData] = useState<{
@@ -34,8 +35,8 @@ export function SessionsListPage() {
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <p className="text-red-700">{error}</p>
+      <Card className="border-error bg-error-light">
+        <p className="text-error">{error}</p>
         <Button className="mt-4" onClick={() => setPage(1)}>
           Tentar novamente
         </Button>
@@ -49,7 +50,7 @@ export function SessionsListPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-slate-600">{meta ? `${meta.total} sessão(ões)` : 'Nenhuma sessão'}</p>
+        <p className="text-content-muted">{meta ? `${meta.total} sessão(ões)` : 'Nenhuma sessão'}</p>
         <Link to="/sessions/new">
           <Button>Nova sessão</Button>
         </Link>
@@ -57,7 +58,7 @@ export function SessionsListPage() {
 
       {sessions.length === 0 ? (
         <Card>
-          <p className="text-slate-600">Nenhuma sessão ainda. Inicie uma nova.</p>
+          <p className="text-content-muted">Nenhuma sessão ainda. Inicie uma nova.</p>
           <Link to="/sessions/new">
             <Button className="mt-4">Nova sessão</Button>
           </Link>
@@ -69,13 +70,16 @@ export function SessionsListPage() {
               <li key={s.id}>
                 <Link to={`/sessions/${s.id}`}>
                   <Card className="h-full transition-shadow hover:shadow-md">
-                    <h3 className="font-semibold text-slate-900">
-                      {(s.template as { name?: string })?.name ?? 'Template'}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-content">
+                        {s.template?.name ?? 'Template'}
+                      </h3>
+                      {s.status && <SessionStatusBadge status={s.status} />}
+                    </div>
+                    <p className="mt-1 text-sm text-content-muted">
                       {new Date(s.createdAt).toLocaleDateString('pt-BR')}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">ID: {s.id.slice(0, 8)}…</p>
+                    <p className="mt-1 text-xs text-content-subtle">ID: {s.id.slice(0, 8)}…</p>
                   </Card>
                 </Link>
               </li>
@@ -91,7 +95,7 @@ export function SessionsListPage() {
               >
                 Anterior
               </Button>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-content-muted">
                 Página {page} de {meta.totalPages}
               </span>
               <Button

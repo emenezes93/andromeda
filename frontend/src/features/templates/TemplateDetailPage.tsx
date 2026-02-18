@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTemplate } from '@/api/templates';
-import type { Template, TemplateSchemaJson } from '@/types';
+import type { Template } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 export function TemplateDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ export function TemplateDetailPage() {
   }, [id]);
 
   if (!id) {
-    return <p className="text-slate-600">ID não informado.</p>;
+    return <p className="text-content-muted">ID não informado.</p>;
   }
 
   if (loading) {
@@ -35,8 +36,8 @@ export function TemplateDetailPage() {
 
   if (error || !template) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <p className="text-red-700">{error ?? 'Template não encontrado.'}</p>
+      <Card className="border-error bg-error-light">
+        <p className="text-error">{error ?? 'Template não encontrado.'}</p>
         <Link to="/templates">
           <Button variant="secondary" className="mt-4">
             Voltar à lista
@@ -46,15 +47,14 @@ export function TemplateDetailPage() {
     );
   }
 
-  const schema = template.schemaJson as TemplateSchemaJson;
-  const questions = schema?.questions ?? [];
+  const questions = template.schemaJson?.questions ?? [];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">{template.name}</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-xl font-semibold text-content">{template.name}</h2>
+          <p className="text-sm text-content-muted">
             Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}
           </p>
         </div>
@@ -65,25 +65,23 @@ export function TemplateDetailPage() {
 
       <Card title="Perguntas">
         {questions.length === 0 ? (
-          <p className="text-slate-600">Nenhuma pergunta no schema.</p>
+          <p className="text-content-muted">Nenhuma pergunta no schema.</p>
         ) : (
           <ul className="space-y-3">
             {questions.map((q) => (
               <li key={q.id} className="rounded-lg border border-border bg-surface-muted p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono text-xs text-slate-500">{q.id}</span>
-                    <p className="font-medium text-slate-900">{q.text}</p>
-                    <p className="text-sm text-slate-500">
+                    <span className="font-mono text-xs text-content-muted">{q.id}</span>
+                    <p className="font-medium text-content">{q.text}</p>
+                    <p className="text-sm text-content-muted">
                       Tipo: {q.type}
                       {q.options?.length ? ` • Opções: ${q.options.join(', ')}` : ''}
                       {q.tags?.length ? ` • Tags: ${q.tags.join(', ')}` : ''}
                     </p>
                   </div>
                   {q.required && (
-                    <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                      Obrigatório
-                    </span>
+                    <Badge variant="warning">Obrigatório</Badge>
                   )}
                 </div>
               </li>

@@ -34,8 +34,8 @@ export function TemplatesListPage() {
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <p className="text-red-700">{error}</p>
+      <Card className="border-error bg-error-light">
+        <p className="text-error">{error}</p>
         <Button className="mt-4" onClick={() => setPage(1)}>
           Tentar novamente
         </Button>
@@ -49,7 +49,7 @@ export function TemplatesListPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-slate-600">{meta ? `${meta.total} template(s)` : 'Nenhum template'}</p>
+        <p className="text-content-muted">{meta ? `${meta.total} template(s)` : 'Nenhum template'}</p>
         <Link to="/templates/new">
           <Button>Novo template</Button>
         </Link>
@@ -57,7 +57,7 @@ export function TemplatesListPage() {
 
       {templates.length === 0 ? (
         <Card>
-          <p className="text-slate-600">Nenhum template ainda. Crie o primeiro.</p>
+          <p className="text-content-muted">Nenhum template ainda. Crie o primeiro.</p>
           <Link to="/templates/new">
             <Button className="mt-4">Novo template</Button>
           </Link>
@@ -69,12 +69,12 @@ export function TemplatesListPage() {
               <li key={t.id}>
                 <Link to={`/templates/${t.id}`}>
                   <Card className="h-full transition-shadow hover:shadow-md">
-                    <h3 className="font-semibold text-slate-900">{t.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <h3 className="font-semibold text-content">{t.name}</h3>
+                    <p className="mt-1 text-sm text-content-muted">
                       {(t.schemaJson as { questions?: unknown[] })?.questions?.length ?? 0}{' '}
                       pergunta(s)
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-content-subtle">
                       {new Date(t.createdAt).toLocaleDateString('pt-BR')}
                     </p>
                   </Card>
@@ -92,7 +92,7 @@ export function TemplatesListPage() {
               >
                 Anterior
               </Button>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-content-muted">
                 Página {page} de {meta.totalPages}
               </span>
               <Button

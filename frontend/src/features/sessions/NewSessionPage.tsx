@@ -58,7 +58,7 @@ export function NewSessionPage() {
   if (templates.length === 0) {
     return (
       <Card title="Nova sessão">
-        <p className="text-slate-600">Nenhum template disponível. Crie um template primeiro.</p>
+        <p className="text-content-muted">Nenhum template disponível. Crie um template primeiro.</p>
         <Link to="/templates/new" className="mt-4 inline-block">
           <Button>Criar template</Button>
         </Link>
@@ -70,9 +70,9 @@ export function NewSessionPage() {
     <Card title="Nova sessão">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Template</label>
+          <label className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
           <select
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
             required
@@ -85,7 +85,7 @@ export function NewSessionPage() {
             ))}
           </select>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-body-sm text-error">{error}</p>}
         <div className="flex gap-3">
           <Button type="submit" loading={creating} disabled={!templateId}>
             Iniciar sessão

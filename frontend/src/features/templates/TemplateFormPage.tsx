@@ -1,53 +1,115 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTemplate } from '@/api/templates';
-import type { CreateTemplateBody } from '@/api/templates';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
-const DEFAULT_SCHEMA: CreateTemplateBody['schemaJson'] = {
-  questions: [
-    {
-      id: 'q1',
-      text: 'Qualidade do sono (1-10)?',
-      type: 'number',
-      required: true,
-      tags: ['sleep'],
-    },
-    {
-      id: 'q2',
-      text: 'Nível de estresse (1-10)?',
-      type: 'number',
-      required: true,
-      tags: ['stress'],
-    },
-  ],
+type QuestionType = 'text' | 'number' | 'single' | 'multiple';
+
+interface QuestionDraft {
+  _key: string; // internal stable key for React
+  id: string;
+  text: string;
+  type: QuestionType;
+  required: boolean;
+  options: string; // comma-separated string; only for single/multiple
+  tags: string; // comma-separated string
+}
+
+let _keyCounter = 0;
+function newKey() {
+  return String(++_keyCounter);
+}
+
+function blankQuestion(index: number): QuestionDraft {
+  return {
+    _key: newKey(),
+    id: `q${index + 1}`,
+    text: '',
+    type: 'text',
+    required: true,
+    options: '',
+    tags: '',
+  };
+}
+
+function buildSchemaJson(questions: QuestionDraft[]) {
+  return {
+    questions: questions.map((q) => ({
+      id: q.id.trim() || `q${_keyCounter}`,
+      text: q.text.trim(),
+      type: q.type,
+      required: q.required,
+      ...(q.options.trim() && (q.type === 'single' || q.type === 'multiple')
+        ? { options: q.options.split(',').map((o) => o.trim()).filter(Boolean) }
+        : {}),
+      ...(q.tags.trim()
+        ? { tags: q.tags.split(',').map((t) => t.trim()).filter(Boolean) }
+        : {}),
+    })),
+  };
+}
+
+const typeLabels: Record<QuestionType, string> = {
+  text: 'Texto livre',
+  number: 'Número',
+  single: 'Escolha única',
+  multiple: 'Múltipla escolha',
 };
 
 export function TemplateFormPage() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [schemaJson, setSchemaJson] = useState<string>(JSON.stringify(DEFAULT_SCHEMA, null, 2));
+  const [questions, setQuestions] = useState<QuestionDraft[]>([blankQuestion(0)]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const updateQuestion = (key: string, patch: Partial<QuestionDraft>) => {
+    setQuestions((qs) => qs.map((q) => (q._key === key ? { ...q, ...patch } : q)));
+  };
+
+  const addQuestion = () => {
+    setQuestions((qs) => [...qs, blankQuestion(qs.length)]);
+  };
+
+  const removeQuestion = (key: string) => {
+    setQuestions((qs) => qs.filter((q) => q._key !== key));
+  };
+
+  const moveQuestion = (key: string, direction: 'up' | 'down') => {
+    setQuestions((qs) => {
+      const idx = qs.findIndex((q) => q._key === key);
+      if (idx === -1) return qs;
+      const next = [...qs];
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= next.length) return qs;
+      [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+      return next;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    let parsed: CreateTemplateBody['schemaJson'];
-    try {
-      parsed = JSON.parse(schemaJson) as CreateTemplateBody['schemaJson'];
-    } catch {
-      setError('JSON do schema inválido.');
-      return;
-    }
+
     if (!name.trim()) {
       setError('Nome é obrigatório.');
       return;
     }
+    if (questions.length === 0) {
+      setError('Adicione pelo menos uma pergunta.');
+      return;
+    }
+    const emptyText = questions.find((q) => !q.text.trim());
+    if (emptyText) {
+      setError('Todas as perguntas precisam ter um enunciado.');
+      return;
+    }
+
+    const schemaJson = buildSchemaJson(questions);
     setLoading(true);
-    createTemplate({ name: name.trim(), schemaJson: parsed })
+    createTemplate({ name: name.trim(), schemaJson })
       .then((t) => navigate(`/templates/${t.id}`))
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Erro ao criar template');
@@ -56,39 +118,185 @@ export function TemplateFormPage() {
   };
 
   return (
-    <Card title="Novo template">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card title="Novo template">
         <Input
-          label="Nome"
+          label="Nome do template"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ex: Anamnese inicial"
           required
         />
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Schema (JSON)</label>
-          <textarea
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 font-mono text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            rows={14}
-            value={schemaJson}
-            onChange={(e) => setSchemaJson(e.target.value)}
-            spellCheck={false}
-          />
-          <p className="mt-1 text-xs text-slate-500">
-            Objeto com <code className="rounded bg-slate-100 px-1">questions</code> (array de
-            perguntas com id, text, type, required, tags).
-          </p>
+      </Card>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-body font-semibold text-content">
+            Perguntas{' '}
+            <span className="ml-1 rounded-full bg-primary-light px-2 py-0.5 text-body-sm font-medium text-primary">
+              {questions.length}
+            </span>
+          </h2>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex gap-3">
-          <Button type="submit" loading={loading}>
-            Criar template
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/templates')}>
-            Cancelar
-          </Button>
-        </div>
-      </form>
-    </Card>
+
+        {questions.map((q, idx) => (
+          <div
+            key={q._key}
+            className="rounded-card border border-border bg-surface p-4 shadow-card space-y-3"
+          >
+            {/* Question header */}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full bg-primary-light text-body-sm font-bold text-primary">
+                {idx + 1}
+              </span>
+              <span className="flex-1 text-body-sm font-medium text-content-muted">
+                Pergunta {idx + 1}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => moveQuestion(q._key, 'up')}
+                  disabled={idx === 0}
+                  className="rounded px-1.5 py-1 text-content-subtle hover:bg-surface-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Mover para cima"
+                  title="Mover para cima"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveQuestion(q._key, 'down')}
+                  disabled={idx === questions.length - 1}
+                  className="rounded px-1.5 py-1 text-content-subtle hover:bg-surface-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Mover para baixo"
+                  title="Mover para baixo"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(q._key)}
+                  disabled={questions.length === 1}
+                  className="rounded px-1.5 py-1 text-error hover:bg-error-light disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                  aria-label="Remover pergunta"
+                  title="Remover pergunta"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Enunciado */}
+            <div>
+              <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                Enunciado <span className="text-error">*</span>
+              </label>
+              <textarea
+                className="min-h-[60px] w-full resize-y rounded-input border border-border bg-surface px-3 py-2 text-body text-content transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                value={q.text}
+                onChange={(e) => updateQuestion(q._key, { text: e.target.value })}
+                placeholder="Ex: Como você classifica sua qualidade de sono? (1-10)"
+                rows={2}
+              />
+            </div>
+
+            {/* Type + Required */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[140px]">
+                <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                  Tipo de resposta
+                </label>
+                <select
+                  className="w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={q.type}
+                  onChange={(e) => updateQuestion(q._key, { type: e.target.value as QuestionType })}
+                >
+                  {(Object.entries(typeLabels) as [QuestionType, string][]).map(([val, label]) => (
+                    <option key={val} value={val}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-end pb-2">
+                <label className="flex cursor-pointer items-center gap-2 text-body-sm text-content-muted">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) => updateQuestion(q._key, { required: e.target.checked })}
+                    className="rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  Obrigatória
+                </label>
+              </div>
+            </div>
+
+            {/* Opções (single / multiple) */}
+            {(q.type === 'single' || q.type === 'multiple') && (
+              <div>
+                <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                  Opções{' '}
+                  <span className="font-normal text-content-subtle">
+                    (separe por vírgula)
+                  </span>
+                </label>
+                <Input
+                  value={q.options}
+                  onChange={(e) => updateQuestion(q._key, { options: e.target.value })}
+                  placeholder="Ex: Nunca, Raramente, Às vezes, Sempre"
+                />
+              </div>
+            )}
+
+            {/* Tags */}
+            <div>
+              <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                Tags{' '}
+                <span className="font-normal text-content-subtle">
+                  (separe por vírgula, ex: sleep, stress)
+                </span>
+              </label>
+              <Input
+                value={q.tags}
+                onChange={(e) => updateQuestion(q._key, { tags: e.target.value })}
+                placeholder="Ex: sleep, stress, food_emotional"
+              />
+            </div>
+
+            {/* ID da pergunta */}
+            <div>
+              <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                ID interno{' '}
+                <span className="font-normal text-content-subtle">(único por template)</span>
+              </label>
+              <Input
+                value={q.id}
+                onChange={(e) => updateQuestion(q._key, { id: e.target.value })}
+                placeholder={`q${idx + 1}`}
+                className="font-mono text-body-sm"
+              />
+            </div>
+          </div>
+        ))}
+
+        <Button type="button" variant="secondary" onClick={addQuestion} className="w-full">
+          + Adicionar pergunta
+        </Button>
+      </div>
+
+      {error && (
+        <p className="rounded-button bg-error-light px-3 py-2 text-body-sm text-error">{error}</p>
+      )}
+
+      <div className="flex gap-3">
+        <Button type="submit" loading={loading}>
+          Criar template
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => navigate('/templates')}>
+          Cancelar
+        </Button>
+      </div>
+    </form>
   );
 }
