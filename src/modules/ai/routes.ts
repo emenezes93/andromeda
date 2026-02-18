@@ -12,6 +12,28 @@ import { getIdempotencyKey, getRequestHash, withIdempotency } from '@shared/util
 
 const insightsBodySchema = z.object({ sessionId: z.string() });
 
+const DEFAULT_RISKS = { readiness: 50, dropoutRisk: 30, stress: 50, sleepQuality: 50 };
+
+function toNum(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 50;
+}
+
+/** Normalize risksJson so response always has readiness, dropoutRisk, stress, sleepQuality as numbers. */
+function normalizeRisksJson(raw: unknown): Record<string, number> {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    readiness: toNum(o.readiness ?? DEFAULT_RISKS.readiness),
+    dropoutRisk: toNum(o.dropoutRisk ?? o.dropout_risk ?? DEFAULT_RISKS.dropoutRisk),
+    stress: toNum(o.stress ?? DEFAULT_RISKS.stress),
+    sleepQuality: toNum(o.sleepQuality ?? o.sleep_quality ?? DEFAULT_RISKS.sleepQuality),
+  };
+}
+
+function insightWithNormalizedRisks<T extends { risksJson: unknown }>(insight: T): Omit<T, 'risksJson'> & { risksJson: Record<string, number> } {
+  return { ...insight, risksJson: normalizeRisksJson(insight.risksJson) };
+}
+
 /** Try to create an insight; on unique constraint race, return existing record. */
 async function createInsightSafe(
   prisma: FastifyInstance['prisma'],
@@ -66,7 +88,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         where: { sessionId },
       });
       if (existing) {
-        return reply.status(200).send(existing);
+        return reply.status(200).send(insightWithNormalizedRisks(existing));
       }
 
       const answersList = await fastify.prisma.anamnesisAnswer.findMany({
@@ -108,11 +130,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(result.response);
+        return reply.status(result.statusCode).send(insightWithNormalizedRisks(result.response));
       }
 
       const insight = await createInsightSafe(fastify.prisma, insightData);
-      return reply.status(200).send(insight);
+      return reply.status(200).send(insightWithNormalizedRisks(insight));
     }
   );
 
@@ -135,7 +157,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         where: { sessionId, tenantId },
       });
       if (!insight) throw new NotFoundError('Insights not found for this session');
-      return reply.status(200).send(insight);
+      return reply.status(200).send(insightWithNormalizedRisks(insight));
     }
   );
 }
