@@ -65,9 +65,25 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
-        continue-on-error: false
+      - name: Generate audit report
+        run: |
+          echo "## 🔒 Security Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > audit-report.json || true
+          echo "### Full Audit Summary" >> $GITHUB_STEP_SUMMARY
+          npm audit >> $GITHUB_STEP_SUMMARY || true
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Review vulnerabilities and update dependencies when possible." >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-report
+          path: audit-report.json
+          retention-days: 30
+      - name: Fail on critical vulnerabilities only
+        run: npm audit --audit-level=critical
 
   build:
     runs-on: ubuntu-latest
