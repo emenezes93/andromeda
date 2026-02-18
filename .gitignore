@@ -28,3 +28,13 @@ coverage
 
 # Claude
 .claude
+
+# Local-only docs (keep on disk, do not commit)
+PROMPT_MELHORIAS.md
+
+# Temp / editor
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
