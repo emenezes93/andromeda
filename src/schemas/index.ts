@@ -18,7 +18,16 @@ export function registerSchemas(app: FastifyInstance): void {
       token: { type: 'string' },
       refreshToken: { type: 'string' },
       expiresIn: { type: 'number' },
-      user: { type: 'object' },
+      user: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          email: { type: 'string' },
+          name: { type: 'string', nullable: true },
+          role: { type: 'string' },
+          tenantId: { type: 'string' },
+        },
+      },
     },
   });
   app.addSchema({
