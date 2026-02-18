@@ -81,7 +81,19 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'TemplateListResponse',
     type: 'object',
-    properties: { data: { type: 'array' }, meta: { type: 'object' } },
+    properties: {
+      data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+      meta: {
+        type: 'object',
+        properties: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          total: { type: 'number' },
+          totalPages: { type: 'number' },
+          hasMore: { type: 'boolean' },
+        },
+      },
+    },
   });
   app.addSchema({
     $id: 'CreateSessionBody',
@@ -90,7 +102,16 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'SessionResponse',
     type: 'object',
-    properties: { id: { type: 'string' }, tenantId: { type: 'string' }, templateId: { type: 'string' }, status: { type: 'string' }, createdAt: { type: 'string' } },
+    properties: {
+      id: { type: 'string' },
+      tenantId: { type: 'string' },
+      templateId: { type: 'string' },
+      subjectId: { type: 'string', nullable: true },
+      status: { type: 'string' },
+      createdAt: { type: 'string' },
+      template: { type: 'object', additionalProperties: true },
+      answers: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    },
   });
   app.addSchema({
     $id: 'CreateAnswersBody',
@@ -110,7 +131,18 @@ export function registerSchemas(app: FastifyInstance): void {
     $id: 'NextQuestionResponse',
     type: 'object',
     properties: {
-      nextQuestion: { type: 'object', nullable: true },
+      nextQuestion: {
+        nullable: true,
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          text: { type: 'string' },
+          type: { type: 'string' },
+          required: { type: 'boolean' },
+          options: { type: 'array', items: { type: 'string' }, nullable: true },
+          tags: { type: 'array', items: { type: 'string' }, nullable: true },
+        },
+      },
       reason: { type: 'string' },
       completionPercent: { type: 'number' },
     },
@@ -130,6 +162,18 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'AuditListResponse',
     type: 'object',
-    properties: { data: { type: 'array' }, meta: { type: 'object' } },
+    properties: {
+      data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+      meta: {
+        type: 'object',
+        properties: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          total: { type: 'number' },
+          totalPages: { type: 'number' },
+          hasMore: { type: 'boolean' },
+        },
+      },
+    },
   });
 }
