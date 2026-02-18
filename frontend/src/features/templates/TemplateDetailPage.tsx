@@ -1,0 +1,102 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { getTemplate } from '@/api/templates';
+import type { Template, TemplateSchemaJson } from '@/types';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+
+export function TemplateDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    getTemplate(id)
+      .then(setTemplate)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (!id) {
+    return <p className="text-slate-600">ID não informado.</p>;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error || !template) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <p className="text-red-700">{error ?? 'Template não encontrado.'}</p>
+        <Link to="/templates">
+          <Button variant="secondary" className="mt-4">
+            Voltar à lista
+          </Button>
+        </Link>
+      </Card>
+    );
+  }
+
+  const schema = template.schemaJson as TemplateSchemaJson;
+  const questions = schema?.questions ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{template.name}</h2>
+          <p className="text-sm text-slate-500">
+            Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+        <Link to={`/sessions/new?templateId=${template.id}`}>
+          <Button>Nova sessão com este template</Button>
+        </Link>
+      </div>
+
+      <Card title="Perguntas">
+        {questions.length === 0 ? (
+          <p className="text-slate-600">Nenhuma pergunta no schema.</p>
+        ) : (
+          <ul className="space-y-3">
+            {questions.map((q) => (
+              <li key={q.id} className="rounded-lg border border-border bg-surface-muted p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-xs text-slate-500">{q.id}</span>
+                    <p className="font-medium text-slate-900">{q.text}</p>
+                    <p className="text-sm text-slate-500">
+                      Tipo: {q.type}
+                      {q.options?.length ? ` • Opções: ${q.options.join(', ')}` : ''}
+                      {q.tags?.length ? ` • Tags: ${q.tags.join(', ')}` : ''}
+                    </p>
+                  </div>
+                  {q.required && (
+                    <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                      Obrigatório
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div>
+        <Link to="/templates">
+          <Button variant="secondary">Voltar à lista de templates</Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
