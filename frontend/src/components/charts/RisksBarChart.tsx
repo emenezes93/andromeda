@@ -22,7 +22,7 @@ interface RisksBarChartProps {
 }
 
 const PRIMARY = 'var(--color-primary)';
-const PRIMARY_LIGHT = 'var(--color-primary-light)';
+const PRIMARY_LIGHT = 'var(--color-primary-subtle)';
 const WARNING = 'var(--color-warning)';
 const ERROR = 'var(--color-error)';
 

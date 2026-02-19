@@ -28,8 +28,8 @@ export default {
         primary: {
           DEFAULT: 'var(--color-primary)',
           hover: 'var(--color-primary-hover)',
+          subtle: 'var(--color-primary-subtle)',
           light: 'var(--color-primary-light)',
-          muted: 'var(--color-primary-muted)',
         },
         surface: {
           DEFAULT: 'var(--color-surface)',
@@ -58,6 +58,10 @@ export default {
         warning: {
           DEFAULT: 'var(--color-warning)',
           light: 'var(--color-warning-light)',
+        },
+        info: {
+          DEFAULT: 'var(--color-info)',
+          light: 'var(--color-info-light)',
         },
       },
 

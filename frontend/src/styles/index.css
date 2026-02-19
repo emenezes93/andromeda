@@ -7,8 +7,8 @@
   /* Colors – primary (soft blue health identity) */
   --color-primary: #0ea5e9;
   --color-primary-hover: #0284c7;
-  --color-primary-light: #e0f2fe;
-  --color-primary-muted: #bae6fd;
+  --color-primary-subtle: #e0f2fe;
+  --color-primary-light: #bae6fd;
 
   /* Surfaces */
   --color-surface: #ffffff;
@@ -23,7 +23,7 @@
   /* Content (high contrast a11y) */
   --color-content: #0f172a;
   --color-content-muted: #475569;
-  --color-content-subtle: #64748b;
+  --color-content-subtle: #56687a;
 
   /* Feedback */
   --color-success: #059669;
@@ -32,6 +32,10 @@
   --color-error-light: #fee2e2;
   --color-warning: #d97706;
   --color-warning-light: #fef3c7;
+
+  /* Info */
+  --color-info: #0369a1;
+  --color-info-light: #e0f2fe;
 
   /* Radius */
   --radius-button: 0.5rem;
@@ -202,7 +206,7 @@
     var(--color-surface) 0%,
     var(--color-surface-muted) 100%
   );
-  border-color: var(--color-primary-muted);
+  border-color: var(--color-primary-light);
   box-shadow:
     0 2px 8px rgb(14 165 233 / 0.06),
     0 1px 2px rgb(0 0 0 / 0.04);

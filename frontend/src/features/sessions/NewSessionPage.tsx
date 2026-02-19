@@ -82,7 +82,7 @@ export function NewSessionPage() {
     <Card title="Nova sessão">
       <form onSubmit={handleSubmit} className="space-y-4">
         {patient && (
-          <div className="flex items-center gap-2 rounded-button bg-primary-light px-3 py-2">
+          <div className="flex items-center gap-2 rounded-button bg-primary-subtle px-3 py-2">
             <span className="text-body-sm text-primary">
               Paciente: <span className="font-semibold">{patient.fullName}</span>
             </span>

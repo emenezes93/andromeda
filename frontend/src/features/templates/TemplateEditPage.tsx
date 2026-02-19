@@ -194,7 +194,7 @@ export function TemplateEditPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-body font-semibold text-content">
             Perguntas{' '}
-            <span className="ml-1 rounded-full bg-primary-light px-2 py-0.5 text-body-sm font-medium text-primary">
+            <span className="ml-1 rounded-full bg-primary-subtle px-2 py-0.5 text-body-sm font-medium text-primary">
               {questions.length}
             </span>
           </h2>
@@ -207,7 +207,7 @@ export function TemplateEditPage() {
           >
             {/* Question header */}
             <div className="flex items-center gap-2">
-              <span className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full bg-primary-light text-body-sm font-bold text-primary">
+              <span className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full bg-primary-subtle text-body-sm font-bold text-primary">
                 {idx + 1}
               </span>
               <span className="flex-1 text-body-sm font-medium text-content-muted">

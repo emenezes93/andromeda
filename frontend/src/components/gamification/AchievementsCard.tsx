@@ -65,7 +65,7 @@ export function AchievementsCard({
           </div>
         </div>
         {completedThisWeek > 0 && (
-          <div className="rounded-full bg-primary-light px-3 py-1.5 text-body-sm font-medium text-primary">
+          <div className="rounded-full bg-primary-subtle px-3 py-1.5 text-body-sm font-medium text-primary">
             Esta semana: <span className="tabular-nums">{completedThisWeek}</span>{' '}
             {completedThisWeek === 1 ? 'sessão' : 'sessões'}
           </div>
@@ -122,7 +122,7 @@ export function AchievementsCard({
                   role="listitem"
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-body-sm transition-all ${
                     unlocked
-                      ? 'badge-unlocked bg-primary-light font-medium text-primary'
+                      ? 'badge-unlocked bg-primary-subtle font-medium text-primary'
                       : 'bg-surface-muted text-content-subtle opacity-70'
                   }`}
                   title={unlocked ? m.label : `${m.label} (${m.count} sessões)`}

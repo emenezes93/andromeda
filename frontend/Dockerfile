@@ -4,7 +4,9 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# Use npm install when lock file is out of sync with package.json (e.g. after adding deps).
+# For reproducible builds, run `npm install` in frontend and commit package-lock.json, then use: RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi
 
 COPY . .
 # Build with empty VITE_API_URL so the app uses relative URLs; nginx will proxy /v1 and /health to the API

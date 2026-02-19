@@ -83,8 +83,8 @@ function IconX() {
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `min-h-touch flex items-center gap-3 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
     isActive
-      ? 'bg-primary-light text-primary'
-      : 'text-content-muted hover:bg-primary-light hover:text-content'
+      ? 'bg-primary-subtle text-primary'
+      : 'text-content-muted hover:bg-primary-subtle hover:text-content'
   }`;
 
 export function PageLayout({ children, title }: PageLayoutProps) {

@@ -21,7 +21,7 @@ interface SessionsByDayChartProps {
 }
 
 const PRIMARY = 'var(--color-primary)';
-const PRIMARY_LIGHT = 'var(--color-primary-light)';
+const PRIMARY_LIGHT = 'var(--color-primary-subtle)';
 
 export function SessionsByDayChart({ data, loading }: SessionsByDayChartProps) {
   if (loading) {

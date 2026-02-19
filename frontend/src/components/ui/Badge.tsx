@@ -6,7 +6,7 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const variantClasses = {
   default: 'bg-surface-muted text-content-muted border-border',
-  primary: 'bg-primary-light text-primary border-primary-muted',
+  primary: 'bg-primary-subtle text-primary border-primary-light',
   success: 'bg-success-light text-success border-success',
   warning: 'bg-warning-light text-warning border-warning',
   error: 'bg-error-light text-error border-error',

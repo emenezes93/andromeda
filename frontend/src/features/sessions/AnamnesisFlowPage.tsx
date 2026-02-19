@@ -142,7 +142,7 @@ export function AnamnesisFlowPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
-              className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full bg-primary-light text-body-sm font-bold text-primary"
+              className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full bg-primary-subtle text-body-sm font-bold text-primary"
               aria-hidden
             >
               {currentStep}

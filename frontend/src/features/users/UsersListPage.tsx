@@ -6,6 +6,7 @@ import type { TenantMember } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
@@ -112,6 +113,7 @@ export function UsersListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<TenantMember | null>(null);
 
   const canManage = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
@@ -134,15 +136,15 @@ export function UsersListPage() {
     );
   }, []);
 
-  const handleRemove = useCallback(
+  const handleRemoveClick = useCallback((member: TenantMember) => {
+    setConfirmRemove(member);
+  }, []);
+
+  const handleRemoveConfirm = useCallback(
     async (member: TenantMember) => {
       const displayName = member.name ?? member.email;
-      const confirmed = window.confirm(
-        `Tem certeza que deseja remover "${displayName}" do tenant? Essa ação não pode ser desfeita.`,
-      );
-      if (!confirmed) return;
-
       setRemovingId(member.id);
+      setConfirmRemove(null);
       try {
         await removeUser(member.id);
         toast.success(`Usuário "${displayName}" removido com sucesso.`);
@@ -304,7 +306,7 @@ export function UsersListPage() {
                         <div className="flex items-center gap-3">
                           <div
                             aria-hidden="true"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-sm font-semibold text-primary"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-body-sm font-semibold text-primary"
                           >
                             {initials}
                           </div>
@@ -352,7 +354,7 @@ export function UsersListPage() {
                                 size="sm"
                                 className="text-error hover:bg-error-light hover:text-error"
                                 loading={isRemoving}
-                                onClick={() => void handleRemove(member)}
+                                onClick={() => handleRemoveClick(member)}
                                 aria-label={`Remover ${member.name ?? member.email}`}
                               >
                                 Remover
@@ -372,6 +374,22 @@ export function UsersListPage() {
           </div>
         </Card>
       )}
+
+      <ConfirmModal
+        open={confirmRemove !== null}
+        title="Remover usuário"
+        message={
+          confirmRemove
+            ? `Tem certeza que deseja remover "${confirmRemove.name ?? confirmRemove.email}" do tenant? Essa ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={confirmRemove !== null && removingId === confirmRemove.id}
+        onConfirm={() => confirmRemove && void handleRemoveConfirm(confirmRemove)}
+        onCancel={() => setConfirmRemove(null)}
+      />
     </div>
   );
 }

@@ -166,7 +166,7 @@ export function SubscriptionPage() {
                     <div>
                       <h3 className="text-heading-sm font-semibold text-content">{plan.label}</h3>
                       {isAnnual && (
-                        <span className="mt-1 inline-block rounded-full bg-primary-light px-2 py-0.5 text-body-sm font-medium text-primary">
+                        <span className="mt-1 inline-block rounded-full bg-primary-subtle px-2 py-0.5 text-body-sm font-medium text-primary">
                           Economia
                         </span>
                       )}

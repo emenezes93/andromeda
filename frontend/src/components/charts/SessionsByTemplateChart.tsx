@@ -21,8 +21,8 @@ interface SessionsByTemplateChartProps {
 
 const COLORS = [
   'var(--color-primary)',
-  'var(--color-primary-muted)',
   'var(--color-primary-light)',
+  'var(--color-primary-subtle)',
   'var(--color-content-subtle)',
 ];
 

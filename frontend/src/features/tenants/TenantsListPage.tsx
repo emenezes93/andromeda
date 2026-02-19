@@ -5,6 +5,7 @@ import { getStoredUser } from '@/stores/authStore';
 import type { Tenant } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -22,6 +23,7 @@ export function TenantsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [pendingSuspend, setPendingSuspend] = useState<Tenant | null>(null);
 
   const fetchTenants = useCallback((page = 1) => {
     setLoading(true);
@@ -59,6 +61,25 @@ export function TenantsListPage() {
     },
     [toast],
   );
+
+  const onStatusSelect = useCallback(
+    (tenant: Tenant, newStatus: 'active' | 'suspended') => {
+      if (newStatus === tenant.status) return;
+      if (newStatus === 'suspended') {
+        setPendingSuspend(tenant);
+        return;
+      }
+      void handleStatusChange(tenant, newStatus);
+    },
+    [handleStatusChange],
+  );
+
+  const confirmSuspend = useCallback(() => {
+    if (pendingSuspend) {
+      void handleStatusChange(pendingSuspend, 'suspended');
+      setPendingSuspend(null);
+    }
+  }, [pendingSuspend, handleStatusChange]);
 
   if (user?.role !== 'owner') {
     return null;
@@ -158,7 +179,7 @@ export function TenantsListPage() {
                         value={t.status}
                         disabled={updatingId === t.id}
                         onChange={(e) =>
-                          void handleStatusChange(t, e.target.value as 'active' | 'suspended')
+                          onStatusSelect(t, e.target.value as 'active' | 'suspended')
                         }
                         aria-label={`Alterar status de ${t.name}`}
                       >
@@ -208,6 +229,22 @@ export function TenantsListPage() {
           )}
         </Card>
       )}
+
+      <ConfirmModal
+        open={pendingSuspend !== null}
+        title="Suspender tenant"
+        message={
+          pendingSuspend
+            ? `Tem certeza que deseja suspender "${pendingSuspend.name}"? Usuários do tenant não poderão acessar até reativar.`
+            : ''
+        }
+        confirmLabel="Suspender"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={pendingSuspend !== null && updatingId === pendingSuspend.id}
+        onConfirm={confirmSuspend}
+        onCancel={() => setPendingSuspend(null)}
+      />
     </div>
   );
 }

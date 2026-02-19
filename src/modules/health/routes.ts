@@ -15,12 +15,18 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   fastify.get('/ready', async (request, reply) => {
+    const checks: Record<string, string> = {};
     try {
       await fastify.prisma.$queryRaw`SELECT 1`;
-      return reply.status(200).send({ status: 'ready' });
+      checks.database = 'ok';
     } catch (err) {
-      request.log.error({ err }, 'Readiness check failed');
-      return reply.status(503).send({ status: 'not ready', error: 'Database unavailable' });
+      request.log.error({ err }, 'Readiness check failed: database');
+      return reply.status(503).send({
+        status: 'not ready',
+        error: 'Database unavailable',
+        checks: { database: 'fail' },
+      });
     }
+    return reply.status(200).send({ status: 'ready', checks });
   });
 }
