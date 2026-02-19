@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { listPatients } from '@/api/patients';
+import { listPatients, exportPatientsCSV } from '@/api/patients';
 import type { PatientListResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -39,12 +40,14 @@ const LIMIT = 12;
 const DEBOUNCE_MS = 400;
 
 export function PatientsListPage() {
+  const toast = useToast();
   const [data, setData] = useState<PatientListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Debounce search input
   useEffect(() => {
@@ -67,6 +70,14 @@ export function PatientsListPage() {
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
+
+  const handleExportCSV = useCallback(() => {
+    setExporting(true);
+    exportPatientsCSV(debouncedSearch || undefined)
+      .then(() => toast.success('Export CSV iniciado.'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Erro ao exportar'))
+      .finally(() => setExporting(false));
+  }, [debouncedSearch, toast]);
 
   // --------------------------------------------------------------------------
   // Loading (initial / hard loading — no cached data yet)
@@ -112,9 +123,14 @@ export function PatientsListPage() {
             aria-label="Buscar pacientes"
           />
         </div>
-        <Link to="/patients/new">
-          <Button>Novo paciente</Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleExportCSV} loading={exporting} disabled={exporting}>
+            Export CSV
+          </Button>
+          <Link to="/patients/new">
+            <Button>Novo paciente</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Soft error banner (data already loaded but re-fetch failed) */}

@@ -308,4 +308,192 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.status(200).send({ fillToken, fillUrl });
     }
   );
+
+  // GET /v1/anamnesis/sessions/:id/export — exporta sessão em PDF ou JSON
+  fastify.get<{ Params: { id: string }; Querystring: { format?: string } }>(
+    '/v1/anamnesis/sessions/:id/export',
+    {
+      config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
+      schema: {
+        params: { id: { type: 'string' } },
+        querystring: { format: { type: 'string', enum: ['json', 'pdf'] } },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      requireAuth(request);
+      Guards.readOnly(request.user!.role);
+
+      const { id: sessionId } = request.params;
+      const format = (request.query.format as string | undefined) || 'json';
+
+      const session = await fastify.prisma.anamnesisSession.findFirst({
+        where: { id: sessionId, tenantId },
+        include: {
+          template: true,
+          patient: true,
+          answers: { orderBy: { createdAt: 'desc' }, take: 1 },
+          aiInsights: true,
+        },
+      });
+      if (!session) throw new NotFoundError('Session not found');
+
+      const lastAnswer = session.answers[0];
+      const answersJson =
+        lastAnswer && lastAnswer.answersJson && typeof lastAnswer.answersJson === 'object'
+          ? (lastAnswer.answersJson as Record<string, unknown>)
+          : {};
+      const insight = session.aiInsights[0];
+      const templateSchema =
+        session.template.schemaJson && typeof session.template.schemaJson === 'object'
+          ? (session.template.schemaJson as { questions?: Array<{ id: string; text: string }> })
+          : { questions: [] };
+
+      if (format === 'json') {
+        return reply.status(200).send({
+          session: {
+            id: session.id,
+            status: session.status,
+            createdAt: session.createdAt,
+            signatureName: session.signatureName,
+            signatureAgreedAt: session.signatureAgreedAt,
+          },
+          template: {
+            id: session.template.id,
+            name: session.template.name,
+          },
+          patient: session.patient
+            ? {
+                id: session.patient.id,
+                fullName: session.patient.fullName,
+              }
+            : null,
+          answers: answersJson,
+          insight: insight
+            ? {
+                summary: insight.summary,
+                risksJson: insight.risksJson,
+                recommendationsJson: insight.recommendationsJson,
+                createdAt: insight.createdAt,
+              }
+            : null,
+        });
+      }
+
+      // PDF: retorna HTML formatado para impressão
+      const questions = templateSchema.questions ?? [];
+      const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anamnese - ${session.template.name}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+    h1 { color: #0ea5e9; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px; }
+    h2 { color: #0369a1; margin-top: 30px; }
+    .meta { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    .meta p { margin: 5px 0; }
+    .answer-item { margin: 15px 0; padding: 10px; background: #f9fafb; border-left: 3px solid #0ea5e9; }
+    .answer-label { font-weight: bold; color: #0369a1; }
+    .answer-value { margin-top: 5px; }
+    .insight { background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .risks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0; }
+    .risk-item { padding: 10px; background: white; border-radius: 4px; }
+    .risk-label { font-weight: bold; }
+    .risk-value { font-size: 24px; color: #0ea5e9; }
+    .recommendations { margin-top: 15px; }
+    .recommendations ul { list-style: none; padding: 0; }
+    .recommendations li { padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+    .signature { margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; }
+    @media print { body { margin: 20px; } }
+  </style>
+</head>
+<body>
+  <h1>Anamnese - ${session.template.name}</h1>
+  
+  <div class="meta">
+    <p><strong>Data:</strong> ${new Date(session.createdAt).toLocaleString('pt-BR')}</p>
+    <p><strong>Status:</strong> ${session.status === 'completed' ? 'Concluída' : 'Em andamento'}</p>
+    ${session.patient ? `<p><strong>Paciente:</strong> ${session.patient.fullName}</p>` : ''}
+    ${session.signatureName && session.signatureAgreedAt
+        ? `<p><strong>Assinado por:</strong> ${session.signatureName} em ${new Date(session.signatureAgreedAt).toLocaleString('pt-BR')}</p>`
+        : ''}
+  </div>
+
+  <h2>Respostas</h2>
+  ${questions.length === 0
+      ? '<p>Nenhuma resposta registrada.</p>'
+      : questions
+          .map((q) => {
+            const value = answersJson[q.id];
+            const displayValue =
+              value === null || value === undefined
+                ? '—'
+                : Array.isArray(value)
+                  ? value.join(', ')
+                  : String(value);
+            return `
+    <div class="answer-item">
+      <div class="answer-label">${q.text}</div>
+      <div class="answer-value">${displayValue}</div>
+    </div>
+  `;
+          })
+          .join('')}
+
+  ${insight
+        ? `
+  <h2>Insights e Análise</h2>
+  <div class="insight">
+    ${insight.summary ? `<p><strong>Resumo:</strong> ${insight.summary}</p>` : ''}
+    ${insight.risksJson && typeof insight.risksJson === 'object'
+            ? `
+    <div class="risks">
+      ${Object.entries(insight.risksJson as Record<string, unknown>)
+                .map(
+                  ([key, val]) => `
+      <div class="risk-item">
+        <div class="risk-label">${key === 'readiness' ? 'Disposição' : key === 'dropoutRisk' ? 'Risco de desistência' : key === 'stress' ? 'Estresse' : key === 'sleepQuality' ? 'Qualidade do sono' : key}</div>
+        <div class="risk-value">${typeof val === 'number' ? val : '—'}</div>
+      </div>
+    `
+                )
+                .join('')}
+    </div>
+    `
+            : ''}
+    ${insight.recommendationsJson &&
+            Array.isArray(insight.recommendationsJson) &&
+            insight.recommendationsJson.length > 0
+            ? `
+    <div class="recommendations">
+      <strong>Recomendações:</strong>
+      <ul>
+        ${insight.recommendationsJson.map((r: string) => `<li>${r}</li>`).join('')}
+      </ul>
+    </div>
+    `
+            : ''}
+  </div>
+  `
+        : ''}
+
+  ${session.signatureName && session.signatureAgreedAt
+        ? `
+  <div class="signature">
+    <p><strong>Assinatura eletrônica:</strong></p>
+    <p>${session.signatureName}</p>
+    <p>Data: ${new Date(session.signatureAgreedAt).toLocaleString('pt-BR')}</p>
+  </div>
+  `
+        : ''}
+</body>
+</html>
+      `;
+
+      reply.type('text/html').status(200).send(html);
+    }
+  );
 }

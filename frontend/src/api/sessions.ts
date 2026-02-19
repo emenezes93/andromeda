@@ -69,3 +69,49 @@ export async function getFillLink(sessionId: string): Promise<{ fillToken: strin
     { method: 'POST' }
   );
 }
+
+export async function exportSession(
+  sessionId: string,
+  format: 'json' | 'pdf'
+): Promise<void> {
+  const url = `/v1/anamnesis/sessions/${sessionId}/export?format=${format}`;
+  const token = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (tenantId) headers['x-tenant-id'] = tenantId;
+
+  const API_URL = import.meta.env.VITE_API_URL || '';
+  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+  const res = await fetch(fullUrl, { headers });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? err.message ?? `Erro ${res.status}`);
+  }
+
+  if (format === 'json') {
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `anamnese-${sessionId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  } else {
+    const html = await res.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `anamnese-${sessionId}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+    window.open(downloadUrl, '_blank');
+  }
+}

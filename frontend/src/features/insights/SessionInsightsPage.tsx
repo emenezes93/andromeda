@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getInsights, generateInsights } from '@/api/ai';
-import { getSession } from '@/api/sessions';
+import { getSession, exportSession } from '@/api/sessions';
 import type { AiInsight, Session } from '@/types';
+import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { RisksBarChart, type RiskItem } from '@/components/charts';
@@ -55,11 +56,13 @@ const riskLevelConfig: Record<
 
 export function SessionInsightsPage() {
   const { id } = useParams<{ id: string }>();
+  const toast = useToast();
   const [insight, setInsight] = useState<AiInsight | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'json' | 'pdf' | null>(null);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -96,6 +99,21 @@ export function SessionInsightsPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao gerar'))
       .finally(() => setGenerating(false));
   };
+
+  const handleExport = useCallback(
+    async (sessionId: string, format: 'json' | 'pdf') => {
+      setExporting(format);
+      try {
+        await exportSession(sessionId, format);
+        toast.success(`Export ${format.toUpperCase()} iniciado.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Erro ao exportar');
+      } finally {
+        setExporting(null);
+      }
+    },
+    [toast]
+  );
 
   const { kpiItems, riskChartData } = useMemo(() => {
     if (!insight?.risksJson) {
@@ -170,9 +188,29 @@ export function SessionInsightsPage() {
             </p>
           )}
         </div>
-        <Link to={`/sessions/${id}`}>
-          <Button variant="secondary">Voltar à sessão</Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => id && void handleExport(id, 'json')}
+            loading={exporting === 'json'}
+            disabled={!!exporting}
+          >
+            Export JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => id && void handleExport(id, 'pdf')}
+            loading={exporting === 'pdf'}
+            disabled={!!exporting}
+          >
+            Export PDF
+          </Button>
+          <Link to={`/sessions/${id}`}>
+            <Button variant="secondary">Voltar à sessão</Button>
+          </Link>
+        </div>
       </div>
 
       {insight.summary && (

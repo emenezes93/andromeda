@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getSession, getFillLink } from '@/api/sessions';
+import { getSession, getFillLink, exportSession } from '@/api/sessions';
 import type { Session, QuestionSchema } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,7 @@ export function SessionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [fillUrl, setFillUrl] = useState<string | null>(null);
   const [loadingLink, setLoadingLink] = useState(false);
+  const [exporting, setExporting] = useState<'json' | 'pdf' | null>(null);
 
   const handleGenerateLink = useCallback(() => {
     if (!id) return;
@@ -36,6 +37,22 @@ export function SessionDetailPage() {
       .catch((err) => toast.error(err instanceof Error ? err.message : 'Erro ao gerar link'))
       .finally(() => setLoadingLink(false));
   }, [id, toast]);
+
+  const handleExport = useCallback(
+    async (format: 'json' | 'pdf') => {
+      if (!id) return;
+      setExporting(format);
+      try {
+        await exportSession(id, format);
+        toast.success(`Export ${format.toUpperCase()} iniciado.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Erro ao exportar');
+      } finally {
+        setExporting(null);
+      }
+    },
+    [id, toast]
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -124,6 +141,26 @@ export function SessionDetailPage() {
           <Link to={`/sessions/${session.id}/insights`}>
             <Button variant="secondary">Ver insights</Button>
           </Link>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleExport('json')}
+              loading={exporting === 'json'}
+              disabled={!!exporting}
+            >
+              Export JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleExport('pdf')}
+              loading={exporting === 'pdf'}
+              disabled={!!exporting}
+            >
+              Export PDF
+            </Button>
+          </div>
         </div>
       </div>
 

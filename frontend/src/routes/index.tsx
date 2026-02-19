@@ -24,6 +24,9 @@ const TemplateEditPage = lazy(() =>
 const TemplateDetailPage = lazy(() =>
   import('@/features/templates/TemplateDetailPage').then((m) => ({ default: m.TemplateDetailPage }))
 );
+const TemplateReportPage = lazy(() =>
+  import('@/features/templates/TemplateReportPage').then((m) => ({ default: m.TemplateReportPage }))
+);
 // Sessions
 const SessionsListPage = lazy(() =>
   import('@/features/sessions/SessionsListPage').then((m) => ({ default: m.SessionsListPage }))
@@ -126,6 +129,7 @@ const router = createBrowserRouter([
   { path: '/templates', element: withLayout('Templates', <TemplatesListPage />) },
   { path: '/templates/new', element: withLayout('Novo template', <TemplateFormPage />) },
   { path: '/templates/:id/edit', element: withLayout('Editar template', <TemplateEditPage />) },
+  { path: '/templates/:id/report', element: withLayout('Relatório', <TemplateReportPage />) },
   { path: '/templates/:id', element: withLayout(undefined, <TemplateDetailPage />) },
   // Sessions
   { path: '/sessions', element: withLayout('Sessões', <SessionsListPage />) },

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredUser } from '@/stores/authStore';
 import { listSessions } from '@/api/sessions';
-import { listTemplates } from '@/api/templates';
+import { getDashboardStats } from '@/api/stats';
 import type { Session } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,11 @@ import {
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 
 const CHART_SESSIONS_LIMIT = 30;
+const PERIOD_OPTIONS = [
+  { value: 7, label: '7 dias' },
+  { value: 30, label: '30 dias' },
+  { value: 90, label: '90 dias' },
+] as const;
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -28,10 +33,12 @@ function getGreeting(): string {
 export function DashboardPage() {
   const user = getStoredUser();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [chartSessions, setChartSessions] = useState<Session[]>([]);
+  const [periodDays, setPeriodDays] = useState<number>(30);
   const [totalSessions, setTotalSessions] = useState<number | null>(null);
   const [totalTemplates, setTotalTemplates] = useState<number | null>(null);
   const [completedCount, setCompletedCount] = useState<number | null>(null);
+  const [byDay, setByDay] = useState<Record<string, number>>({});
+  const [byTemplate, setByTemplate] = useState<Array<{ templateId: string; templateName: string; count: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,26 +46,26 @@ export function DashboardPage() {
     setLoading(true);
     Promise.all([
       listSessions({ page: 1, limit: 5 }),
-      listSessions({ page: 1, limit: CHART_SESSIONS_LIMIT }),
-      listSessions({ status: 'completed', page: 1, limit: 1 }),
-      listTemplates({ page: 1, limit: 1 }),
+      getDashboardStats({ days: periodDays }),
     ])
-      .then(([recentRes, chartRes, completedRes, templatesRes]) => {
+      .then(([recentRes, stats]) => {
         if (!cancelled) {
           setSessions(recentRes.data);
-          setChartSessions(chartRes.data);
-          setTotalSessions(recentRes.meta?.total ?? 0);
-          setCompletedCount(completedRes.meta?.total ?? 0);
-          setTotalTemplates(templatesRes.meta?.total ?? 0);
+          setTotalSessions(stats.totals.sessions);
+          setCompletedCount(stats.totals.completed);
+          setTotalTemplates(stats.totals.templates);
+          setByDay(stats.byDay);
+          setByTemplate(stats.byTemplate);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setSessions([]);
-          setChartSessions([]);
           setTotalSessions(0);
           setCompletedCount(0);
           setTotalTemplates(0);
+          setByDay({});
+          setByTemplate([]);
         }
       })
       .finally(() => {
@@ -67,15 +74,10 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [periodDays]);
 
-  const byDay: DayCount[] = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const s of chartSessions) {
-      const date = s.createdAt.slice(0, 10);
-      map.set(date, (map.get(date) ?? 0) + 1);
-    }
-    return Array.from(map.entries())
+  const byDayFormatted: DayCount[] = useMemo(() => {
+    return Object.entries(byDay)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({
         date,
@@ -85,26 +87,24 @@ export function DashboardPage() {
         }),
         count,
       }));
-  }, [chartSessions]);
+  }, [byDay]);
 
-  const byTemplate: TemplateCount[] = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const s of chartSessions) {
-      const name = s.template?.name ?? s.templateId;
-      map.set(name, (map.get(name) ?? 0) + 1);
-    }
-    return Array.from(map.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [chartSessions]);
+  const byTemplateFormatted: TemplateCount[] = useMemo(() => {
+    return byTemplate.map((item) => ({
+      name: item.templateName,
+      count: item.count,
+    }));
+  }, [byTemplate]);
 
   const completedThisWeek = useMemo(() => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return chartSessions.filter(
-      (s) => s.status === 'completed' && new Date(s.createdAt) >= weekAgo
-    ).length;
-  }, [chartSessions]);
+    return Object.entries(byDay).reduce((acc, [date, count]) => {
+      const d = new Date(date);
+      if (d >= weekAgo && d <= now) return acc + count;
+      return acc;
+    }, 0);
+  }, [byDay]);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('pt-BR', {
@@ -119,13 +119,32 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-heading font-semibold text-content">
-          {greeting}, <span className="text-primary">{user?.name || user?.email}</span>
-        </h1>
-        <p className="text-body-sm text-content-muted">
-          Acompanhe suas sessões, conquistas e métricas abaixo.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-heading font-semibold text-content">
+            {greeting}, <span className="text-primary">{user?.name || user?.email}</span>
+          </h1>
+          <p className="text-body-sm text-content-muted">
+            Acompanhe suas sessões, conquistas e métricas abaixo.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="period" className="text-body-sm text-content-muted">
+            Período:
+          </label>
+          <select
+            id="period"
+            className="rounded-button border border-border bg-surface px-3 py-1.5 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            value={periodDays}
+            onChange={(e) => setPeriodDays(Number(e.target.value))}
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Stats cards com ícones */}
@@ -174,10 +193,10 @@ export function DashboardPage() {
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Sessões nos últimos dias" padding="md">
-          <SessionsByDayChart data={byDay} loading={loading} />
+          <SessionsByDayChart data={byDayFormatted} loading={loading} />
         </Card>
         <Card title="Sessões por template" padding="md">
-          <SessionsByTemplateChart data={byTemplate} loading={loading} />
+          <SessionsByTemplateChart data={byTemplateFormatted} loading={loading} />
         </Card>
       </div>
 

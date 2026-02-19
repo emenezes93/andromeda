@@ -69,6 +69,70 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
+  // GET /v1/patients/export/csv — exporta lista de pacientes em CSV
+  fastify.get(
+    '/v1/patients/export/csv',
+    {
+      schema: {
+        querystring: {
+          search: { type: 'string' },
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      requireAuth(request);
+      Guards.readOnly(request.user!.role);
+
+      const { search } = listPatientsQuerySchema.partial().parse(request.query);
+
+      const where = {
+        tenantId,
+        deletedAt: null,
+        ...(search
+          ? { fullName: { contains: search, mode: 'insensitive' as const } }
+          : {}),
+      };
+
+      const patients = await fastify.prisma.patient.findMany({
+        where,
+        orderBy: { fullName: 'asc' },
+        include: {
+          _count: {
+            select: {
+              sessions: true,
+            },
+          },
+          evolutions: {
+            orderBy: { recordedAt: 'desc' },
+            take: 1,
+            select: { recordedAt: true },
+          },
+        },
+      });
+
+      const csvRows = [
+        ['Nome', 'Email', 'Última Evolução', 'Nº Sessões'].join(','),
+        ...patients.map((p) => {
+          const lastEvolution = p.evolutions[0]?.recordedAt
+            ? new Date(p.evolutions[0].recordedAt).toLocaleDateString('pt-BR')
+            : '—';
+          const email = p.email ?? '—';
+          const name = p.fullName.replace(/"/g, '""');
+          return [`"${name}"`, `"${email}"`, `"${lastEvolution}"`, p._count.sessions].join(',');
+        }),
+      ];
+
+      const csv = csvRows.join('\n');
+      const bom = '\ufeff';
+      reply
+        .type('text/csv; charset=utf-8')
+        .header('Content-Disposition', 'attachment; filename="pacientes.csv"')
+        .status(200)
+        .send(bom + csv);
+    }
+  );
+
   // POST /v1/patients — create patient
   fastify.post(
     '/v1/patients',

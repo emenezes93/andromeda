@@ -67,8 +67,8 @@ export function TemplatesListPage() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((t) => (
               <li key={t.id}>
-                <Link to={`/templates/${t.id}`}>
-                  <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="h-full transition-shadow hover:shadow-md">
+                  <Link to={`/templates/${t.id}`} className="block">
                     <h3 className="font-semibold text-content">{t.name}</h3>
                     <p className="mt-1 text-sm text-content-muted">
                       {(t.schemaJson as { questions?: unknown[] })?.questions?.length ?? 0}{' '}
@@ -77,8 +77,20 @@ export function TemplatesListPage() {
                     <p className="mt-1 text-xs text-content-subtle">
                       {new Date(t.createdAt).toLocaleDateString('pt-BR')}
                     </p>
-                  </Card>
-                </Link>
+                  </Link>
+                  <div className="mt-3 flex gap-2 border-t border-border-muted pt-3">
+                    <Link to={`/templates/${t.id}`} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        Ver
+                      </Button>
+                    </Link>
+                    <Link to={`/templates/${t.id}/report`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Relatório
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
               </li>
             ))}
           </ul>
