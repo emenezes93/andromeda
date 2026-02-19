@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const CONSENT_VERSION = '1.0';
+
 export const createPatientSchema = z.object({
   fullName: z.string().min(2).max(255),
   birthDate: z
@@ -19,6 +21,7 @@ export const createPatientSchema = z.object({
   mainGoal: z.string().max(2000).optional().nullable(),
   mainComplaint: z.string().max(2000).optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
+  consentVersion: z.string().max(20).optional(),
 });
 
 export const updatePatientSchema = createPatientSchema.partial();

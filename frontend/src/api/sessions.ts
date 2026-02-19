@@ -6,6 +6,7 @@ export interface ListSessionsParams {
   limit?: number;
   status?: string;
   templateId?: string;
+  patientId?: string;
 }
 
 export async function listSessions(params: ListSessionsParams = {}): Promise<SessionListResponse> {
@@ -14,6 +15,7 @@ export async function listSessions(params: ListSessionsParams = {}): Promise<Ses
   if (params.limit != null) search.set('limit', String(params.limit));
   if (params.status) search.set('status', params.status);
   if (params.templateId) search.set('templateId', params.templateId);
+  if (params.patientId) search.set('patientId', params.patientId);
   const qs = search.toString();
   return apiFetch<SessionListResponse>(`/v1/anamnesis/sessions${qs ? `?${qs}` : ''}`);
 }
@@ -49,4 +51,21 @@ export async function submitAnswers(
     method: 'POST',
     body: JSON.stringify({ answersJson }),
   });
+}
+
+export async function signSession(
+  sessionId: string,
+  body: { signerName: string; agreed: true }
+): Promise<Session> {
+  return apiFetch<Session>(`/v1/anamnesis/sessions/${sessionId}/sign`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getFillLink(sessionId: string): Promise<{ fillToken: string; fillUrl: string }> {
+  return apiFetch<{ fillToken: string; fillUrl: string }>(
+    `/v1/anamnesis/sessions/${sessionId}/fill-link`,
+    { method: 'POST' }
+  );
 }

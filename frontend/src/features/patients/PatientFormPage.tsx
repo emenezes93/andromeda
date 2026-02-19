@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getPatient, createPatient, updatePatient } from '@/api/patients';
 import type { CreatePatientBody } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
+
+const CONSENT_VERSION = '1.0';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +26,7 @@ interface FormState {
   mainGoal: string;
   mainComplaint: string;
   notes: string;
+  consentAccepted: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -37,13 +40,14 @@ const EMPTY_FORM: FormState = {
   mainGoal: '',
   mainComplaint: '',
   notes: '',
+  consentAccepted: false,
 };
 
 // ---------------------------------------------------------------------------
 // Helper: build CreatePatientBody from FormState (null-coerce empty strings)
 // ---------------------------------------------------------------------------
-function buildBody(form: FormState): CreatePatientBody {
-  return {
+function buildBody(form: FormState, isEditMode: boolean): CreatePatientBody {
+  const base = {
     fullName: form.fullName.trim(),
     birthDate: form.birthDate || null,
     gender: (form.gender as CreatePatientBody['gender']) || null,
@@ -54,6 +58,11 @@ function buildBody(form: FormState): CreatePatientBody {
     mainGoal: form.mainGoal.trim() || null,
     mainComplaint: form.mainComplaint.trim() || null,
     notes: form.notes.trim() || null,
+  };
+  if (isEditMode) return base;
+  return {
+    ...base,
+    consentVersion: form.consentAccepted ? CONSENT_VERSION : undefined,
   };
 }
 
@@ -105,6 +114,7 @@ export function PatientFormPage() {
           mainGoal: patient.mainGoal ?? '',
           mainComplaint: patient.mainComplaint ?? '',
           notes: patient.notes ?? '',
+          consentAccepted: true,
         });
       })
       .catch((err) => {
@@ -131,8 +141,12 @@ export function PatientFormPage() {
       setSubmitError('Nome completo é obrigatório.');
       return;
     }
+    if (!isEditMode && !form.consentAccepted) {
+      setSubmitError('É necessário aceitar a Política de Privacidade e Termos de Uso para cadastrar o paciente.');
+      return;
+    }
 
-    const body = buildBody(form);
+    const body = buildBody(form, isEditMode);
     setLoadingSubmit(true);
 
     try {
@@ -334,6 +348,28 @@ export function PatientFormPage() {
               className={textareaClass}
             />
           </div>
+
+          {/* Termo de consentimento LGPD (obrigatório na criação) */}
+          {!isEditMode && (
+            <div className="rounded-button border border-border-muted bg-surface-muted/30 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.consentAccepted}
+                  onChange={(e) => setField('consentAccepted', e.target.checked)}
+                  className="mt-1 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                  aria-describedby="consent-desc"
+                />
+                <span id="consent-desc" className="text-body-sm text-content">
+                  Li e concordo com a{' '}
+                  <Link to="/terms" className="font-medium text-primary underline hover:no-underline">
+                    Política de Privacidade e Termos de Uso
+                  </Link>
+                  , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
+                </span>
+              </label>
+            </div>
+          )}
         </div>
       </Card>
 

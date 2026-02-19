@@ -15,6 +15,7 @@ import { tenantsRoutes } from '../modules/tenants/routes.js';
 import { usersRoutes } from '../modules/users/routes.js';
 import { templatesRoutes } from '../modules/anamnesis/templates/routes.js';
 import { sessionsRoutes } from '../modules/anamnesis/sessions/routes.js';
+import { publicFillRoutes } from '../modules/anamnesis/publicFill/routes.js';
 import { engineRoutes } from '../modules/anamnesis/engine/routes.js';
 import { aiRoutes } from '../modules/ai/routes.js';
 import { auditRoutes } from '../modules/audit/routes.js';
@@ -65,6 +66,7 @@ export async function buildApp() {
       '/v1/auth/refresh',
       '/v1/auth/logout',
       '/v1/billing/webhook',
+      '/v1/public',
       '/documentation',
       '/documentation/json',
     ],
@@ -90,6 +92,7 @@ export async function buildApp() {
   await app.register(usersRoutes);
   await app.register(templatesRoutes, { prefix: '' });
   await app.register(sessionsRoutes, { prefix: '' });
+  await app.register(publicFillRoutes);
   await app.register(engineRoutes, { prefix: '' });
   await app.register(aiRoutes);
   await app.register(auditRoutes);

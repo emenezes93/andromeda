@@ -83,11 +83,14 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
       Guards.sessions(user.role);
 
       const body = createPatientSchema.parse(request.body);
+      const consentAcceptedAt = body.consentVersion ? new Date() : undefined;
 
       const patient = await fastify.prisma.patient.create({
         data: {
           tenantId,
           ...body,
+          consentVersion: body.consentVersion ?? undefined,
+          consentAcceptedAt,
         },
       });
 
@@ -149,9 +152,16 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
       });
       if (!existing) throw new NotFoundError('Patient not found');
 
+      const consentAcceptedAt =
+        body.consentVersion != null ? new Date() : undefined;
+
       const patient = await fastify.prisma.patient.update({
         where: { id, tenantId },
-        data: { ...body, updatedAt: new Date() },
+        data: {
+          ...body,
+          ...(consentAcceptedAt && { consentAcceptedAt }),
+          updatedAt: new Date(),
+        },
       });
 
       await auditLog(fastify.prisma, tenantId, 'update', 'patient', patient.id, user.userId);

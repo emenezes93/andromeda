@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { listSessions } from '@/api/sessions';
 import { listTemplates } from '@/api/templates';
 import type { Session, Template } from '@/types';
@@ -14,6 +14,8 @@ const STATUS_OPTIONS = [
 ];
 
 export function SessionsListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const patientIdFromUrl = searchParams.get('patientId') ?? '';
   const [data, setData] = useState<{
     data: Session[];
     meta: { page: number; totalPages: number; total: number };
@@ -40,14 +42,15 @@ export function SessionsListPage() {
       limit,
       status: statusFilter || undefined,
       templateId: templateFilter || undefined,
+      patientId: patientIdFromUrl || undefined,
     })
       .then((res) => setData(res))
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
       .finally(() => setLoading(false));
-  }, [page, statusFilter, templateFilter]);
+  }, [page, statusFilter, templateFilter, patientIdFromUrl]);
 
   const sessions = data?.data ?? [];
-  const hasFilter = statusFilter !== '' || templateFilter !== '';
+  const hasFilter = statusFilter !== '' || templateFilter !== '' || patientIdFromUrl !== '';
 
   if (loading && !data) {
     return (
@@ -74,6 +77,11 @@ export function SessionsListPage() {
     setStatusFilter('');
     setTemplateFilter('');
     setPage(1);
+    if (patientIdFromUrl) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('patientId');
+      setSearchParams(next);
+    }
   };
 
   return (

@@ -9,7 +9,11 @@ import {
 import { createTenantSchema, updateTenantSchema } from '../modules/tenants/schemas.js';
 import { createUserSchema } from '../modules/users/schemas.js';
 import { createTemplateSchema } from '../modules/anamnesis/templates/schemas.js';
-import { createSessionSchema, createAnswersSchema } from '../modules/anamnesis/sessions/schemas.js';
+import {
+  createSessionSchema,
+  createAnswersSchema,
+  signSessionSchema,
+} from '../modules/anamnesis/sessions/schemas.js';
 
 export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
@@ -179,6 +183,10 @@ export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({
     $id: 'CreateAnswersBody',
     ...zodToJsonSchema(createAnswersSchema),
+  });
+  app.addSchema({
+    $id: 'SignSessionBody',
+    ...zodToJsonSchema(signSessionSchema),
   });
   app.addSchema({
     $id: 'AnswerResponse',

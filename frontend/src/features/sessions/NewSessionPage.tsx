@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { listTemplates } from '@/api/templates';
 import { createSession } from '@/api/sessions';
-import { getPatient } from '@/api/patients';
+import { getPatient, listPatients } from '@/api/patients';
 import type { Template, Patient } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -14,8 +14,10 @@ export function NewSessionPage() {
   const preselectedPatientId = searchParams.get('patientId');
 
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateId, setTemplateId] = useState(preselectedTemplateId ?? '');
+  const [patientId, setPatientId] = useState<string>(preselectedPatientId ?? '');
   const [patient, setPatient] = useState<Patient | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,18 +42,33 @@ export function NewSessionPage() {
   }, [preselectedTemplateId, templates, templateId]);
 
   useEffect(() => {
-    if (!preselectedPatientId) return;
-    getPatient(preselectedPatientId)
+    setPatientId(preselectedPatientId ?? '');
+  }, [preselectedPatientId]);
+
+  useEffect(() => {
+    listPatients({ page: 1, limit: 200 })
+      .then((res) => setPatients(res.data))
+      .catch(() => setPatients([]));
+  }, []);
+
+  useEffect(() => {
+    const id = patientId || preselectedPatientId;
+    if (!id) {
+      setPatient(null);
+      return;
+    }
+    getPatient(id)
       .then((p) => setPatient(p))
       .catch(() => setPatient(null));
-  }, [preselectedPatientId]);
+  }, [patientId, preselectedPatientId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateId) return;
     setError(null);
     setCreating(true);
-    createSession(templateId, { patientId: preselectedPatientId ?? undefined })
+    const linkedPatientId = patientId || preselectedPatientId || undefined;
+    createSession(templateId, { patientId: linkedPatientId })
       .then((session) => navigate(`/sessions/${session.id}/flow`))
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Erro ao criar sessão');
@@ -81,13 +98,28 @@ export function NewSessionPage() {
   return (
     <Card title="Nova sessão">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {patient && (
-          <div className="flex items-center gap-2 rounded-button bg-primary-subtle px-3 py-2">
-            <span className="text-body-sm text-primary">
-              Paciente: <span className="font-semibold">{patient.fullName}</span>
-            </span>
-          </div>
-        )}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-content-muted">
+            Paciente (opcional)
+          </label>
+          <select
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            value={patientId || preselectedPatientId || ''}
+            onChange={(e) => setPatientId(e.target.value)}
+          >
+            <option value="">Nenhum</option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.fullName}
+              </option>
+            ))}
+          </select>
+          {patient && (
+            <p className="mt-1 text-body-sm text-content-muted">
+              Sessão será vinculada a {patient.fullName}
+            </p>
+          )}
+        </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
           <select

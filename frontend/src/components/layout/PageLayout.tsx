@@ -220,8 +220,8 @@ export function PageLayout({ children, title }: PageLayoutProps) {
           </Link>
         </header>
 
-        <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-auto flex flex-col">
+          <div className="mx-auto flex-1 w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
             {title && (
               <h1 className="mb-6 text-heading font-semibold text-content sm:text-heading-lg">
                 {title}
@@ -229,6 +229,16 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             )}
             {children}
           </div>
+          <footer className="border-t border-border bg-surface-muted/30 py-3">
+            <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 text-body-sm text-content-muted">
+              <Link
+                to="/terms"
+                className="hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-button"
+              >
+                Política de privacidade e termos de uso
+              </Link>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

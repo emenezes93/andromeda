@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getPatient } from '@/api/patients';
+import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
-import type { PatientWithCount, Session } from '@/types';
+import type { PatientWithCount, PatientEvolution, Session } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -85,6 +85,7 @@ export function PatientDetailPage() {
 
   const [patient, setPatient] = useState<PatientWithCount | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [patientError, setPatientError] = useState<string | null>(null);
@@ -106,14 +107,17 @@ export function PatientDetailPage() {
     if (!id) return;
 
     setLoadingSessions(true);
-    listSessions({ page: 1, limit: 50 })
-      .then((res) => {
-        // Filter client-side by patientId since the API has no patient filter param
-        const filtered = res.data.filter((s) => s.patientId === id);
-        setSessions(filtered.slice(0, 5));
-      })
+    listSessions({ page: 1, limit: 20, patientId: id })
+      .then((res) => setSessions(res.data.slice(0, 10)))
       .catch(() => setSessions([]))
       .finally(() => setLoadingSessions(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    listEvolutions(id)
+      .then((res) => setLastEvolution(res.data[0] ?? null))
+      .catch(() => setLastEvolution(null));
   }, [id]);
 
   // ── Guards ──────────────────────────────────────────────────────────────
@@ -163,6 +167,24 @@ export function PatientDetailPage() {
         </div>
       </div>
 
+      {/* ── Lembrete de evolução ── */}
+      {lastEvolution && (() => {
+        const recorded = new Date(lastEvolution.recordedAt);
+        const now = new Date();
+        const days = Math.floor((now.getTime() - recorded.getTime()) / (1000 * 60 * 60 * 24));
+        return (
+          <Card className="border-primary/30 bg-primary-subtle/30" padding="md">
+            <p className="text-body text-content">
+              Última evolução há <strong>{days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`}</strong>.
+              Registrar nova?
+            </p>
+            <Link to={`/patients/${id}/evolution`} className="mt-3 inline-block">
+              <Button size="sm">Registrar evolução</Button>
+            </Link>
+          </Card>
+        );
+      })()}
+
       {/* ── Dados do paciente ── */}
       <Card title="Dados do paciente" padding="md">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -195,8 +217,8 @@ export function PatientDetailPage() {
       )}
       {patient.notes && <TextCard title="Observações" text={patient.notes} />}
 
-      {/* ── Sessões recentes ── */}
-      <Card title="Sessões recentes" padding="none">
+      {/* ── Sessões (aba) ── */}
+      <Card title="Sessões" padding="none">
         {loadingSessions ? (
           <div className="flex justify-center py-10">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -258,10 +280,10 @@ export function PatientDetailPage() {
             </div>
             <div className="border-t border-border-muted px-4 py-3">
               <Link
-                to="/sessions"
+                to={`/sessions?patientId=${id}`}
                 className="text-body-sm font-medium text-primary hover:underline"
               >
-                Ver todas as sessões →
+                Ver todas as sessões deste paciente →
               </Link>
             </div>
           </>

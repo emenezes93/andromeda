@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getSession } from '@/api/sessions';
+import { getSession, getFillLink } from '@/api/sessions';
 import type { Session, QuestionSchema } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
+import { useToast } from '@/components/ui/Toast';
 
 function formatAnswerValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -14,9 +15,27 @@ function formatAnswerValue(value: unknown): string {
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const toast = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fillUrl, setFillUrl] = useState<string | null>(null);
+  const [loadingLink, setLoadingLink] = useState(false);
+
+  const handleGenerateLink = useCallback(() => {
+    if (!id) return;
+    setLoadingLink(true);
+    getFillLink(id)
+      .then(({ fillUrl: url }) => {
+        setFillUrl(url);
+        const fullUrl = url.startsWith('http') ? url : window.location.origin + url;
+        void navigator.clipboard.writeText(fullUrl).then(() => {
+          toast.success('Link copiado para a área de transferência.');
+        });
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Erro ao gerar link'))
+      .finally(() => setLoadingLink(false));
+  }, [id, toast]);
 
   useEffect(() => {
     if (!id) return;
@@ -80,18 +99,57 @@ export function SessionDetailPage() {
               Última resposta em {new Date(lastAnswerEntry.createdAt).toLocaleString('pt-BR')}
             </p>
           )}
+          {session.signatureAgreedAt && session.signatureName && (
+            <p className="text-xs text-content-subtle">
+              Assinado por {session.signatureName} em{' '}
+              {new Date(session.signatureAgreedAt).toLocaleString('pt-BR')}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {!isComplete && (
-            <Link to={`/sessions/${session.id}/flow`}>
-              <Button>{hasAnswers ? 'Continuar anamnese' : 'Iniciar anamnese'}</Button>
-            </Link>
+            <>
+              <Link to={`/sessions/${session.id}/flow`}>
+                <Button>{hasAnswers ? 'Continuar anamnese' : 'Iniciar anamnese'}</Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={handleGenerateLink}
+                loading={loadingLink}
+              >
+                Gerar link para o paciente
+              </Button>
+            </>
           )}
           <Link to={`/sessions/${session.id}/insights`}>
             <Button variant="secondary">Ver insights</Button>
           </Link>
         </div>
       </div>
+
+      {!isComplete && fillUrl && (
+        <Card title="Link para o paciente preencher" padding="md">
+          <p className="text-body-sm text-content-muted">
+            Este link permite preenchimento sem login. Guarde com segurança e envie apenas ao
+            paciente.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <code className="flex-1 min-w-0 truncate rounded-button bg-surface-muted px-3 py-2 text-body-sm text-content">
+              {fillUrl.startsWith('http') ? fillUrl : window.location.origin + fillUrl}
+            </code>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const full = fillUrl.startsWith('http') ? fillUrl : window.location.origin + fillUrl;
+                void navigator.clipboard.writeText(full).then(() => toast.success('Link copiado.'));
+              }}
+            >
+              Copiar
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Respostas */}
       {questions.length > 0 ? (

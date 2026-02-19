@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getNextQuestion } from '@/api/engine';
-import { getSession, submitAnswers } from '@/api/sessions';
+import { getSession, submitAnswers, signSession } from '@/api/sessions';
 import type { QuestionSchema } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { SignatureStep } from '@/components/session/SignatureStep';
 
 export function AnamnesisFlowPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,8 @@ export function AnamnesisFlowPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSignatureStep, setShowSignatureStep] = useState(false);
+  const [pendingFinalAnswers, setPendingFinalAnswers] = useState<Record<string, unknown> | null>(null);
 
   // Carrega apenas a primeira pergunta ao montar (respostas existentes são carregadas abaixo)
   const fetchNext = useCallback(
@@ -80,9 +83,11 @@ export function AnamnesisFlowPage() {
     getNextQuestion(id, newAnswers)
       .then((res) => {
         if (res.nextQuestion === null) {
-          return submitAnswers(id, newAnswers).then(() => {
-            navigate(`/sessions/${id}/insights`, { replace: true });
-          });
+          setPendingFinalAnswers(newAnswers);
+          setShowSignatureStep(true);
+          setAnswers(newAnswers);
+          setCompletionPercent(100);
+          return;
         }
         setAnswers(newAnswers);
         setQuestion(res.nextQuestion);
@@ -93,7 +98,33 @@ export function AnamnesisFlowPage() {
       .finally(() => setSubmitting(false));
   };
 
+  const handleSigned = useCallback(
+    async (payload: { signerName: string; agreed: true }) => {
+      if (!id || !pendingFinalAnswers) return;
+      await signSession(id, payload);
+      await submitAnswers(id, pendingFinalAnswers);
+      navigate(`/sessions/${id}/insights`, { replace: true });
+    },
+    [id, pendingFinalAnswers, navigate]
+  );
+
   if (!id) return <p className="text-content-muted">Sessão não informada.</p>;
+
+  if (showSignatureStep && pendingFinalAnswers) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <SignatureStep onSign={handleSigned} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-4"
+          onClick={() => navigate(`/sessions/${id}`)}
+        >
+          Voltar à sessão
+        </Button>
+      </div>
+    );
+  }
 
   if (loading && !question) {
     return (

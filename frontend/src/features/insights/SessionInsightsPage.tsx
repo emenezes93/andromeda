@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getInsights, generateInsights } from '@/api/ai';
-import type { AiInsight } from '@/types';
+import { getSession } from '@/api/sessions';
+import type { AiInsight, Session } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { RisksBarChart, type RiskItem } from '@/components/charts';
@@ -55,6 +56,7 @@ const riskLevelConfig: Record<
 export function SessionInsightsPage() {
   const { id } = useParams<{ id: string }>();
   const [insight, setInsight] = useState<AiInsight | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,18 +65,22 @@ export function SessionInsightsPage() {
     if (!id) return;
     setLoading(true);
     setError(null);
-    getInsights(id)
-      .then(setInsight)
-      .catch((err) => {
-        if (
-          (err as Error).message?.includes('404') ||
-          (err as Error).message?.toLowerCase().includes('not found')
-        ) {
+    Promise.allSettled([getInsights(id), getSession(id)])
+      .then(([insightResult, sessionResult]) => {
+        if (insightResult.status === 'fulfilled') setInsight(insightResult.value);
+        else {
           setInsight(null);
-          setError(null);
-        } else {
-          setError(err instanceof Error ? err.message : 'Erro ao carregar');
+          const msg = insightResult.reason?.message ?? '';
+          if (
+            msg.includes('404') ||
+            msg.toLowerCase().includes('not found')
+          ) {
+            setError(null);
+          } else {
+            setError(insightResult.reason instanceof Error ? insightResult.reason.message : 'Erro ao carregar');
+          }
         }
+        if (sessionResult.status === 'fulfilled') setSession(sessionResult.value);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -155,7 +161,15 @@ export function SessionInsightsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold text-content">Insights da sessão</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-content">Insights da sessão</h2>
+          {session?.signatureAgreedAt && session?.signatureName && (
+            <p className="mt-0.5 text-body-sm text-content-muted">
+              Assinado por {session.signatureName} em{' '}
+              {new Date(session.signatureAgreedAt).toLocaleString('pt-BR')}
+            </p>
+          )}
+        </div>
         <Link to={`/sessions/${id}`}>
           <Button variant="secondary">Voltar à sessão</Button>
         </Link>

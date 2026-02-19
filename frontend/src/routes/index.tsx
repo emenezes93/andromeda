@@ -28,6 +28,9 @@ const TemplateDetailPage = lazy(() =>
 const SessionsListPage = lazy(() =>
   import('@/features/sessions/SessionsListPage').then((m) => ({ default: m.SessionsListPage }))
 );
+const PublicFillPage = lazy(() =>
+  import('@/features/sessions/PublicFillPage').then((m) => ({ default: m.PublicFillPage }))
+);
 const NewSessionPage = lazy(() =>
   import('@/features/sessions/NewSessionPage').then((m) => ({ default: m.NewSessionPage }))
 );
@@ -79,6 +82,10 @@ const SubscriptionPage = lazy(() =>
 const AuditListPage = lazy(() =>
   import('@/features/audit/AuditListPage').then((m) => ({ default: m.AuditListPage }))
 );
+// Termos e política (LGPD)
+const TermsPage = lazy(() =>
+  import('@/features/terms/TermsPage').then((m) => ({ default: m.TermsPage }))
+);
 
 function FullPageSpinner() {
   return (
@@ -102,6 +109,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<FullPageSpinner />}>
         <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/fill/:token',
+    element: (
+      <Suspense fallback={<FullPageSpinner />}>
+        <PublicFillPage />
       </Suspense>
     ),
   },
@@ -134,6 +149,8 @@ const router = createBrowserRouter([
   { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
   // Audit
   { path: '/audit', element: withLayout('Auditoria', <AuditListPage />) },
+  // Termos e política de privacidade
+  { path: '/terms', element: withLayout('Termos e política', <TermsPage />) },
   // Catch-all
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

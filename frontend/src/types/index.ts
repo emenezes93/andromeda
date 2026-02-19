@@ -78,6 +78,8 @@ export interface Patient {
   mainGoal: string | null;
   mainComplaint: string | null;
   notes: string | null;
+  consentVersion?: string | null;
+  consentAcceptedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +127,8 @@ export interface CreatePatientBody {
   mainGoal?: string | null;
   mainComplaint?: string | null;
   notes?: string | null;
+  /** Versão do termo LGPD aceito (ex.: "1.0"); quando enviado, o backend grava consentAcceptedAt */
+  consentVersion?: string | null;
 }
 
 export interface CreateEvolutionBody {
@@ -175,6 +179,8 @@ export interface Session {
   subjectId: string | null;
   patientId: string | null;
   status: SessionStatus;
+  signatureName?: string | null;
+  signatureAgreedAt?: string | null;
   createdAt: string;
   template?: Template;
   patient?: Patient | null;
