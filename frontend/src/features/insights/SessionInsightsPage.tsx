@@ -6,8 +6,11 @@ import type { AiInsight, Session } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { RisksBarChart, type RiskItem } from '@/components/charts';
+import { RisksBarChart, type RiskItem, RadarChart, type RadarDataPoint } from '@/components/charts';
 import { BreathworkCircle } from '@/components/animations';
+import { AnswerAnalysis } from './components/AnswerAnalysis';
+import { PatientDataIntegration } from './components/PatientDataIntegration';
+import { SkeletonDetail } from '@/components/ui/SkeletonCard';
 
 // Define direção de cada métrica: 'higher_worse' → risco cresce com o valor
 // 'higher_better' → risco diminui com o valor (inverte a escala de cores)
@@ -115,9 +118,9 @@ export function SessionInsightsPage() {
     [toast]
   );
 
-  const { kpiItems, riskChartData } = useMemo(() => {
+  const { kpiItems, riskChartData, radarData, overallScore } = useMemo(() => {
     if (!insight?.risksJson) {
-      return { kpiItems: [], riskChartData: [] };
+      return { kpiItems: [], riskChartData: [], radarData: [], overallScore: null };
     }
     const risks = insight.risksJson;
 
@@ -132,17 +135,27 @@ export function SessionInsightsPage() {
 
     const chartData: RiskItem[] = items.map(({ key, label, value }) => ({ key, label, value }));
 
-    return { kpiItems: items, riskChartData: chartData };
+    // Radar chart data (normalize all values to 0-100 scale)
+    const radarData: RadarDataPoint[] = items.map(({ label, value, direction }) => ({
+      category: label,
+      value: direction === 'higher_better' ? value : 100 - value, // Invert for consistency
+    }));
+
+    // Calculate overall score (weighted average, higher is better)
+    const weights = { readiness: 0.3, stress: 0.25, dropoutRisk: 0.25, sleepQuality: 0.2 };
+    const scoreValues = items.map((item) => {
+      const normalized = item.direction === 'higher_better' ? item.value : 100 - item.value;
+      return normalized * (weights[item.key as keyof typeof weights] || 0.25);
+    });
+    const overallScore = scoreValues.length > 0 ? Math.round(scoreValues.reduce((a, b) => a + b, 0)) : null;
+
+    return { kpiItems: items, riskChartData: chartData, radarData, overallScore };
   }, [insight?.risksJson]);
 
   if (!id) return <p className="text-content-muted">Sessão não informada.</p>;
 
   if (loading && !insight) {
-    return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <SkeletonDetail />;
   }
 
   if (error && !insight && !generating) {
@@ -213,17 +226,68 @@ export function SessionInsightsPage() {
         </div>
       </div>
 
+      {/* Score Geral */}
+      {overallScore !== null && (
+        <Card title="Score Geral de Saúde" padding="md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-body-sm text-content-muted">Score calculado com base nos indicadores</p>
+              <p className="mt-2 text-4xl font-bold text-primary tabular-nums">{overallScore}</p>
+              <p className="mt-1 text-body-sm text-content-muted">de 100 pontos</p>
+            </div>
+            <div className="h-24 w-24">
+              <div className="relative h-full w-full">
+                <svg className="h-full w-full -rotate-90 transform">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="45%"
+                    fill="none"
+                    stroke="var(--color-border-muted)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="45%"
+                    fill="none"
+                    stroke="var(--color-primary)"
+                    strokeWidth="8"
+                    strokeDasharray={`${2 * Math.PI * 45 * (overallScore / 100)} ${2 * Math.PI * 45}`}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-heading font-bold text-content">{overallScore}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {insight.summary && (
         <Card title="Resumo">
           <p className="text-content leading-relaxed">{insight.summary}</p>
         </Card>
       )}
 
+      {/* Análise das Respostas */}
+      {session && <AnswerAnalysis session={session} />}
+
+      {/* Dados do Paciente */}
+      {session?.patientId && <PatientDataIntegration patientId={session.patientId} />}
+
       {kpiItems.length > 0 && (
         <div className="space-y-4">
-          <Card title="Indicadores de risco" padding="md">
-            <RisksBarChart data={riskChartData} maxValue={100} />
-          </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card title="Indicadores de Risco (Barras)" padding="md">
+              <RisksBarChart data={riskChartData} maxValue={100} />
+            </Card>
+            <Card title="Perfil de Risco (Radar)" padding="md">
+              <RadarChart data={radarData} maxValue={100} />
+            </Card>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {kpiItems.map(({ key, label, value, level }) => {
@@ -246,6 +310,48 @@ export function SessionInsightsPage() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Timeline da Sessão */}
+      {session && session.answers && session.answers.length > 0 && (
+        <Card title="Timeline da Sessão" padding="md">
+          <div className="space-y-3">
+            {session.answers.map((answer, idx) => (
+              <div key={answer.id} className="flex items-start gap-3 border-l-2 border-primary pl-4">
+                <div className="flex-1">
+                  <p className="text-body-sm font-medium text-content">
+                    Resposta #{idx + 1} - {Object.keys(answer.answersJson).length} campo(s) preenchido(s)
+                  </p>
+                  <p className="mt-0.5 text-body-xs text-content-muted">
+                    {new Date(answer.createdAt).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-start gap-3 border-l-2 border-success pl-4">
+              <div className="flex-1">
+                <p className="text-body-sm font-medium text-content">
+                  Sessão criada
+                </p>
+                <p className="mt-0.5 text-body-xs text-content-muted">
+                  {new Date(session.createdAt).toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+            {session.signatureAgreedAt && (
+              <div className="flex items-start gap-3 border-l-2 border-warning pl-4">
+                <div className="flex-1">
+                  <p className="text-body-sm font-medium text-content">
+                    Assinatura eletrônica realizada
+                  </p>
+                  <p className="mt-0.5 text-body-xs text-content-muted">
+                    {new Date(session.signatureAgreedAt).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
       )}
 
       {recommendations.length > 0 && (

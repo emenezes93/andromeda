@@ -1,6 +1,6 @@
 import { apiFetch } from './client';
 
-export type PlanId = 'monthly' | 'annual';
+export type PlanId = 'monthly' | 'semiannual' | 'annual';
 
 export interface BillingPlan {
   id: PlanId;

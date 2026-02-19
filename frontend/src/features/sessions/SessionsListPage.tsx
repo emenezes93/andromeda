@@ -6,6 +6,7 @@ import type { Session, Template } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
+import { SkeletonTable } from '@/components/ui/SkeletonCard';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todas' },
@@ -54,8 +55,15 @@ export function SessionsListPage() {
 
   if (loading && !data) {
     return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="h-6 w-48 animate-pulse rounded bg-surface-muted" />
+          <div className="flex gap-2">
+            <div className="h-10 w-32 animate-pulse rounded bg-surface-muted" />
+            <div className="h-10 w-40 animate-pulse rounded bg-surface-muted" />
+          </div>
+        </div>
+        <SkeletonTable rows={8} />
       </div>
     );
   }

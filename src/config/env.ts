@@ -30,6 +30,7 @@ const envSchema = z
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     STRIPE_PRICE_ID: z.string().optional(),
+    STRIPE_PRICE_ID_SEMIANNUAL: z.string().optional(),
     STRIPE_PRICE_ID_ANNUAL: z.string().optional(),
     FRONTEND_URL: z.string().url().optional().or(z.literal('')),
   })

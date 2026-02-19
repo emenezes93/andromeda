@@ -11,7 +11,7 @@ declare module 'fastify' {
 }
 
 async function tenantPlugin(fastify: FastifyInstance): Promise<void> {
-  fastify.decorateRequest('tenantId', null);
+  fastify.decorateRequest('tenantId', undefined);
 
   fastify.addHook('preHandler', async (request: FastifyRequest, _reply: FastifyReply) => {
     const tenantId = request.headers[HEADER_TENANT] as string | undefined;

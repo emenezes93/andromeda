@@ -46,11 +46,11 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(result.response);
+        return reply.status(result.statusCode as 201).send(result.response);
       }
 
       const { response, statusCode } = await handler();
-      return reply.status(statusCode).send(response);
+      return reply.status(statusCode as 201).send(response);
     }
   );
 
@@ -59,7 +59,13 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_TEMPLATES, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
       },
     },
     async (request, reply) => {
@@ -91,7 +97,13 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_TEMPLATES, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         response: { 200: { $ref: 'TemplateResponse#' } },
       },
     },
@@ -114,7 +126,13 @@ export async function templatesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_TEMPLATES, timeWindow: '1 minute' } },
       schema: {
-        querystring: { page: { type: 'number' }, limit: { type: 'number' } },
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+          },
+        },
         response: { 200: { $ref: 'TemplateListResponse#' } },
       },
     },

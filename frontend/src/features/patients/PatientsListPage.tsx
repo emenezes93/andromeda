@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
+import { SkeletonCardGrid } from '@/components/ui/SkeletonCard';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,8 +85,15 @@ export function PatientsListPage() {
   // --------------------------------------------------------------------------
   if (loading && !data) {
     return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="h-10 w-64 animate-pulse rounded bg-surface-muted" />
+          <div className="flex gap-2">
+            <div className="h-10 w-28 animate-pulse rounded bg-surface-muted" />
+            <div className="h-10 w-32 animate-pulse rounded bg-surface-muted" />
+          </div>
+        </div>
+        <SkeletonCardGrid count={6} />
       </div>
     );
   }

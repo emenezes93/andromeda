@@ -4,6 +4,7 @@ import { listTemplates } from '@/api/templates';
 import type { Template } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { SkeletonCardGrid } from '@/components/ui/SkeletonCard';
 
 export function TemplatesListPage() {
   const [data, setData] = useState<{
@@ -26,8 +27,12 @@ export function TemplatesListPage() {
 
   if (loading && !data) {
     return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="h-6 w-32 animate-pulse rounded bg-surface-muted" />
+          <div className="h-10 w-32 animate-pulse rounded bg-surface-muted" />
+        </div>
+        <SkeletonCardGrid count={6} />
       </div>
     );
   }

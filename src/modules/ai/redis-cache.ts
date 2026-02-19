@@ -7,7 +7,18 @@
 
 import type { PrismaClient } from '@prisma/client';
 
-let redisClient: any = null;
+type RedisClient = {
+  on(event: 'error', handler: (err: Error) => void): void;
+  on(event: 'connect', handler: () => void): void;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  ping(): Promise<string>;
+  get(key: string): Promise<string | null>;
+  setex(key: string, ttl: number, value: string): Promise<string>;
+  keys(pattern: string): Promise<string[]>;
+  del(...keys: string[]): Promise<number>;
+};
+
+let redisClient: RedisClient | null = null;
 let redisAvailable = false;
 let redisInitPromise: Promise<void> | null = null;
 let redisModuleChecked = false;
@@ -22,14 +33,7 @@ async function initRedis(): Promise<void> {
     try {
       // Dynamic import with error handling - ioredis is optional
       const redisModule = await import('ioredis').catch(() => null) as {
-        default?: new (url: string) => {
-          on(event: string, handler: (err?: Error) => void): void;
-          ping(): Promise<string>;
-          get(key: string): Promise<string | null>;
-          setex(key: string, ttl: number, value: string): Promise<string>;
-          keys(pattern: string): Promise<string[]>;
-          del(...keys: string[]): Promise<number>;
-        };
+        default?: new (url: string) => RedisClient;
       } | null;
       if (!redisModule || !redisModule.default) {
         redisAvailable = false;

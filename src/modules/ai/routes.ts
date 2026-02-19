@@ -83,7 +83,13 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_AI, timeWindow: '1 minute' } },
       schema: {
-        body: { sessionId: { type: 'string' } },
+        body: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+          },
+          required: ['sessionId'],
+        },
         response: { 200: { $ref: 'AiInsightResponse#' } },
       },
     },
@@ -243,7 +249,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(toInsightResponse(result.response));
+        return reply.status(result.statusCode as 200).send(toInsightResponse(result.response));
       }
 
       const insight = await createInsightSafe(fastify.prisma, insightData);
@@ -269,7 +275,13 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_AI, timeWindow: '1 minute' } },
       schema: {
-        params: { sessionId: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+          },
+          required: ['sessionId'],
+        },
         response: { 200: { $ref: 'AiInsightResponse#' } },
       },
     },
@@ -294,8 +306,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       config: { rateLimit: { max: env.RATE_LIMIT_AI, timeWindow: '1 minute' } },
       schema: {
         querystring: {
-          from: { type: 'string' },
-          to: { type: 'string' },
+          type: 'object',
+          properties: {
+            from: { type: 'string' },
+            to: { type: 'string' },
+          },
         },
       },
     },
@@ -364,8 +379,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     {
       schema: {
         body: {
-          limitUsd: { type: 'number' },
-          thresholdPercent: { type: 'number' },
+          type: 'object',
+          properties: {
+            limitUsd: { type: 'number' },
+            thresholdPercent: { type: 'number' },
+          },
         },
       },
     },

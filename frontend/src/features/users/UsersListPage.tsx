@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
+import { SkeletonTable } from '@/components/ui/SkeletonCard';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -177,24 +179,12 @@ export function UsersListPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div className="h-8 w-40 animate-pulse rounded-button bg-surface-muted" />
-          <div className="h-10 w-36 animate-pulse rounded-button bg-surface-muted" />
+          <Skeleton height={32} width={200} />
+          <Skeleton height={40} width={144} />
         </div>
-        <Card padding="none">
-          <div className="divide-y divide-border">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-5 py-4">
-                <div className="h-10 w-10 animate-pulse rounded-full bg-surface-muted" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 animate-pulse rounded bg-surface-muted" />
-                  <div className="h-3 w-48 animate-pulse rounded bg-surface-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <SkeletonTable rows={6} />
       </div>
     );
   }

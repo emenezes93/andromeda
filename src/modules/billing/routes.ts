@@ -32,7 +32,7 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
             items: {
               type: 'object',
               properties: {
-                id: { type: 'string', enum: ['monthly', 'annual'] },
+                id: { type: 'string', enum: ['monthly', 'semiannual', 'annual'] },
                 label: { type: 'string' },
                 interval: { type: 'string', enum: ['month', 'year'] },
                 description: { type: 'string' },
@@ -59,7 +59,7 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
           type: 'object',
           required: ['planId'],
           properties: {
-            planId: { type: 'string', enum: ['monthly', 'annual'] },
+            planId: { type: 'string', enum: ['monthly', 'semiannual', 'annual'] },
             successPath: { type: 'string', default: '/subscription?success=1' },
             cancelPath: { type: 'string', default: '/subscription?canceled=1' },
           },
@@ -89,9 +89,9 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const body = request.body as { planId?: string; successPath?: string; cancelPath?: string };
-      const planId = body.planId as 'monthly' | 'annual' | undefined;
-      if (!planId || (planId !== 'monthly' && planId !== 'annual')) {
-        return reply.status(400).send({ error: 'planId must be monthly or annual' });
+      const planId = body.planId as 'monthly' | 'semiannual' | 'annual' | undefined;
+      if (!planId || (planId !== 'monthly' && planId !== 'semiannual' && planId !== 'annual')) {
+        return reply.status(400).send({ error: 'planId must be monthly, semiannual, or annual' });
       }
 
       const result = await createCheckoutSession(

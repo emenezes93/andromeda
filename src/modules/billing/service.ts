@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import type { PrismaClient } from '@prisma/client';
 import { env } from '@config/env.js';
 
-export type PlanId = 'monthly' | 'annual';
+export type PlanId = 'monthly' | 'semiannual' | 'annual';
 
 export interface BillingPlan {
   id: PlanId;
@@ -22,6 +22,7 @@ function getStripe(): Stripe | null {
 
 function getPriceIdForPlan(planId: PlanId): string | null {
   if (planId === 'monthly') return env.STRIPE_PRICE_ID ?? null;
+  if (planId === 'semiannual') return env.STRIPE_PRICE_ID_SEMIANNUAL ?? null;
   if (planId === 'annual') return env.STRIPE_PRICE_ID_ANNUAL ?? null;
   return null;
 }
@@ -35,6 +36,14 @@ export function getPlans(): BillingPlan[] {
       label: 'Plano mensal',
       interval: 'month',
       description: 'Cobrança mensal. Cancele quando quiser.',
+    });
+  }
+  if (env.STRIPE_PRICE_ID_SEMIANNUAL) {
+    plans.push({
+      id: 'semiannual',
+      label: 'Plano semestral',
+      interval: 'month',
+      description: 'Cobrança a cada 6 meses. Economia de 10% em relação ao plano mensal.',
     });
   }
   if (env.STRIPE_PRICE_ID_ANNUAL) {
@@ -120,9 +129,11 @@ async function getPlanLabelFromStripe(stripe: Stripe, subscriptionId: string): P
       expand: ['items.data.price'],
     });
     const item = subscription.items?.data?.[0];
-    const price = item?.price as { recurring?: { interval?: string } } | undefined;
+    const price = item?.price as { recurring?: { interval?: string; interval_count?: number } } | undefined;
     const interval = price?.recurring?.interval;
+    const intervalCount = price?.recurring?.interval_count ?? 1;
     if (interval === 'year') return 'Plano anual';
+    if (interval === 'month' && intervalCount === 6) return 'Plano semestral';
     return 'Plano mensal';
   } catch {
     return 'Plano mensal';
@@ -154,7 +165,9 @@ export async function getSubscription(
     const stripe = getStripe();
     if (stripe) {
       planLabel = await getPlanLabelFromStripe(stripe, tenant.stripeSubscriptionId);
-      planId = planLabel.includes('anual') ? 'annual' : 'monthly';
+      if (planLabel.includes('anual')) planId = 'annual';
+      else if (planLabel.includes('semestral')) planId = 'semiannual';
+      else planId = 'monthly';
     }
   } else {
     planId = null;

@@ -61,7 +61,7 @@ export function SubscriptionPage() {
     }
   }, [searchParams, toast, fetchData]);
 
-  const handleSubscribe = async (planId: 'monthly' | 'annual') => {
+  const handleSubscribe = async (planId: 'monthly' | 'semiannual' | 'annual') => {
     setCheckoutLoading(planId);
     try {
       const { url } = await createCheckout(planId);
@@ -154,18 +154,20 @@ export function SubscriptionPage() {
           {plans.map((plan) => {
             const isCurrentPlan = isActive && sub?.planId === plan.id;
             const isAnnual = plan.interval === 'year';
+            const isSemiannual = plan.id === 'semiannual';
+            const hasSavings = isAnnual || isSemiannual;
             return (
               <Card
                 key={plan.id}
                 className={`overflow-hidden transition-calm ${
-                  isAnnual ? 'border-primary/30 ring-1 ring-primary/10' : ''
+                  hasSavings ? 'border-primary/30 ring-1 ring-primary/10' : ''
                 } ${isCurrentPlan ? 'opacity-90' : ''}`}
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="text-heading-sm font-semibold text-content">{plan.label}</h3>
-                      {isAnnual && (
+                      {hasSavings && (
                         <span className="mt-1 inline-block rounded-full bg-primary-subtle px-2 py-0.5 text-body-sm font-medium text-primary">
                           Economia
                         </span>
@@ -178,7 +180,7 @@ export function SubscriptionPage() {
                       <p className="text-body-sm font-medium text-primary">Plano atual</p>
                     ) : !isActive ? (
                       <Button
-                        variant={isAnnual ? 'tactile' : 'outline'}
+                        variant={hasSavings ? 'tactile' : 'outline'}
                         size="sm"
                         className="w-full sm:w-auto"
                         onClick={() => void handleSubscribe(plan.id)}

@@ -64,6 +64,7 @@ export async function buildApp() {
       '/health',
       '/ready',
       '/v1/auth/login',
+      '/v1/auth/login-2fa',
       '/v1/auth/refresh',
       '/v1/auth/logout',
       '/v1/billing/webhook',

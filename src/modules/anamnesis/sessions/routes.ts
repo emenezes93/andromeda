@@ -18,11 +18,14 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
         querystring: {
-          page: { type: 'number' },
-          limit: { type: 'number' },
-          status: { type: 'string' },
-          templateId: { type: 'string' },
-          patientId: { type: 'string' },
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            status: { type: 'string' },
+            templateId: { type: 'string' },
+            patientId: { type: 'string' },
+          },
         },
         response: { 200: { $ref: 'SessionListResponse#' } },
       },
@@ -125,10 +128,10 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(result.response);
+        return reply.status(result.statusCode as 201).send(result.response);
       }
       const { response, statusCode } = await handler();
-      return reply.status(statusCode).send(response);
+      return reply.status(statusCode as 201).send(response);
     }
   );
 
@@ -137,7 +140,13 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         response: { 200: { $ref: 'SessionResponse#' } },
       },
     },
@@ -161,7 +170,13 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         body: { $ref: 'CreateAnswersBody#' },
         response: { 201: { $ref: 'AnswerResponse#' } },
       },
@@ -201,10 +216,10 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
           requestHash,
           handler
         );
-        return reply.status(result.statusCode).send(result.response);
+        return reply.status(result.statusCode as 201).send(result.response);
       }
       const { response, statusCode } = await handler();
-      return reply.status(statusCode).send(response);
+      return reply.status(statusCode as 201).send(response);
     }
   );
 
@@ -214,7 +229,13 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         body: { $ref: 'SignSessionBody#' },
         response: { 200: { $ref: 'SessionResponse#' } },
       },
@@ -266,7 +287,13 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         response: {
           200: {
             type: 'object',
@@ -315,8 +342,19 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       config: { rateLimit: { max: env.RATE_LIMIT_SESSIONS, timeWindow: '1 minute' } },
       schema: {
-        params: { id: { type: 'string' } },
-        querystring: { format: { type: 'string', enum: ['json', 'pdf'] } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        querystring: {
+          type: 'object',
+          properties: {
+            format: { type: 'string', enum: ['json', 'pdf'] },
+          },
+        },
       },
     },
     async (request, reply) => {

@@ -24,7 +24,13 @@ export async function publicFillRoutes(fastify: FastifyInstance): Promise<void> 
     {
       config: { rateLimit: { max: PUBLIC_RATE_LIMIT, timeWindow: '1 minute' } },
       schema: {
-        params: { token: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
       },
     },
     async (request, reply) => {
@@ -57,7 +63,13 @@ export async function publicFillRoutes(fastify: FastifyInstance): Promise<void> 
     {
       config: { rateLimit: { max: PUBLIC_RATE_LIMIT, timeWindow: '1 minute' } },
       schema: {
-        params: { token: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
         body: { type: 'object', properties: { answersJson: { type: 'object' } } },
       },
     },
@@ -85,7 +97,13 @@ export async function publicFillRoutes(fastify: FastifyInstance): Promise<void> 
     {
       config: { rateLimit: { max: PUBLIC_RATE_LIMIT, timeWindow: '1 minute' } },
       schema: {
-        params: { token: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
         body: { type: 'object', properties: { answersJson: { type: 'object' } } },
       },
     },
@@ -129,7 +147,13 @@ export async function publicFillRoutes(fastify: FastifyInstance): Promise<void> 
     {
       config: { rateLimit: { max: PUBLIC_RATE_LIMIT, timeWindow: '1 minute' } },
       schema: {
-        params: { token: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
         body: { $ref: 'SignSessionBody#' },
       },
     },

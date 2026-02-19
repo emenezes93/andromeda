@@ -42,10 +42,13 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <span
-          className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-          aria-hidden
-        />
+        <>
+          <span
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden
+          />
+          <span className="sr-only">Carregando...</span>
+        </>
       ) : (
         children
       )}

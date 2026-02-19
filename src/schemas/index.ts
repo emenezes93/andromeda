@@ -5,6 +5,10 @@ import {
   registerBodySchema,
   refreshBodySchema,
   logoutBodySchema,
+  changePasswordBodySchema,
+  loginWithTwoFactorBodySchema,
+  setupTwoFactorBodySchema,
+  disableTwoFactorBodySchema,
 } from '../modules/auth/schemas.js';
 import { createTenantSchema, updateTenantSchema } from '../modules/tenants/schemas.js';
 import { createUserSchema } from '../modules/users/schemas.js';
@@ -57,6 +61,22 @@ export function registerSchemas(app: FastifyInstance): void {
     ...zodToJsonSchema(logoutBodySchema),
   });
   app.addSchema({
+    $id: 'ChangePasswordBody',
+    ...zodToJsonSchema(changePasswordBodySchema),
+  });
+  app.addSchema({
+    $id: 'LoginWithTwoFactorBody',
+    ...zodToJsonSchema(loginWithTwoFactorBodySchema),
+  });
+  app.addSchema({
+    $id: 'SetupTwoFactorBody',
+    ...zodToJsonSchema(setupTwoFactorBodySchema),
+  });
+  app.addSchema({
+    $id: 'DisableTwoFactorBody',
+    ...zodToJsonSchema(disableTwoFactorBodySchema),
+  });
+  app.addSchema({
     $id: 'RegisterBody',
     ...zodToJsonSchema(registerBodySchema),
   });
@@ -68,6 +88,7 @@ export function registerSchemas(app: FastifyInstance): void {
       email: { type: 'string' },
       name: { type: 'string' },
       role: { type: 'string' },
+      active: { type: 'boolean' },
     },
   });
   app.addSchema({

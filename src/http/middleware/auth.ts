@@ -18,13 +18,13 @@ export interface AuthPluginOptions {
 async function authPlugin(fastify: FastifyInstance, opts: AuthPluginOptions): Promise<void> {
   const {
     secret,
-    skipPaths = ['/health', '/ready', '/v1/auth/login', '/documentation', '/documentation/json'],
+    skipPaths = ['/health', '/ready', '/v1/auth/login', '/v1/auth/login-2fa', '/documentation', '/documentation/json'],
   } = opts;
 
   fastify.decorateRequest('user', undefined);
 
   fastify.addHook('preHandler', async (request: FastifyRequest, _reply: FastifyReply) => {
-    const path = request.routerPath ?? request.url.split('?')[0];
+    const path = (request as any).routerPath ?? request.url.split('?')[0];
     if (skipPaths.some((p) => path === p || path.startsWith(p + '/'))) {
       return;
     }

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { IconSessions, IconTemplates } from '@/components/icons';
+import { Skeleton } from '@/components/ui/Skeleton';
 import {
   SessionsByDayChart,
   SessionsByTemplateChart,
@@ -155,9 +156,11 @@ export function DashboardPage() {
             </div>
             <div>
               <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
-              <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
-                {loading ? '—' : totalSessions ?? 0}
-              </p>
+              {loading ? (
+                <Skeleton height={32} width={60} className="mt-1" />
+              ) : (
+                <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{totalSessions ?? 0}</p>
+              )}
             </div>
           </div>
         </Card>
@@ -168,9 +171,11 @@ export function DashboardPage() {
             </div>
             <div>
               <p className="text-body-sm font-medium text-content-muted">Templates ativos</p>
-              <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
-                {loading ? '—' : totalTemplates ?? 0}
-              </p>
+              {loading ? (
+                <Skeleton height={32} width={60} className="mt-1" />
+              ) : (
+                <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{totalTemplates ?? 0}</p>
+              )}
             </div>
           </div>
         </Card>

@@ -51,10 +51,18 @@ model User {
   name      String?
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at")
+  // 2FA
+  twoFactorSecret String? @map("two_factor_secret")
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  twoFactorBackupCodes String[] @map("two_factor_backup_codes")
+  // Password policy
+  passwordChangedAt DateTime? @map("password_changed_at")
+  passwordExpiresAt DateTime? @map("password_expires_at")
 
   memberships   Membership[]
   auditLogs     AuditLog[]     @relation("AuditActor")
   refreshTokens RefreshToken[]
+  passwordHistory PasswordHistory[]
 
   @@map("users")
 }
@@ -64,6 +72,7 @@ model Membership {
   userId    String   @map("user_id")
   tenantId  String   @map("tenant_id")
   role      String   // owner | admin | practitioner | viewer
+  active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -72,6 +81,7 @@ model Membership {
   @@unique([userId, tenantId])
   @@index([tenantId])
   @@index([userId])
+  @@index([tenantId, active])
   @@map("memberships")
 }
 
@@ -296,4 +306,16 @@ model IdempotencyKey {
   @@unique([tenantId, key])
   @@index([createdAt]) // para cleanup de keys expiradas
   @@map("idempotency_keys")
+}
+
+model PasswordHistory {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  passwordHash String  @map("password_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("password_history")
 }

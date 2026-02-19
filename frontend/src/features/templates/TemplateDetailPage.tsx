@@ -5,6 +5,7 @@ import type { Template } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { SkeletonDetail } from '@/components/ui/SkeletonCard';
 
 export function TemplateDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,11 +28,7 @@ export function TemplateDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <SkeletonDetail />;
   }
 
   if (error || !template) {

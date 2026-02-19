@@ -18,12 +18,15 @@ export async function auditRoutes(fastify: FastifyInstance): Promise<void> {
     {
       schema: {
         querystring: {
-          page: { type: 'number' },
-          limit: { type: 'number' },
-          action: { type: 'string' },
-          entity: { type: 'string' },
-          from: { type: 'string' },
-          to: { type: 'string' },
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            action: { type: 'string' },
+            entity: { type: 'string' },
+            from: { type: 'string' },
+            to: { type: 'string' },
+          },
         },
         response: { 200: { $ref: 'AuditListResponse#' } },
       },

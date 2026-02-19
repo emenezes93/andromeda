@@ -19,9 +19,12 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       schema: {
         querystring: {
-          page: { type: 'number' },
-          limit: { type: 'number' },
-          search: { type: 'string' },
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            search: { type: 'string' },
+          },
         },
       },
     },
@@ -75,7 +78,10 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       schema: {
         querystring: {
-          search: { type: 'string' },
+          type: 'object',
+          properties: {
+            search: { type: 'string' },
+          },
         },
       },
     },
@@ -169,7 +175,13 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     '/v1/patients/:id',
     {
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
       },
     },
     async (request, reply) => {
@@ -199,7 +211,13 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     '/v1/patients/:id',
     {
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         body: { type: 'object' },
       },
     },
@@ -239,10 +257,19 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     '/v1/patients/:id/evolutions',
     {
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         querystring: {
-          page: { type: 'number' },
-          limit: { type: 'number' },
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+          },
         },
       },
     },
@@ -291,7 +318,13 @@ export async function patientsRoutes(fastify: FastifyInstance): Promise<void> {
     '/v1/patients/:id/evolutions',
     {
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         body: { type: 'object' },
       },
     },

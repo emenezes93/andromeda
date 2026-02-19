@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { axe } from 'vitest-axe';
 import { LoginPage } from './LoginPage';
 
 function renderLogin() {
@@ -29,5 +29,11 @@ describe('LoginPage', () => {
   it('shows demo hint', () => {
     renderLogin();
     expect(screen.getByText(/owner@demo\.com \/ owner123/i)).toBeInTheDocument();
+  });
+
+  it('should have no accessibility violations', async () => {
+    const { container } = renderLogin();
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { useToast } from '@/components/ui/Toast';
+import { SkeletonDetail } from '@/components/ui/SkeletonCard';
 
 function formatAnswerValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -67,11 +68,7 @@ export function SessionDetailPage() {
   if (!id) return <p className="text-content-muted">ID não informado.</p>;
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <SkeletonDetail />;
   }
 
   if (error || !session) {

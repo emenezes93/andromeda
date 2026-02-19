@@ -151,6 +151,7 @@ export interface TenantMember {
   email: string;
   name: string | null;
   role: string;
+  active: boolean;
 }
 
 export interface TenantMembersResponse {

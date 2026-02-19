@@ -18,9 +18,12 @@ export async function statsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       schema: {
         querystring: {
-          from: { type: 'string' },
-          to: { type: 'string' },
-          days: { type: 'number' },
+          type: 'object',
+          properties: {
+            from: { type: 'string' },
+            to: { type: 'string' },
+            days: { type: 'number' },
+          },
         },
       },
     },
@@ -123,11 +126,20 @@ export async function statsRoutes(fastify: FastifyInstance): Promise<void> {
     '/v1/stats/templates/:id',
     {
       schema: {
-        params: { id: { type: 'string' } },
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
         querystring: {
-          from: { type: 'string' },
-          to: { type: 'string' },
-          days: { type: 'number' },
+          type: 'object',
+          properties: {
+            from: { type: 'string' },
+            to: { type: 'string' },
+            days: { type: 'number' },
+          },
         },
       },
     },
