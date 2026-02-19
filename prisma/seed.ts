@@ -1,6 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { anamneseCompletaSchema } from './seed-data/anamnese-completa.js';
+import {
+  templateEmagrecimento,
+  templateGanhoMassa,
+  templateMelhoriaSaude,
+  templateManterBomCorpo,
+} from './seed-data/templates-gamificados.js';
 
 const prisma = new PrismaClient();
 
@@ -118,6 +124,30 @@ async function main() {
         schemaJson: { ...anamneseCompletaSchema } as object,
       },
     });
+  }
+
+  // ─── Templates Gamificados e Otimizados ────────────────────────────────────
+  const templatesGamificados = [
+    { name: 'Emagrecimento', schema: templateEmagrecimento },
+    { name: 'Ganho de Massa Magra', schema: templateGanhoMassa },
+    { name: 'Melhoria de Saúde', schema: templateMelhoriaSaude },
+    { name: 'Manter Bom Corpo', schema: templateManterBomCorpo },
+  ];
+
+  for (const template of templatesGamificados) {
+    const existing = await prisma.anamnesisTemplate.findFirst({
+      where: { tenantId: tenant.id, name: template.name },
+    });
+    if (!existing) {
+      await prisma.anamnesisTemplate.create({
+        data: {
+          tenantId: tenant.id,
+          name: template.name,
+          version: 1,
+          schemaJson: template.schema as object,
+        },
+      });
+    }
   }
 
   console.log('Seed OK:', { tenant: tenant.name, user: user.email });
