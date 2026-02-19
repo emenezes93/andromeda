@@ -7,6 +7,7 @@ import type { Session } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
+import { IconSessions, IconTemplates } from '@/components/icons';
 import {
   SessionsByDayChart,
   SessionsByTemplateChart,
@@ -16,6 +17,13 @@ import {
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 
 const CHART_SESSIONS_LIMIT = 30;
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
 
 export function DashboardPage() {
   const user = getStoredUser();
@@ -90,6 +98,14 @@ export function DashboardPage() {
       .sort((a, b) => b.count - a.count);
   }, [chartSessions]);
 
+  const completedThisWeek = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return chartSessions.filter(
+      (s) => s.status === 'completed' && new Date(s.createdAt) >= weekAgo
+    ).length;
+  }, [chartSessions]);
+
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -99,41 +115,61 @@ export function DashboardPage() {
       minute: '2-digit',
     });
 
+  const greeting = getGreeting();
+
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-body text-content-muted">
-          Olá, <span className="font-semibold text-content">{user?.name || user?.email}</span>.
+      <div className="flex flex-col gap-1">
+        <h1 className="text-heading font-semibold text-content">
+          {greeting}, <span className="text-primary">{user?.name || user?.email}</span>
+        </h1>
+        <p className="text-body-sm text-content-muted">
+          Acompanhe suas sessões, conquistas e métricas abaixo.
         </p>
-        {user?.tenantId && (
-          <p className="mt-0.5 text-body-sm text-content-subtle">Tenant: {user.tenantId}</p>
-        )}
       </div>
 
-      {/* Stats cards + gamificação */}
+      {/* Stats cards com ícones */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card padding="md" className="border-l-4 border-l-primary">
-          <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
-          <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
-            {loading ? '—' : totalSessions ?? 0}
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <IconSessions className="size-5" />
+            </div>
+            <div>
+              <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
+              <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
+                {loading ? '—' : totalSessions ?? 0}
+              </p>
+            </div>
+          </div>
         </Card>
         <Card padding="md" className="border-l-4 border-l-primary">
-          <p className="text-body-sm font-medium text-content-muted">Templates ativos</p>
-          <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
-            {loading ? '—' : totalTemplates ?? 0}
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <IconTemplates className="size-5" />
+            </div>
+            <div>
+              <p className="text-body-sm font-medium text-content-muted">Templates ativos</p>
+              <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
+                {loading ? '—' : totalTemplates ?? 0}
+              </p>
+            </div>
+          </div>
         </Card>
         <Link to="/sessions/new" className="block focus-visible:outline-none">
-          <Card padding="md" className="h-full transition-calm hover:shadow-soft">
+          <Card padding="md" className="h-full transition-calm hover:shadow-soft hover:border-primary/30">
             <p className="text-body-sm font-medium text-content-muted">Nova sessão</p>
-            <p className="mt-1 text-body text-primary font-medium">Iniciar anamnese →</p>
+            <p className="mt-1 text-body font-medium text-primary">Iniciar anamnese →</p>
           </Card>
         </Link>
       </div>
 
       {/* Conquistas (gamificação) */}
-      <AchievementsCard completedTotal={completedCount} loading={loading} />
+      <AchievementsCard
+        completedTotal={completedCount}
+        completedThisWeek={completedThisWeek}
+        loading={loading}
+      />
 
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">

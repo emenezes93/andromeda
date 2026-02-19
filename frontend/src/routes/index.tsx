@@ -71,6 +71,10 @@ const TenantsListPage = lazy(() =>
 const TenantFormPage = lazy(() =>
   import('@/features/tenants/TenantFormPage').then((m) => ({ default: m.TenantFormPage }))
 );
+// Billing
+const SubscriptionPage = lazy(() =>
+  import('@/features/billing/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage }))
+);
 // Audit
 const AuditListPage = lazy(() =>
   import('@/features/audit/AuditListPage').then((m) => ({ default: m.AuditListPage }))
@@ -126,6 +130,8 @@ const router = createBrowserRouter([
   // Tenants (owner only – guard inside page)
   { path: '/tenants', element: withLayout('Tenants', <TenantsListPage />) },
   { path: '/tenants/new', element: withLayout('Novo tenant', <TenantFormPage />) },
+  // Assinatura (pagamento recorrente)
+  { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
   // Audit
   { path: '/audit', element: withLayout('Auditoria', <AuditListPage />) },
   // Catch-all

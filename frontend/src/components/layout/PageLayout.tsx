@@ -13,6 +13,7 @@ import {
   IconPatients,
   IconUsers,
   IconTenants,
+  IconSubscription,
 } from '@/components/icons';
 
 interface PageLayoutProps {
@@ -143,6 +144,10 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             Tenants
           </NavLink>
         )}
+        <NavLink to="/subscription" className={navLinkClass}>
+          <IconSubscription />
+          Assinatura
+        </NavLink>
       </nav>
 
       {/* User / Logout */}

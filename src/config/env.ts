@@ -22,6 +22,12 @@ const envSchema = z
     AI_API_KEY: z.string().optional(),
     AI_MODEL: z.string().optional(),
     CORS_ORIGINS: z.string().default('*'),
+    // Billing (Stripe) – optional; when set, billing routes are enabled
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    STRIPE_PRICE_ID: z.string().optional(),
+    STRIPE_PRICE_ID_ANNUAL: z.string().optional(),
+    FRONTEND_URL: z.string().url().optional().or(z.literal('')),
   })
   .refine((data) => data.AI_MODE !== 'llm' || (!!data.AI_PROVIDER && !!data.AI_API_KEY), {
     message: 'AI_PROVIDER and AI_API_KEY are required when AI_MODE=llm',

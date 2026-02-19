@@ -19,6 +19,7 @@ import { engineRoutes } from '../modules/anamnesis/engine/routes.js';
 import { aiRoutes } from '../modules/ai/routes.js';
 import { auditRoutes } from '../modules/audit/routes.js';
 import { patientsRoutes } from '../modules/patients/routes.js';
+import { billingRoutes } from '../modules/billing/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
@@ -36,6 +37,20 @@ export async function buildApp() {
   const corsOrigin =
     env.CORS_ORIGINS === '*' ? true : env.CORS_ORIGINS.split(',').map((o) => o.trim());
   await app.register(cors, { origin: corsOrigin, credentials: true });
+  // Preserve raw body for Stripe webhook signature verification
+  app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    const buf: Buffer = Buffer.isBuffer(body)
+      ? body
+      : typeof body === 'string'
+        ? Buffer.from(body, 'utf8')
+        : Buffer.from(body as Uint8Array);
+    (req as unknown as { rawBody?: Buffer }).rawBody = buf;
+    try {
+      done(null, JSON.parse(buf.toString('utf8')));
+    } catch (e) {
+      done(e as Error, undefined);
+    }
+  });
   registerSchemas(app);
   await app.register(prismaPlugin);
   await app.register(tenantPlugin);
@@ -49,6 +64,7 @@ export async function buildApp() {
       '/v1/auth/login',
       '/v1/auth/refresh',
       '/v1/auth/logout',
+      '/v1/billing/webhook',
       '/documentation',
       '/documentation/json',
     ],
@@ -78,6 +94,7 @@ export async function buildApp() {
   await app.register(aiRoutes);
   await app.register(auditRoutes);
   await app.register(patientsRoutes);
+  await app.register(billingRoutes);
 
   return app;
 }

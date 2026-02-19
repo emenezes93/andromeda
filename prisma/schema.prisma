@@ -18,6 +18,11 @@ model Tenant {
   status    String    @default("active") // active | suspended
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at")
+  // Billing (Stripe subscription)
+  stripeCustomerId     String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  subscriptionStatus   String?   @map("subscription_status") // active | past_due | canceled | trialing
+  currentPeriodEnd     DateTime? @map("current_period_end")
 
   memberships Membership[]
   anamnesisTemplates AnamnesisTemplate[]
