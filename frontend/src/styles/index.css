@@ -49,9 +49,52 @@
   --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
 }
 
+/* Dark mode tokens */
+.dark {
+  /* Colors – primary (slightly brighter in dark) */
+  --color-primary: #38bdf8;
+  --color-primary-hover: #0ea5e9;
+  --color-primary-subtle: #0c4a6e;
+  --color-primary-light: #075985;
+
+  /* Surfaces */
+  --color-surface: #0f172a;
+  --color-surface-muted: #1e293b;
+  --color-surface-calm: #1e293b;
+
+  /* Borders */
+  --color-border: #334155;
+  --color-border-muted: #1e293b;
+  --color-border-soft: #475569;
+
+  /* Content (light text in dark mode) */
+  --color-content: #f1f5f9;
+  --color-content-muted: #cbd5e1;
+  --color-content-subtle: #94a3b8;
+
+  /* Feedback */
+  --color-success: #10b981;
+  --color-success-light: #064e3b;
+  --color-error: #ef4444;
+  --color-error-light: #7f1d1d;
+  --color-warning: #f59e0b;
+  --color-warning-light: #78350f;
+
+  /* Info */
+  --color-info: #3b82f6;
+  --color-info-light: #1e3a8a;
+
+  /* Shadows (lighter in dark mode) */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-soft: 0 2px 8px rgb(56 189 248 / 0.15);
+  --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
+}
+
 @layer base {
   html {
     @apply scroll-smooth;
+    transition: background-color 200ms ease, color 200ms ease;
   }
   body {
     background-color: var(--color-surface-calm);
@@ -60,6 +103,7 @@
     font-size: 1rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 200ms ease, color 200ms ease;
   }
   :focus-visible {
     outline: 2px solid var(--color-primary);

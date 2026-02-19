@@ -14,7 +14,7 @@ import {
   type RiskAggregation,
   type RecommendationRule,
 } from './rules.js';
-import { createLlmProvider } from './llm-provider.js';
+import { createLlmProvider, ExternalAiError } from './llm-provider.js';
 
 /* ── Generic rule-based engine ───────────────────────────────────────── */
 
@@ -180,17 +180,47 @@ export function generateInsightsLlmMock(
   return { summary, risks, recommendations };
 }
 
-/* ── Main dispatcher ─────────────────────────────────────────────────── */
+/* ── Main dispatcher with fallback support ──────────────────────────── */
 
 export async function generateInsights(
   mode: 'ruleBased' | 'llmMock' | 'llm',
   template: TemplateSchemaJson,
   answers: Record<string, unknown>,
-  llmConfig?: { provider?: string; apiKey?: string; model?: string }
-): Promise<AiInsightPayload> {
+  llmConfig?: {
+    provider?: string;
+    apiKey?: string;
+    model?: string;
+    fallbackProvider?: string;
+    fallbackApiKey?: string;
+    fallbackModel?: string;
+    customPrompt?: string | null;
+  }
+): Promise<AiInsightPayload & { usage?: { inputTokens: number; outputTokens: number } }> {
   if (mode === 'llm') {
-    const provider = createLlmProvider(llmConfig);
-    return provider.generateInsights(template, answers);
+    const primaryProvider = createLlmProvider({
+      provider: llmConfig?.provider,
+      apiKey: llmConfig?.apiKey,
+      model: llmConfig?.model,
+    });
+
+    try {
+      return await primaryProvider.generateInsights(template, answers, llmConfig?.customPrompt);
+    } catch (err) {
+      // If primary fails and fallback is configured, try fallback
+      if (
+        err instanceof ExternalAiError &&
+        llmConfig?.fallbackProvider &&
+        llmConfig?.fallbackApiKey
+      ) {
+        const fallbackProvider = createLlmProvider({
+          provider: llmConfig.fallbackProvider,
+          apiKey: llmConfig.fallbackApiKey,
+          model: llmConfig.fallbackModel,
+        });
+        return await fallbackProvider.generateInsights(template, answers, llmConfig.customPrompt);
+      }
+      throw err;
+    }
   }
   if (mode === 'llmMock') return generateInsightsLlmMock(template, answers);
   return generateInsightsRuleBased(template, answers);

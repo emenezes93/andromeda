@@ -21,6 +21,10 @@ const envSchema = z
     AI_PROVIDER: z.enum(['openai', 'anthropic']).optional(),
     AI_API_KEY: z.string().optional(),
     AI_MODEL: z.string().optional(),
+    AI_FALLBACK_PROVIDER: z.enum(['openai', 'anthropic']).optional(),
+    AI_FALLBACK_API_KEY: z.string().optional(),
+    AI_FALLBACK_MODEL: z.string().optional(),
+    REDIS_URL: z.string().url().optional(),
     CORS_ORIGINS: z.string().default('*'),
     // Billing (Stripe) – optional; when set, billing routes are enabled
     STRIPE_SECRET_KEY: z.string().optional(),

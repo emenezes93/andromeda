@@ -21,6 +21,9 @@ const envSchema = z
     AI_PROVIDER: z.enum(['openai', 'anthropic']).optional(),
     AI_API_KEY: z.string().optional(),
     AI_MODEL: z.string().optional(),
+    AI_FALLBACK_PROVIDER: z.enum(['openai', 'anthropic']).optional(),
+    AI_FALLBACK_API_KEY: z.string().optional(),
+    AI_FALLBACK_MODEL: z.string().optional(),
     CORS_ORIGINS: z.string().default('*'),
   })
   .refine((data) => data.AI_MODE !== 'llm' || (!!data.AI_PROVIDER && !!data.AI_API_KEY), {

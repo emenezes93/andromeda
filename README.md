@@ -187,7 +187,10 @@ Requisito: Postgres acessível com `DATABASE_URL` (ex.: `postgresql://postgres:p
 | `RATE_LIMIT_AUTH` | Requisições/min em login | 10 |
 | `BODY_LIMIT` | Tamanho máximo do body (bytes) | 1048576 |
 | `REQUEST_TIMEOUT` | Timeout da requisição (ms) | 30000 |
-| `AI_MODE` | ruleBased \| llmMock | ruleBased |
+| `AI_MODE` | ruleBased \| llmMock \| llm | ruleBased |
+| `AI_PROVIDER` | openai \| anthropic | — (required when `AI_MODE=llm`) |
+| `AI_API_KEY` | string | — (required when `AI_MODE=llm`) |
+| `AI_MODEL` | string | — (optional; defaults: `gpt-4o` for OpenAI, `claude-sonnet-4-5` for Anthropic) |
 
 ## Estrutura do projeto
 
@@ -225,7 +228,12 @@ prisma/
 ## IA (mock)
 
 - **POST /v1/ai/insights**: body `{ sessionId }`. Busca template + respostas, chama `generateInsights(template, answers)`, persiste em `ai_insights` e retorna.
-- **Estratégias**: `ruleBased` (padrão) e `llmMock` (texto variado determinístico por seed). Seleção via `AI_MODE=ruleBased|llmMock`.
+- **Estratégias**: 
+  - `ruleBased` (padrão): regras determinísticas baseadas em tags e scores
+  - `llmMock`: texto variado determinístico por seed (sem chamadas externas)
+  - `llm`: integração com LLM real (OpenAI ou Anthropic) — requer `AI_PROVIDER` e `AI_API_KEY`
+  
+  Seleção via `AI_MODE=ruleBased|llmMock|llm`. Ver **[docs/AI_LLM_SETUP.md](docs/AI_LLM_SETUP.md)** para configuração detalhada.
 
 ## Segurança e trade-offs
 

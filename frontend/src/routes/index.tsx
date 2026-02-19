@@ -89,6 +89,10 @@ const AuditListPage = lazy(() =>
 const TermsPage = lazy(() =>
   import('@/features/terms/TermsPage').then((m) => ({ default: m.TermsPage }))
 );
+// AI Usage
+const AiUsagePage = lazy(() =>
+  import('@/features/ai/AiUsagePage').then((m) => ({ default: m.AiUsagePage }))
+);
 
 function FullPageSpinner() {
   return (
@@ -153,6 +157,8 @@ const router = createBrowserRouter([
   { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
   // Audit
   { path: '/audit', element: withLayout('Auditoria', <AuditListPage />) },
+  // AI Usage
+  { path: '/ai/usage', element: withLayout('Uso de IA', <AiUsagePage />) },
   // Termos e política de privacidade
   { path: '/terms', element: withLayout('Termos e política', <TermsPage />) },
   // Catch-all

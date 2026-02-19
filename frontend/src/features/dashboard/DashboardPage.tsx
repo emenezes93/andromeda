@@ -16,7 +16,6 @@ import {
 } from '@/components/charts';
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 
-const CHART_SESSIONS_LIMIT = 30;
 const PERIOD_OPTIONS = [
   { value: 7, label: '7 dias' },
   { value: 30, label: '30 dias' },

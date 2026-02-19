@@ -7,6 +7,7 @@ import { login } from '@/api/auth';
 import { setAuth } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { IconPulse } from '@/components/icons';
 
 const schema = z.object({
@@ -42,6 +43,10 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-surface-calm px-4 py-8">
+      {/* Theme Toggle - top right */}
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       {/* Background: blob suave e animado (respeita prefers-reduced-motion via .login-bg-blob) */}
       <div
         className="login-bg-blob pointer-events-none absolute -left-1/4 top-1/4 h-[480px] w-[480px] rounded-full bg-primary/20 blur-3xl motion-reduce:animate-none"

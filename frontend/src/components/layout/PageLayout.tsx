@@ -15,6 +15,28 @@ import {
   IconTenants,
   IconSubscription,
 } from '@/components/icons';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
+function IconAi() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+}
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -27,6 +49,7 @@ const navItems = [
   { to: '/sessions', label: 'Sessões', icon: IconSessions },
   { to: '/patients', label: 'Pacientes', icon: IconPatients },
   { to: '/audit', label: 'Auditoria', icon: IconAudit },
+  { to: '/ai/usage', label: 'Uso de IA', icon: IconAi },
 ];
 
 function roleLabel(role: string): string {
@@ -152,8 +175,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
 
       {/* User / Logout */}
       <div className="border-t border-border-muted p-3">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
+          <ThemeToggle />
         </div>
         <p className="truncate px-2 py-1 text-body-sm text-content-subtle" title={user?.email}>
           {user?.email}
@@ -205,19 +229,22 @@ export function PageLayout({ children, title }: PageLayoutProps) {
       {/* ── MAIN ── */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Mobile top bar */}
-        <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 lg:hidden">
-          <button
-            className="flex min-h-touch min-w-[40px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menu"
-            aria-expanded={sidebarOpen}
-          >
-            <IconMenu />
-          </button>
-          <Link to="/" className="flex items-center gap-2">
-            <IconPulse />
-            <span className="text-heading-sm font-semibold text-primary">Anamnese PaaS</span>
-          </Link>
+        <header className="flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-4 lg:hidden">
+          <div className="flex items-center gap-3">
+            <button
+              className="flex min-h-touch min-w-[40px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir menu"
+              aria-expanded={sidebarOpen}
+            >
+              <IconMenu />
+            </button>
+            <Link to="/" className="flex items-center gap-2">
+              <IconPulse />
+              <span className="text-heading-sm font-semibold text-primary">Anamnese PaaS</span>
+            </Link>
+          </div>
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 overflow-auto flex flex-col">

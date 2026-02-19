@@ -96,7 +96,7 @@ export function SessionInsightsPage() {
     setError(null);
     generateInsights(id)
       .then(setInsight)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao gerar'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Erro ao gerar'))
       .finally(() => setGenerating(false));
   };
 

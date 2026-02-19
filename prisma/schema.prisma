@@ -23,12 +23,18 @@ model Tenant {
   stripeSubscriptionId String?   @map("stripe_subscription_id")
   subscriptionStatus   String?   @map("subscription_status") // active | past_due | canceled | trialing
   currentPeriodEnd     DateTime? @map("current_period_end")
+  // AI Cost Alerts
+  aiCostLimitUsd       Float?    @map("ai_cost_limit_usd")
+  aiCostAlertThreshold Float?    @map("ai_cost_alert_threshold") // percentage (0-100) of limit
+  aiCostAlertSentAt    DateTime? @map("ai_cost_alert_sent_at")
 
   memberships Membership[]
   anamnesisTemplates AnamnesisTemplate[]
   anamnesisSessions  AnamnesisSession[]
   anamnesisAnswers   AnamnesisAnswer[]
   aiInsights         AiInsight[]
+  aiUsageMetrics     AiUsageMetric[]
+  aiCostAlerts       AiCostAlert[]
   auditLogs          AuditLog[]
   idempotencyKeys    IdempotencyKey[]
   refreshTokens      RefreshToken[]
@@ -75,6 +81,8 @@ model AnamnesisTemplate {
   name      String
   version   Int       @default(1)
   schemaJson Json     @map("schema_json") // { questions, conditionalLogic, tags }
+  llmPrompt String?   @db.Text @map("llm_prompt") // Custom LLM prompt override
+  llmFinetunedModel String?   @map("llm_finetuned_model") // Custom fine-tuned model ID for this template
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at")
 
@@ -103,6 +111,7 @@ model AnamnesisSession {
   patient  Patient?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
   answers  AnamnesisAnswer[]
   aiInsights AiInsight[]
+  aiUsageMetrics AiUsageMetric[]
 
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
@@ -189,6 +198,7 @@ model AiInsight {
   summary            String?  @db.Text
   risksJson          Json     @map("risks_json") // { readiness, dropoutRisk, stress, sleepQuality } 0-100
   recommendationsJson Json    @map("recommendations_json") // string[]
+  answersHash        String?  @map("answers_hash") // SHA256 hash for similarity caching
   createdAt          DateTime @default(now()) @map("created_at")
 
   tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -196,7 +206,43 @@ model AiInsight {
 
   @@unique([sessionId])
   @@index([tenantId])
+  @@index([answersHash])
   @@map("ai_insights")
+}
+
+model AiUsageMetric {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  sessionId       String   @map("session_id")
+  provider        String   // openai | anthropic
+  model           String
+  inputTokens     Int      @default(0) @map("input_tokens")
+  outputTokens    Int      @default(0) @map("output_tokens")
+  estimatedCostUsd Float   @default(0) @map("estimated_cost_usd")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session AnamnesisSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("ai_usage_metrics")
+}
+
+model AiCostAlert {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  currentCostUsd  Float    @map("current_cost_usd")
+  limitUsd        Float    @map("limit_usd")
+  thresholdPercent Float   @map("threshold_percent")
+  sentAt          DateTime @default(now()) @map("sent_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([sentAt])
+  @@map("ai_cost_alerts")
 }
 
 model AuditLog {

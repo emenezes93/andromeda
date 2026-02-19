@@ -471,7 +471,7 @@ export async function sessionsRoutes(fastify: FastifyInstance): Promise<void> {
     <div class="recommendations">
       <strong>Recomendações:</strong>
       <ul>
-        ${insight.recommendationsJson.map((r: string) => `<li>${r}</li>`).join('')}
+        ${(insight.recommendationsJson as string[]).map((r) => `<li>${r}</li>`).join('')}
       </ul>
     </div>
     `
