@@ -11,17 +11,12 @@ import errorHandlerPlugin from '@http/middleware/errorHandler.js';
 import { registerSchemas } from '../schemas/index.js';
 import { healthRoutes } from '../modules/health/routes.js';
 // Legacy routes - sendo migrados para arquitetura hexagonal
-import { tenantsRoutes } from '../modules/tenants/routes.js';
-import { usersRoutes } from '../modules/users/routes.js';
-import { templatesRoutes } from '../modules/anamnesis/templates/routes.js';
-import { sessionsRoutes } from '../modules/anamnesis/sessions/routes.js';
-import { publicFillRoutes } from '../modules/anamnesis/publicFill/routes.js';
-import { engineRoutes } from '../modules/anamnesis/engine/routes.js';
-import { aiRoutes } from '../modules/ai/routes.js';
-import { auditRoutes } from '../modules/audit/routes.js';
-import { patientsRoutes } from '../modules/patients/routes.js';
 import { billingRoutes } from '../modules/billing/routes.js';
-import { statsRoutes } from '../modules/stats/routes.js';
+import { patientPortalRoutes } from '../modules/patient-portal/routes.js';
+import { scheduledQuestionnairesRoutes } from '../modules/scheduled-questionnaires/routes.js';
+import { trainingPlansRoutes } from '../modules/training-plans/routes.js';
+import { trainingExecutionsRoutes } from '../modules/training-executions/routes.js';
+import { progressPhotosRoutes } from '../modules/progress-photos/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
@@ -46,7 +41,7 @@ export async function buildApp() {
       : typeof body === 'string'
         ? Buffer.from(body, 'utf8')
         : Buffer.from(body as Uint8Array);
-    (req as unknown as { rawBody?: Buffer }).rawBody = buf;
+    req.rawBody = buf;
     try {
       done(null, JSON.parse(buf.toString('utf8')));
     } catch (e) {
@@ -67,6 +62,8 @@ export async function buildApp() {
       '/v1/auth/login-2fa',
       '/v1/auth/refresh',
       '/v1/auth/logout',
+      '/v1/patient-portal/login',
+      '/v1/patient-portal/register',
       '/v1/billing/webhook',
       '/v1/public',
       '/documentation',
@@ -80,27 +77,34 @@ export async function buildApp() {
   await app.register(swaggerPlugin);
   await app.register(errorHandlerPlugin);
 
-  // Dependency Injection Container
-  const container = new Container(app.prisma);
+  // Dependency Injection Container (hexagonal)
+  const container = new Container(app.prisma, app.log);
+  app.decorate('container', container);
 
   // Health routes (no auth required)
   await app.register(healthRoutes);
 
-  // Auth routes (hexagonal architecture)
+  // Auth + Users + Tenants (hexagonal architecture)
   container.authController.registerRoutes(app);
+  container.userController.registerRoutes(app);
+  container.tenantController.registerRoutes(app);
+  container.patientController.registerRoutes(app);
+  container.templateController.registerRoutes(app);
+  container.sessionController.registerRoutes(app);
+  container.insightController.registerRoutes(app);
+  container.auditController.registerRoutes(app);
+  container.statsController.registerRoutes(app);
+  container.goalController.registerRoutes(app);
 
   // Legacy routes (migrating progressively to hexagonal)
-  await app.register(tenantsRoutes);
-  await app.register(usersRoutes);
-  await app.register(templatesRoutes, { prefix: '' });
-  await app.register(sessionsRoutes, { prefix: '' });
-  await app.register(publicFillRoutes);
-  await app.register(engineRoutes, { prefix: '' });
-  await app.register(aiRoutes);
-  await app.register(auditRoutes);
-  await app.register(patientsRoutes);
+  const { patientsLegacyRoutes } = await import('../modules/patients-legacy/routes.js');
+  await app.register(patientsLegacyRoutes);
   await app.register(billingRoutes);
-  await app.register(statsRoutes);
+  await app.register(patientPortalRoutes);
+  await app.register(scheduledQuestionnairesRoutes);
+  await app.register(trainingPlansRoutes);
+  await app.register(trainingExecutionsRoutes);
+  await app.register(progressPhotosRoutes);
 
   return app;
 }

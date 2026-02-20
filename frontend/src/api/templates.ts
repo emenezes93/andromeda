@@ -26,7 +26,7 @@ export interface CreateTemplateBody {
     questions: Array<{
       id: string;
       text: string;
-      type: 'text' | 'number' | 'single' | 'multiple';
+      type: 'text' | 'number' | 'single' | 'multiple' | 'sentiment';
       options?: string[];
       required: boolean;
       tags?: string[];

@@ -1,6 +1,17 @@
 import type { PrismaClient } from '@prisma/client';
+import { User } from '@domain/entities/User.js';
 import { Membership } from '@domain/entities/Membership.js';
-import type { IMembershipRepository } from '@ports/repositories/IMembershipRepository.js';
+import type { IMembershipRepository, MemberWithUser } from '@ports/repositories/IMembershipRepository.js';
+
+const VALID_ROLES = ['owner', 'admin', 'practitioner', 'viewer'] as const;
+type ValidRole = (typeof VALID_ROLES)[number];
+
+function parseRole(role: string): ValidRole {
+  if (!(VALID_ROLES as readonly string[]).includes(role)) {
+    throw new Error(`Invalid role value from database: "${role}"`);
+  }
+  return role as ValidRole;
+}
 
 /**
  * Adapter: Prisma Membership Repository Implementation
@@ -32,9 +43,76 @@ export class PrismaMembershipRepository implements IMembershipRepository {
         userId: membership.userId,
         tenantId: membership.tenantId,
         role: membership.role,
+        active: membership.active,
       },
     });
     return this.toDomain(created);
+  }
+
+  async findAllByTenantId(
+    tenantId: string,
+    opts: { page: number; limit: number; active?: boolean }
+  ): Promise<{ data: MemberWithUser[]; total: number }> {
+    const where = { tenantId, ...(opts.active !== undefined && { active: opts.active }) };
+    const [rows, total] = await Promise.all([
+      this.prisma.membership.findMany({
+        where,
+        include: { user: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (opts.page - 1) * opts.limit,
+        take: opts.limit,
+      }),
+      this.prisma.membership.count({ where }),
+    ]);
+    const data = rows.map((m) => ({
+      membership: this.toDomain(m),
+      user: this.userToDomain(m.user),
+    }));
+    return { data, total };
+  }
+
+  async updateRole(membershipId: string, role: string): Promise<Membership> {
+    const updated = await this.prisma.membership.update({
+      where: { id: membershipId },
+      data: { role },
+    });
+    return this.toDomain(updated);
+  }
+
+  async setActive(membershipId: string, active: boolean): Promise<Membership> {
+    const updated = await this.prisma.membership.update({
+      where: { id: membershipId },
+      data: { active },
+    });
+    return this.toDomain(updated);
+  }
+
+  async deleteByUserIdAndTenantId(userId: string, tenantId: string): Promise<void> {
+    await this.prisma.membership.deleteMany({
+      where: { userId, tenantId },
+    });
+  }
+
+  private userToDomain(prismaUser: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    name: string | null;
+    createdAt: Date;
+    deletedAt: Date | null;
+    loginAttempts?: number;
+    lockedUntil?: Date | null;
+  }): User {
+    return new User(
+      prismaUser.id,
+      prismaUser.email,
+      prismaUser.passwordHash,
+      prismaUser.name,
+      prismaUser.createdAt,
+      prismaUser.deletedAt,
+      prismaUser.loginAttempts ?? 0,
+      prismaUser.lockedUntil ?? null
+    );
   }
 
   private toDomain(prismaMembership: {
@@ -42,13 +120,15 @@ export class PrismaMembershipRepository implements IMembershipRepository {
     userId: string;
     tenantId: string;
     role: string;
+    active: boolean;
     createdAt: Date;
   }): Membership {
     return new Membership(
       prismaMembership.id,
       prismaMembership.userId,
       prismaMembership.tenantId,
-      prismaMembership.role as Membership['role'],
+      parseRole(prismaMembership.role),
+      prismaMembership.active,
       prismaMembership.createdAt
     );
   }

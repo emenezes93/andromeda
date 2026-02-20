@@ -7,9 +7,17 @@ import {
   templateMelhoriaSaude,
   templateManterBomCorpo,
 } from './seed-data/templates-gamificados.js';
+import {
+  templateParQ,
+  templateAnamnesePostural,
+  templateCheckinSemanal,
+  templateAvaliacaoNutricional,
+  templateReavaliacao90,
+} from './seed-data/templates-fitness.js';
 
 const prisma = new PrismaClient();
 
+// Máximo 10 perguntas; respostas estruturadas (número, single, sentiment) para insights assertivos
 const templateSchema = {
   questions: [
     { id: 'q1', text: 'Como você avalia sua qualidade de sono (1-10)?', type: 'number', required: true, tags: ['sleep'] },
@@ -19,39 +27,29 @@ const templateSchema = {
     { id: 'q5', text: 'Você come por ansiedade ou emoção?', type: 'single', options: ['Nunca', 'Raramente', 'Às vezes', 'Frequentemente'], required: true, tags: ['food_emotional'] },
     { id: 'q6', text: 'Com que frequência você pratica atividade física?', type: 'single', options: ['Nunca', '1-2x/semana', '3-4x/semana', '5+ vezes/semana'], required: true, tags: [] },
     { id: 'q7', text: 'Você toma algum medicamento contínuo?', type: 'single', options: ['Não', 'Sim'], required: true, tags: [] },
-    { id: 'q8', text: 'Quais medicamentos (se sim)?', type: 'text', required: false, tags: [], showWhen: { questionId: 'q7', operator: 'eq', value: 'Sim' } },
-    { id: 'q9', text: 'Objetivo principal com o programa:', type: 'single', options: ['Perda de peso', 'Ganho de massa', 'Melhorar saúde', 'Outro'], required: true, tags: [] },
-    { id: 'q10', text: 'Alguma condição de saúde que devemos saber?', type: 'text', required: false, tags: [] },
+    { id: 'q8', text: 'Objetivo principal com o programa:', type: 'single', options: ['Perda de peso', 'Ganho de massa', 'Melhorar saúde', 'Outro'], required: true, tags: ['goal'] },
+    { id: 'q9', text: 'Como você está se sentindo hoje?', type: 'sentiment', required: true, tags: ['readiness'] },
+    { id: 'q10', text: 'Alguma condição de saúde que devemos saber?', type: 'single', options: ['Não', 'Sim'], required: true, tags: [] },
   ],
-  conditionalLogic: [
-    { ifQuestion: 'q3', ifValue: ['Frequentemente', 'Sempre'], thenShow: ['q4'] },
-    { ifQuestion: 'q7', ifValue: ['Sim'], thenShow: ['q8'] },
-  ],
-  tags: ['sleep', 'stress', 'food_emotional'],
+  conditionalLogic: [{ ifQuestion: 'q3', ifValue: ['Frequentemente', 'Sempre'], thenShow: ['q4'] }],
+  tags: ['sleep', 'stress', 'food_emotional', 'goal', 'readiness'],
 };
 
-// Template alinhado ao cadastro Medidas & Evolução (documento MEDIDAS_EVOLUCAO_ESTRUTURA.md)
+// Medidas & Evolução: máx. 10 perguntas; respostas estruturadas para insights
 const medidasEvolucaoSchema = {
   questions: [
     { id: 'obj', text: 'Objetivo principal com o programa:', type: 'single', options: ['Perda de peso', 'Ganho de massa', 'Melhorar saúde', 'Performance', 'Outro'], required: true, tags: ['goal'] },
-    { id: 'queixa', text: 'Queixa principal (o que mais te traz hoje)?', type: 'text', required: false, tags: [] },
     { id: 'peso', text: 'Peso atual (kg):', type: 'number', required: true, tags: ['anthropometry'] },
     { id: 'altura', text: 'Altura (cm):', type: 'number', required: true, tags: ['anthropometry'] },
     { id: 'cintura', text: 'Circunferência da cintura (cm):', type: 'number', required: false, tags: ['anthropometry'] },
-    { id: 'quadril', text: 'Circunferência do quadril (cm):', type: 'number', required: false, tags: ['anthropometry'] },
-    { id: 'pa_sist', text: 'Pressão arterial - sistólica (mmHg):', type: 'number', required: false, tags: ['vitals'] },
-    { id: 'pa_diast', text: 'Pressão arterial - diastólica (mmHg):', type: 'number', required: false, tags: ['vitals'] },
-    { id: 'fc', text: 'Frequência cardíaca em repouso (bpm):', type: 'number', required: false, tags: ['vitals'] },
     { id: 'atividade', text: 'Com que frequência você pratica atividade física?', type: 'single', options: ['Nunca', '1-2x/semana', '3-4x/semana', '5+ vezes/semana'], required: true, tags: [] },
     { id: 'medicamentos', text: 'Você toma algum medicamento contínuo?', type: 'single', options: ['Não', 'Sim'], required: true, tags: [] },
-    { id: 'medicamentos_quais', text: 'Quais medicamentos?', type: 'text', required: false, tags: [], showWhen: { questionId: 'medicamentos', operator: 'eq', value: 'Sim' } },
-    { id: 'condicoes', text: 'Alguma condição de saúde que devemos saber (ex.: diabetes, HAS)?', type: 'text', required: false, tags: [] },
     { id: 'disposicao', text: 'Como você avalia sua disposição hoje (1-10)?', type: 'number', required: true, tags: ['readiness'] },
+    { id: 'sentimento_hoje', text: 'Como você está se sentindo hoje?', type: 'sentiment', required: true, tags: ['readiness'] },
+    { id: 'condicoes_saude', text: 'Alguma condição de saúde que devemos saber?', type: 'single', options: ['Não', 'Sim'], required: true, tags: [] },
   ],
-  conditionalLogic: [
-    { ifQuestion: 'medicamentos', ifValue: ['Sim'], thenShow: ['medicamentos_quais'] },
-  ],
-  tags: ['goal', 'anthropometry', 'vitals', 'readiness'],
+  conditionalLogic: [],
+  tags: ['goal', 'anthropometry', 'readiness'],
 };
 
 async function main() {
@@ -84,70 +82,55 @@ async function main() {
     },
   });
 
-  const existingTemplate = await prisma.anamnesisTemplate.findFirst({
-    where: { tenantId: tenant.id, name: 'Anamnese Inicial - Bem-estar' },
-  });
-  if (!existingTemplate) {
-    await prisma.anamnesisTemplate.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Anamnese Inicial - Bem-estar',
-        version: 1,
-        schemaJson: templateSchema as object,
-      },
+  // Templates: upsert para aplicar melhorias (máx. 10 perguntas + sentiment) mesmo quando já existem
+  const upsertTemplate = async (
+    name: string,
+    schemaJson: object,
+    version: number = 1
+  ) => {
+    const existing = await prisma.anamnesisTemplate.findFirst({
+      where: { tenantId: tenant.id, name },
     });
-  }
+    if (existing) {
+      await prisma.anamnesisTemplate.update({
+        where: { id: existing.id },
+        data: { schemaJson, version },
+      });
+    } else {
+      await prisma.anamnesisTemplate.create({
+        data: {
+          tenantId: tenant.id,
+          name,
+          version,
+          schemaJson,
+        },
+      });
+    }
+  };
 
-  const existingMedidas = await prisma.anamnesisTemplate.findFirst({
-    where: { tenantId: tenant.id, name: 'Medidas & Evolução' },
-  });
-  if (!existingMedidas) {
-    await prisma.anamnesisTemplate.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Medidas & Evolução',
-        version: 1,
-        schemaJson: medidasEvolucaoSchema as object,
-      },
-    });
-  }
+  await upsertTemplate('Anamnese Inicial - Bem-estar', templateSchema as object);
+  await upsertTemplate('Medidas & Evolução', medidasEvolucaoSchema as object);
+  await upsertTemplate('Anamnese Completa', { ...anamneseCompletaSchema } as object);
 
-  const existingCompleta = await prisma.anamnesisTemplate.findFirst({
-    where: { tenantId: tenant.id, name: 'Anamnese Completa' },
-  });
-  if (!existingCompleta) {
-    await prisma.anamnesisTemplate.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Anamnese Completa',
-        version: 1,
-        schemaJson: { ...anamneseCompletaSchema } as object,
-      },
-    });
-  }
-
-  // ─── Templates Gamificados e Otimizados ────────────────────────────────────
   const templatesGamificados = [
     { name: 'Emagrecimento', schema: templateEmagrecimento },
     { name: 'Ganho de Massa Magra', schema: templateGanhoMassa },
     { name: 'Melhoria de Saúde', schema: templateMelhoriaSaude },
     { name: 'Manter Bom Corpo', schema: templateManterBomCorpo },
   ];
+  for (const t of templatesGamificados) {
+    await upsertTemplate(t.name, t.schema as object);
+  }
 
-  for (const template of templatesGamificados) {
-    const existing = await prisma.anamnesisTemplate.findFirst({
-      where: { tenantId: tenant.id, name: template.name },
-    });
-    if (!existing) {
-      await prisma.anamnesisTemplate.create({
-        data: {
-          tenantId: tenant.id,
-          name: template.name,
-          version: 1,
-          schemaJson: template.schema as object,
-        },
-      });
-    }
+  const templatesFitness = [
+    { name: 'PAR-Q (Prontidão para Atividade Física)', schema: templateParQ },
+    { name: 'Anamnese Postural Inicial', schema: templateAnamnesePostural },
+    { name: 'Check-in Semanal', schema: templateCheckinSemanal },
+    { name: 'Avaliação Nutricional Básica', schema: templateAvaliacaoNutricional },
+    { name: 'Reavaliação 90 dias', schema: templateReavaliacao90 },
+  ];
+  for (const t of templatesFitness) {
+    await upsertTemplate(t.name, t.schema as object);
   }
 
   console.log('Seed OK:', { tenant: tenant.name, user: user.email });

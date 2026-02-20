@@ -52,7 +52,7 @@ export function AnswerAnalysis({ session }: AnswerAnalysisProps) {
       completionRate,
       requiredCompletionRate,
       typeDistribution: Object.entries(typeCount).map(([type, count]) => ({
-        name: type === 'single' ? 'Escolha única' : type === 'multiple' ? 'Múltipla escolha' : type === 'number' ? 'Número' : 'Texto',
+        name: type === 'single' ? 'Escolha única' : type === 'multiple' ? 'Múltipla escolha' : type === 'number' ? 'Número' : type === 'sentiment' ? 'Sentimento' : 'Texto',
         value: count,
       })),
       tagDistribution: Object.entries(tagCount)

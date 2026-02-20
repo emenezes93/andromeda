@@ -10,14 +10,10 @@ import {
   setupTwoFactorBodySchema,
   disableTwoFactorBodySchema,
 } from '../modules/auth/schemas.js';
-import { createTenantSchema, updateTenantSchema } from '../modules/tenants/schemas.js';
-import { createUserSchema } from '../modules/users/schemas.js';
-import { createTemplateSchema } from '../modules/anamnesis/templates/schemas.js';
-import {
-  createSessionSchema,
-  createAnswersSchema,
-  signSessionSchema,
-} from '../modules/anamnesis/sessions/schemas.js';
+import { createTenantSchema, updateTenantSchema } from './tenants.js';
+import { createUserSchema } from './users.js';
+import { createTemplateSchema } from './templates.js';
+import { createSessionSchema, createAnswersSchema, signSessionSchema } from './sessions.js';
 
 export function registerSchemas(app: FastifyInstance): void {
   app.addSchema({

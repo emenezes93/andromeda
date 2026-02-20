@@ -8,5 +8,6 @@ export interface IRefreshTokenRepository {
   create(token: RefreshToken): Promise<RefreshToken>;
   revoke(token: RefreshToken): Promise<void>;
   revokeByToken(token: string): Promise<void>;
+  revokeAllForUserInTenant(userId: string, tenantId: string): Promise<void>;
   deleteExpired(): Promise<number>;
 }

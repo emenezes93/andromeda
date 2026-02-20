@@ -42,6 +42,13 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
     });
   }
 
+  async revokeAllForUserInTenant(userId: string, tenantId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, tenantId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   async deleteExpired(): Promise<number> {
     const result = await this.prisma.refreshToken.deleteMany({
       where: {

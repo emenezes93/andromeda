@@ -8,6 +8,7 @@ import {
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
+import { env } from '@config/env.js';
 import { LoginUseCase } from '@application/use-cases/auth/LoginUseCase.js';
 import { RefreshTokenUseCase } from '@application/use-cases/auth/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '@application/use-cases/auth/LogoutUseCase.js';
@@ -30,7 +31,7 @@ export class AuthController {
       '/v1/auth/login',
       {
         config: {
-          rateLimit: { max: Number(process.env.RATE_LIMIT_AUTH) || 10, timeWindow: '1 minute' },
+          rateLimit: { max: env.RATE_LIMIT_AUTH, timeWindow: '1 minute' },
         },
         schema: {
           body: { $ref: 'LoginBody#' },

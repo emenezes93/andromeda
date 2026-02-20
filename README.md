@@ -1,241 +1,347 @@
-# Anamnese Inteligente PaaS – V2
+# Anamnese Inteligente PaaS V2
 
-Base multi-tenant para o PaaS de Anamnese Adaptativa (Node.js + Fastify + Postgres + Prisma + Docker), com motor de anamnese adaptativa (regras + heurística), insights por IA mock, observabilidade, testes e segurança.
+Plataforma multi-tenant para criação e gestão de questionários de saúde adaptativos com insights de IA.
 
-## Stack
+## 🚀 O que é este projeto?
 
-- **Node.js 20+** + TypeScript
-- **Fastify** (API)
-- **PostgreSQL 16** + **Prisma** (migrations + client)
-- **Zod** (validação)
-- **@fastify/swagger** + **@fastify/swagger-ui** (OpenAPI)
-- **Pino** (logs)
-- **Docker** + **docker-compose**
-- **Vitest** (unit + integration)
-- **ESLint** + **Prettier**
+Uma API REST completa para:
+- Criar e gerenciar templates de questionários de saúde
+- Aplicar questionários adaptativos (perguntas condicionais inteligentes)
+- Gerar insights automáticos com IA (regras ou LLM)
+- Gerenciar pacientes e evoluções
+- Auditoria completa de ações
 
-## Arquitetura
+**Stack principal:**
+- Backend: Node.js 20+ + TypeScript + Fastify
+- Banco: PostgreSQL 16 + Prisma ORM
+- Frontend: React + Vite (container separado)
+- Testes: Vitest
+- Deploy: Docker Compose
 
-- **Multi-tenant**: tenant via header `x-tenant-id`. Postgres **Row-Level Security (RLS)** com variável de sessão `app.tenant_id`. Todas as rotas (exceto `/health`, `/ready`, `/v1/auth/login`) exigem `x-tenant-id` + JWT.
-- **RBAC**: roles `owner`, `admin`, `practitioner`, `viewer`. Guards por recurso (tenants, templates, sessions, audit).
-- **Idempotência**: header `idempotency-key` em POST de criação; mesma key + mesmo body → mesma resposta; mesma key + body diferente → 409.
-- **Prisma vs RLS**: o Prisma não define `app.tenant_id` automaticamente. Em toda rota validamos `tenantId` e usamos `where: { tenantId }` nas queries. O RLS no Postgres é camada extra de segurança (migrations `20250204000001_rls`). **Recomendação**: manter sempre validação de tenant na API e RLS no DB.
+---
 
-## Como rodar
+## ⚡ Início Rápido
 
-### Docker Compose (API + Frontend + DB)
+### Opção 1: Docker (Recomendado - Tudo pronto)
 
 ```bash
+# Clone o repositório
+git clone <repo-url>
+cd andromeda
+
+# Inicie tudo (API + Frontend + Banco)
 docker compose up --build
+
+# Aguarde os containers iniciarem, depois:
+# 1. Aplique as migrations e seed
+docker compose exec api npm run prisma:migrate
+docker compose exec api npm run prisma:seed
+
+# 2. Acesse:
+# - API: http://localhost:3000
+# - Frontend: http://localhost:8080
+# - Documentação: http://localhost:3000/documentation
+# - Login: owner@demo.com / owner123
 ```
 
-- **API:** http://localhost:3000  
-- **Frontend:** http://localhost:8080 (SPA; nginx faz proxy para a API)  
-- **Postgres:** localhost:5432  
+### Opção 2: Desenvolvimento Local
 
-**Primeira vez:** o banco inicia vazio. Para conseguir logar no frontend, aplique as migrations e rode o seed. Ver **[docs/DOCKER_FIRST_RUN.md](docs/DOCKER_FIRST_RUN.md)**. Login demo: `owner@demo.com` / `owner123`.
+**Pré-requisitos:**
+- Node.js 20+
+- PostgreSQL 16 rodando (ou Docker)
 
-O frontend fica em um **container separado** (`frontend/`). Ver `frontend/README.md` para desenvolvimento local da SPA.
-
-### Local (dev)
-
-1. Postgres 16 rodando (ex.: Docker ou local).
-2. Crie o banco e configure `.env`:
+**Passos:**
 
 ```bash
-cp .env.example .env
-# Ajuste DATABASE_URL e JWT_SECRET (mín. 32 caracteres)
-```
-
-3. Migrations e seed:
-
-```bash
+# 1. Instale dependências
 npm install
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
+
+# 2. Configure variáveis de ambiente
+cp .env.example .env
+# Edite .env e configure:
+# - DATABASE_URL (ex: postgresql://postgres:postgres@localhost:5432/anamnese)
+# - JWT_SECRET (mínimo 32 caracteres)
+
+# 3. Configure o banco
+npm run prisma:generate    # Gera o Prisma Client
+npm run prisma:migrate:dev # Cria/aplica migrations
+npm run prisma:seed        # Popula dados demo
+
+# 4. Inicie o servidor
+npm run dev                # Modo watch (recompila automaticamente)
 ```
 
-4. Subir a API:
+**Acesse:**
+- API: http://localhost:3000
+- Documentação: http://localhost:3000/documentation
+- Login demo: `owner@demo.com` / `owner123`
 
-```bash
-npm run dev
+---
+
+## 📁 Estrutura do Projeto
+
+```
+andromeda/
+├── src/                          # Código fonte do backend
+│   ├── bootstrap/               # Inicialização da aplicação
+│   │   └── app.ts               # Configuração do Fastify
+│   ├── config/                  # Configurações (env, etc)
+│   ├── modules/                 # Módulos da aplicação
+│   │   ├── health/              # Health checks
+│   │   ├── auth/                # Autenticação (login, registro, 2FA)
+│   │   ├── tenants/             # Gestão de tenants
+│   │   ├── users/               # Gestão de usuários
+│   │   ├── anamnesis/           # Anamnese
+│   │   │   ├── templates/      # Templates de questionários
+│   │   │   ├── sessions/       # Sessões de anamnese
+│   │   │   └── engine/         # Motor adaptativo (próxima pergunta)
+│   │   ├── ai/                  # Insights de IA
+│   │   ├── patients/            # Cadastro de pacientes
+│   │   └── audit/               # Auditoria
+│   ├── shared/                  # Utilitários compartilhados
+│   │   ├── errors/             # Classes de erro customizadas
+│   │   ├── utils/              # Helpers (RBAC, idempotência, etc)
+│   │   └── types/              # Tipos TypeScript compartilhados
+│   └── schemas/                 # Schemas OpenAPI (documentação)
+│
+├── prisma/                       # Prisma ORM
+│   ├── schema.prisma            # Schema do banco
+│   ├── migrations/              # Migrations do banco
+│   ├── seed.ts                  # Seed (dados iniciais)
+│   └── seed-data/               # Dados para seed
+│
+├── frontend/                     # Frontend React (container separado)
+│   └── src/                     # Código fonte do frontend
+│
+└── docs/                        # Documentação adicional
 ```
 
-### Scripts npm
+---
 
-| Script | Descrição |
-|--------|-----------|
-| `npm run dev` | API em modo watch (tsx) |
-| `npm run build` | Compila TypeScript → `dist/` |
-| `npm run start` | Roda `node dist/bootstrap/server.js` |
-| `npm run test` | Vitest (unit + integration) |
-| `npm run test:watch` | Vitest em watch |
-| `npm run lint` | ESLint em `src/` |
-| `npm run format` | Prettier em `src/**/*.ts` |
-| `npm run prisma:generate` | Gera Prisma Client |
-| `npm run prisma:migrate` | Aplica migrations (`deploy`) |
-| `npm run prisma:migrate:dev` | Cria/aplica migrations (dev) |
-| `npm run prisma:seed` | Roda seed (tenant + user owner + template) |
-| `npm run prisma:studio` | Abre Prisma Studio |
+## 🛠️ Comandos Principais
 
-## Fluxo completo (curl)
-
-Assumindo seed rodado (tenant + `owner@demo.com` / `owner123`).
-
-1. **Login** (obter token e tenantId):
+### Desenvolvimento
 
 ```bash
-curl -s -X POST http://localhost:3000/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"owner@demo.com","password":"owner123"}'
+npm run dev              # Inicia servidor em modo watch (recompila ao salvar)
+npm run build            # Compila TypeScript para dist/
+npm run start            # Roda versão compilada (produção)
 ```
 
-Guarde `token` e `user.tenantId` das respostas.
-
-2. **Criar sessão de anamnese**:
+### Banco de Dados
 
 ```bash
-export TOKEN="<seu-token>"
-export TENANT_ID="<tenant-id-do-login>"
-export TEMPLATE_ID="<id-do-template-listado ou do seed>"
-
-curl -s -X POST http://localhost:3000/v1/anamnesis/sessions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "x-tenant-id: $TENANT_ID" \
-  -d "{\"templateId\":\"$TEMPLATE_ID\"}"
+npm run prisma:generate      # Gera Prisma Client (após mudanças no schema)
+npm run prisma:migrate:dev   # Cria/aplica migrations (desenvolvimento)
+npm run prisma:migrate       # Aplica migrations (produção)
+npm run prisma:seed          # Popula banco com dados demo
+npm run prisma:studio        # Abre Prisma Studio (UI para ver dados)
 ```
 
-Guarde `id` da sessão.
-
-3. **Próxima pergunta (engine)**:
+### Qualidade de Código
 
 ```bash
-export SESSION_ID="<id-da-sessao>"
-
-curl -s -X POST http://localhost:3000/v1/anamnesis/engine/next-question \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "x-tenant-id: $TENANT_ID" \
-  -d "{\"sessionId\":\"$SESSION_ID\",\"currentAnswers\":{}}"
+npm run lint              # Verifica código com ESLint
+npm run format            # Formata código com Prettier
+npm run test              # Roda todos os testes
+npm run test:watch        # Roda testes em modo watch
 ```
 
-4. **Enviar respostas** (repetir conforme as perguntas):
+---
 
-```bash
-curl -s -X POST "http://localhost:3000/v1/anamnesis/sessions/$SESSION_ID/answers" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "x-tenant-id: $TENANT_ID" \
-  -d '{"answersJson":{"q1":7,"q2":6,"q3":"Às vezes"}}'
+## 🔑 Conceitos Importantes
+
+### Multi-Tenancy
+
+Cada cliente (tenant) tem seus próprios dados isolados:
+- **Header obrigatório**: `x-tenant-id` em todas as requisições (exceto login)
+- **Isolamento no banco**: Row-Level Security (RLS) garante que cada tenant só vê seus dados
+- **Na prática**: Sempre inclua `tenantId` nas queries do Prisma
+
+### Autenticação
+
+- **JWT**: Token de acesso (expira em 15 minutos)
+- **Refresh Token**: Para renovar o acesso (expira em 30 dias)
+- **2FA**: Disponível para owners/admins (TOTP)
+- **Roles**: `owner` > `admin` > `practitioner` > `viewer`
+
+### Templates de Anamnese
+
+Templates são questionários configuráveis:
+- **Perguntas**: texto, número, escolha única, múltipla escolha
+- **Lógica condicional**: Mostrar perguntas baseado em respostas anteriores
+- **Tags**: Categorizar perguntas (ex: `sleep`, `stress`, `nutrition`)
+- **Motor adaptativo**: Seleciona próxima pergunta baseado em regras e heurísticas
+
+### Insights de IA
+
+Três modos disponíveis (configurável via `AI_MODE`):
+- **ruleBased** (padrão): Regras determinísticas baseadas em tags
+- **llmMock**: Texto variado sem chamadas externas (para testes)
+- **llm**: Integração real com OpenAI ou Anthropic (requer API keys)
+
+---
+
+## 📚 Documentação Adicional
+
+- **[CLAUDE.md](CLAUDE.md)** - Guia completo para desenvolvedores (arquitetura, padrões, comandos)
+- **[docs/TEMPLATES_GAMIFICADOS.md](docs/TEMPLATES_GAMIFICADOS.md)** - Templates otimizados e gamificados
+- **[docs/AI_LLM_SETUP.md](docs/AI_LLM_SETUP.md)** - Como configurar LLM real
+- **[docs/DOCKER_FIRST_RUN.md](docs/DOCKER_FIRST_RUN.md)** - Primeira execução com Docker
+
+---
+
+## 🌐 Endpoints Principais
+
+### Autenticação
+- `POST /v1/auth/login` - Login (retorna token)
+- `POST /v1/auth/register` - Registrar novo usuário
+- `POST /v1/auth/refresh` - Renovar token
+- `POST /v1/auth/logout` - Logout
+
+### Templates
+- `GET /v1/anamnesis/templates` - Listar templates
+- `POST /v1/anamnesis/templates` - Criar template
+- `GET /v1/anamnesis/templates/:id` - Ver template
+
+### Sessões
+- `POST /v1/anamnesis/sessions` - Criar sessão de anamnese
+- `GET /v1/anamnesis/sessions/:id` - Ver sessão
+- `POST /v1/anamnesis/sessions/:id/answers` - Enviar respostas
+
+### Motor Adaptativo
+- `POST /v1/anamnesis/engine/next-question` - Obter próxima pergunta
+
+### Insights
+- `POST /v1/ai/insights` - Gerar insights de uma sessão
+- `GET /v1/ai/insights/:sessionId` - Ver insights gerados
+
+**Documentação completa**: http://localhost:3000/documentation
+
+---
+
+## 🔧 Variáveis de Ambiente
+
+Principais variáveis (veja `.env.example` para todas):
+
+```env
+# Banco de Dados
+DATABASE_URL=postgresql://user:pass@localhost:5432/anamnese
+
+# Segurança
+JWT_SECRET=sua-chave-secreta-minimo-32-caracteres
+
+# API
+PORT=3000
+NODE_ENV=development
+
+# IA (opcional)
+AI_MODE=ruleBased              # ruleBased | llmMock | llm
+AI_PROVIDER=openai             # openai | anthropic (quando AI_MODE=llm)
+AI_API_KEY=sk-...              # API key (quando AI_MODE=llm)
+
+# Rate Limiting
+RATE_LIMIT_GLOBAL=60           # Requisições/min (global)
+RATE_LIMIT_AUTH=10             # Requisições/min (login)
 ```
 
-5. **Insights (IA mock)**:
+---
+
+## 🧪 Testes
 
 ```bash
-curl -s -X POST http://localhost:3000/v1/ai/insights \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "x-tenant-id: $TENANT_ID" \
-  -d "{\"sessionId\":\"$SESSION_ID\"}"
-```
-
-6. **Listar templates** (para pegar templateId se não tiver):
-
-```bash
-curl -s "http://localhost:3000/v1/anamnesis/templates?page=1&limit=5" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "x-tenant-id: $TENANT_ID"
-```
-
-## Endpoints (resumo)
-
-- **Health**: `GET /health` (sempre 200), `GET /ready` (200 se DB ok, 503 se não).
-- **Auth**: `POST /v1/auth/login`, `POST /v1/auth/register` (owner/admin).
-- **Tenants**: `POST /v1/tenants`, `GET /v1/tenants/:id`.
-- **Users**: `POST /v1/users`, `GET /v1/users/:id`.
-- **Templates**: `POST /v1/anamnesis/templates`, `GET /v1/anamnesis/templates/:id`, `GET /v1/anamnesis/templates` (paginação).
-- **Sessions**: `POST /v1/anamnesis/sessions`, `GET /v1/anamnesis/sessions/:id`, `POST /v1/anamnesis/sessions/:id/answers`.
-- **Engine**: `POST /v1/anamnesis/engine/next-question`.
-- **AI**: `POST /v1/ai/insights`, `GET /v1/ai/insights/:sessionId`.
-- **Audit**: `GET /v1/audit` (filtros: action, entity, from, to, page, limit).
-
-Documentação OpenAPI: `GET /documentation` e `GET /documentation/json`.
-
-## Testes
-
-```bash
+# Todos os testes
 npm run test
+
+# Testes específicos
+npm run test:unit          # Apenas testes unitários
+npm run test:integration   # Apenas testes de integração
+npm run test:e2e          # Apenas testes end-to-end
+npm run test:coverage     # Com cobertura de código
+
+# Modo watch
+npm run test:watch
 ```
 
-- **Unit**: engine (`engine.test.ts`), AI service (`service.test.ts`), idempotency (`idempotency.test.ts`), RBAC (`rbac.test.ts`).
-- **Integration**: health/ready, login (401 e 200 com seed), rotas protegidas (401 sem auth), engine (404 para sessão inexistente).
+**Requisito**: PostgreSQL acessível com `DATABASE_URL` configurado.
 
-Requisito: Postgres acessível com `DATABASE_URL` (ex.: `postgresql://postgres:postgres@localhost:5432/anamnese`). Use `vitest.setup.ts` para definir env de teste se precisar.
+---
 
-## Variáveis de ambiente
+## 🐳 Docker
 
-| Variável | Descrição | Exemplo |
-|----------|-----------|---------|
-| `NODE_ENV` | development / production / test | development |
-| `PORT` | Porta HTTP | 3000 |
-| `HOST` | Host de bind | 0.0.0.0 |
-| `DATABASE_URL` | URL do Postgres | postgresql://user:pass@host:5432/db |
-| `JWT_SECRET` | Segredo JWT (mín. 32 caracteres) | (obrigatório) |
-| `RATE_LIMIT_GLOBAL` | Requisições/min (global) | 60 |
-| `RATE_LIMIT_AUTH` | Requisições/min em login | 10 |
-| `BODY_LIMIT` | Tamanho máximo do body (bytes) | 1048576 |
-| `REQUEST_TIMEOUT` | Timeout da requisição (ms) | 30000 |
-| `AI_MODE` | ruleBased \| llmMock \| llm | ruleBased |
-| `AI_PROVIDER` | openai \| anthropic | — (required when `AI_MODE=llm`) |
-| `AI_API_KEY` | string | — (required when `AI_MODE=llm`) |
-| `AI_MODEL` | string | — (optional; defaults: `gpt-4o` for OpenAI, `claude-sonnet-4-5` for Anthropic) |
+### Comandos úteis
 
-## Estrutura do projeto
+```bash
+# Iniciar tudo
+docker compose up -d
 
-```
-src/
-  server.ts           # Bootstrap
-  app.ts              # buildApp (Fastify + plugins + rotas)
-  plugins/            # env, prisma, tenant, auth, rateLimit, swagger, errorHandler
-  modules/
-    health/
-    auth/
-    tenants/
-    users/
-    anamnesis/
-      templates/
-      sessions/
-      engine/         # Motor adaptativo (regras + heurística)
-    ai/               # Insights (ruleBased + llmMock)
-    audit/
-  shared/             # errors, rbac, idempotency, pagination, types, audit
-  schemas/            # Registro de schemas OpenAPI (Zod → JSON Schema)
-  integration/        # Testes de integração
-prisma/
-  schema.prisma
-  migrations/
-  seed.ts
+# Ver logs
+docker compose logs -f api      # Logs da API
+docker compose logs -f frontend # Logs do frontend
+docker compose logs -f db       # Logs do banco
+
+# Executar comandos dentro do container
+docker compose exec api npm run prisma:seed
+docker compose exec api npm run test
+
+# Parar tudo
+docker compose down
+
+# Rebuild completo
+docker compose build --no-cache
+docker compose up -d
 ```
 
-## Motor de anamnese (MVP)
+---
 
-- **schema_json** do template: `questions` (id, text, type, options, required, tags), `conditionalLogic` (if answer X then show Y), tags (ex.: sleep, stress, food_emotional).
-- **POST /v1/anamnesis/engine/next-question**: recebe `sessionId` e `currentAnswers`; retorna `nextQuestion | null`, `reason`, `completionPercent`.
-- Motor: (1) regras determinísticas (condicional); (2) heurística por tags (aprofundar em áreas críticas, ex. stress alto → pergunta extra). Sem APIs externas.
+## 🆘 Problemas Comuns
 
-## IA (mock)
+### Erro: "Cannot find module"
+```bash
+npm install              # Reinstala dependências
+npm run prisma:generate  # Regenera Prisma Client
+```
 
-- **POST /v1/ai/insights**: body `{ sessionId }`. Busca template + respostas, chama `generateInsights(template, answers)`, persiste em `ai_insights` e retorna.
-- **Estratégias**: 
-  - `ruleBased` (padrão): regras determinísticas baseadas em tags e scores
-  - `llmMock`: texto variado determinístico por seed (sem chamadas externas)
-  - `llm`: integração com LLM real (OpenAI ou Anthropic) — requer `AI_PROVIDER` e `AI_API_KEY`
-  
-  Seleção via `AI_MODE=ruleBased|llmMock|llm`. Ver **[docs/AI_LLM_SETUP.md](docs/AI_LLM_SETUP.md)** para configuração detalhada.
+### Erro: "Database connection failed"
+- Verifique se PostgreSQL está rodando
+- Confirme `DATABASE_URL` no `.env`
+- Teste conexão: `psql $DATABASE_URL`
 
-## Segurança e trade-offs
+### Erro: "JWT_SECRET must be at least 32 characters"
+- Configure `JWT_SECRET` no `.env` com pelo menos 32 caracteres
 
-- **RLS**: aplicado na migration `20250204000001_rls`. A aplicação deve chamar `set_config('app.tenant_id', tenantId)` por request (feito no plugin tenant quando `x-tenant-id` está presente). Em rotas sem tenant (ex.: login), não setamos; políticas com `OR current_setting(...) = ''` permitem operações necessárias (ex.: insert em audit_log no login).
-- **Prisma**: não há middleware global que injete `tenantId` em todos os creates/queries. Todas as rotas validam `tenantId` e incluem `tenantId` no `where`/`data`. RLS no DB é a camada final de isolamento.
+### Migrations não aplicam
+```bash
+npm run prisma:migrate:dev  # Cria/aplica migrations
+npm run prisma:generate     # Regenera client
+```
+
+---
+
+## 📝 Contribuindo
+
+1. Crie uma branch: `git checkout -b feature/nova-funcionalidade`
+2. Faça suas alterações
+3. Execute testes: `npm run test`
+4. Verifique lint: `npm run lint`
+5. Formate código: `npm run format`
+6. Commit e push
+7. Abra um Pull Request
+
+---
+
+## 📄 Licença
+
+[Definir licença do projeto]
+
+---
+
+## 🤝 Suporte
+
+- **Documentação**: Veja `docs/` para guias detalhados
+- **Issues**: Abra uma issue no repositório
+- **Email**: [seu-email@exemplo.com]
+
+---
+
+**Última atualização**: 2026-02-19

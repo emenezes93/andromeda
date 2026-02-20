@@ -48,11 +48,20 @@ export class LoginUseCase {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    if (user.isLocked()) {
+      throw new ForbiddenError(
+        'Account temporarily locked due to too many failed attempts. Try again later.'
+      );
+    }
+
     // Verify password
     const passwordMatch = await this.passwordService.compare(request.password, user.passwordHash);
     if (!passwordMatch) {
+      await this.userRepository.recordFailedLogin(user.id);
       throw new UnauthorizedError('Invalid email or password');
     }
+
+    await this.userRepository.recordSuccessfulLogin(user.id);
 
     // Find membership
     const membership = await this.membershipRepository.findByUserId(user.id);

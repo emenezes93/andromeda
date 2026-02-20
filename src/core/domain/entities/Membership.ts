@@ -10,11 +10,12 @@ export class Membership {
     public readonly userId: string,
     public readonly tenantId: string,
     public readonly role: Role,
+    public readonly active: boolean,
     public readonly createdAt: Date
   ) {}
 
-  static create(userId: string, tenantId: string, role: Role): Membership {
-    return new Membership('', userId, tenantId, role, new Date());
+  static create(userId: string, tenantId: string, role: Role, active: boolean = true): Membership {
+    return new Membership('', userId, tenantId, role, active, new Date());
   }
 
   hasMinimumRole(required: Role): boolean {

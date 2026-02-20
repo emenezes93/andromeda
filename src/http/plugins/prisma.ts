@@ -17,7 +17,17 @@ interface PrismaUseParams {
   args?: { where?: Record<string, unknown> };
 }
 
-const SOFT_DELETE_MODELS = ['Tenant', 'User', 'AnamnesisTemplate', 'AnamnesisSession'];
+const SOFT_DELETE_MODELS = [
+  'Tenant',
+  'User',
+  'AnamnesisTemplate',
+  'AnamnesisSession',
+  'Patient',
+  'ScheduledQuestionnaire',
+  'PatientGoal',
+  'TrainingPlan',
+  'ProgressPhoto',
+];
 
 async function prismaPlugin(fastify: FastifyInstance): Promise<void> {
   const prisma = new PrismaClient({
@@ -49,7 +59,8 @@ async function prismaPlugin(fastify: FastifyInstance): Promise<void> {
   });
 
   fastify.decorate('clearTenantId', async () => {
-    await prisma.$executeRaw`SELECT set_config('app.tenant_id', '', true)`;
+    // '__none__' is an impossible CUID — ensures no row matches when tenant is cleared (fail-closed)
+    await prisma.$executeRaw`SELECT set_config('app.tenant_id', '__none__', true)`;
   });
 
   fastify.addHook('onClose', async (instance) => {

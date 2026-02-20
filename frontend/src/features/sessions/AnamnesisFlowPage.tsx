@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { SignatureStep } from '@/components/session/SignatureStep';
+import { SentimentBar } from '@/components/session/SentimentBar';
 
 export function AnamnesisFlowPage() {
   const { id } = useParams<{ id: string }>();
@@ -267,6 +268,13 @@ export function AnamnesisFlowPage() {
               );
             })}
           </div>
+        )}
+        {question.type === 'sentiment' && (
+          <SentimentBar
+            value={typeof currentValue === 'string' ? currentValue : ''}
+            onChange={(v) => setCurrentValue(v)}
+            ariaLabel={question.text}
+          />
         )}
         {(question.type === 'text' || (question.type === 'multiple' && !question.options?.length)) && (
           <div className="mt-4">

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
-type QuestionType = 'text' | 'number' | 'single' | 'multiple';
+type QuestionType = 'text' | 'number' | 'single' | 'multiple' | 'sentiment';
 
 interface QuestionDraft {
   _key: string; // internal stable key for React
@@ -56,6 +56,7 @@ const typeLabels: Record<QuestionType, string> = {
   number: 'Número',
   single: 'Escolha única',
   multiple: 'Múltipla escolha',
+  sentiment: 'Sentimento (barra com emojis)',
 };
 
 export function TemplateFormPage() {

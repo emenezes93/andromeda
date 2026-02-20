@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
+/** Limite máximo de itens por página na paginação (evita sobrecarga). */
+export const MAX_LIMIT = 100;
+
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(20),
 });
 
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;

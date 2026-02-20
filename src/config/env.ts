@@ -9,6 +9,8 @@ const envSchema = z
     PORT: z.coerce.number().default(3000),
     HOST: z.string().default('0.0.0.0'),
     DATABASE_URL: z.string().min(1),
+    /** Optional: sets connection_limit in DATABASE_URL for Prisma connection pool */
+    DATABASE_POOL_SIZE: z.coerce.number().int().min(1).max(100).optional(),
     JWT_SECRET: z.string().min(32),
     RATE_LIMIT_GLOBAL: z.coerce.number().default(60),
     RATE_LIMIT_AUTH: z.coerce.number().default(10),
@@ -50,3 +52,14 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+// Apply connection pool size to DATABASE_URL before Prisma client is loaded
+if (env.DATABASE_POOL_SIZE) {
+  try {
+    const url = new URL(env.DATABASE_URL);
+    url.searchParams.set('connection_limit', String(env.DATABASE_POOL_SIZE));
+    process.env.DATABASE_URL = url.toString();
+  } catch {
+    // DATABASE_URL may be a non-URL format (e.g. postgres://...); leave unchanged
+  }
+}

@@ -21,7 +21,17 @@ export function createPrismaClient(
   });
 
   // Soft delete middleware: auto-filter deleted records on reads
-  const SOFT_DELETE_MODELS = ['Tenant', 'User', 'AnamnesisTemplate', 'AnamnesisSession'];
+  const SOFT_DELETE_MODELS = [
+    'Tenant',
+    'User',
+    'AnamnesisTemplate',
+    'AnamnesisSession',
+    'Patient',
+    'ScheduledQuestionnaire',
+    'PatientGoal',
+    'TrainingPlan',
+    'ProgressPhoto',
+  ];
 
   const softDeleteMiddleware = async (
     params: PrismaUseParams,

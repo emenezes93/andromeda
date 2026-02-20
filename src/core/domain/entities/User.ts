@@ -9,14 +9,20 @@ export class User {
     public readonly passwordHash: string,
     public readonly name: string | null,
     public readonly createdAt: Date,
-    public readonly deletedAt: Date | null = null
+    public readonly deletedAt: Date | null = null,
+    public readonly loginAttempts: number = 0,
+    public readonly lockedUntil: Date | null = null
   ) {}
 
   static create(email: string, passwordHash: string, name: string | null = null): User {
-    return new User('', email, passwordHash, name, new Date(), null);
+    return new User('', email, passwordHash, name, new Date(), null, 0, null);
   }
 
   isDeleted(): boolean {
     return this.deletedAt !== null;
+  }
+
+  isLocked(): boolean {
+    return this.lockedUntil !== null && this.lockedUntil > new Date();
   }
 }

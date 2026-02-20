@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import type { QuestionSchema } from '@/types';
 
-type QuestionType = 'text' | 'number' | 'single' | 'multiple';
+type QuestionType = 'text' | 'number' | 'single' | 'multiple' | 'sentiment';
 
 interface QuestionDraft {
   _key: string;
@@ -70,6 +70,7 @@ const typeLabels: Record<QuestionType, string> = {
   number: 'Número',
   single: 'Escolha única',
   multiple: 'Múltipla escolha',
+  sentiment: 'Sentimento (barra com emojis)',
 };
 
 export function TemplateEditPage() {

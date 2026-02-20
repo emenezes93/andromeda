@@ -14,12 +14,6 @@ import {
   handleSubscriptionDeleted,
 } from './service.js';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    rawBody?: Buffer;
-  }
-}
-
 export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   // List available plans (monthly, annual)
   fastify.get(
