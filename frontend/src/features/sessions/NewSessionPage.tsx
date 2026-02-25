@@ -99,10 +99,11 @@ export function NewSessionPage() {
     <Card title="Nova sessão">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-content-muted">
+          <label htmlFor="new-session-patient" className="mb-1.5 block text-sm font-medium text-content-muted">
             Paciente (opcional)
           </label>
           <select
+            id="new-session-patient"
             className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={patientId || preselectedPatientId || ''}
             onChange={(e) => setPatientId(e.target.value)}
@@ -121,8 +122,9 @@ export function NewSessionPage() {
           )}
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
+          <label htmlFor="new-session-template" className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
           <select
+            id="new-session-template"
             className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}

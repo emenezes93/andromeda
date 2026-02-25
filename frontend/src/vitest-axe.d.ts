@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 declare module 'vitest' {
-  interface Assertion<T = any> {
+  interface Assertion<_T = any> {
     toHaveNoViolations(): void;
   }
   interface AsymmetricMatchersContaining {
@@ -11,7 +11,7 @@ declare module 'vitest' {
 
 declare global {
   namespace Vi {
-    interface Assertion<T = any> {
+    interface Assertion<_T = any> {
       toHaveNoViolations(): void;
     }
     interface AsymmetricMatchersContaining {

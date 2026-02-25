@@ -80,6 +80,7 @@ export function SessionsByTemplateChart({ data, loading }: SessionsByTemplateCha
               borderRadius: 'var(--radius-card)',
               fontSize: 12,
             }}
+            // eslint-disable-next-line react/prop-types
             formatter={(value: number, _n: string, props: { payload?: { name: string } }) => [
               value,
               props.payload?.name ?? '',

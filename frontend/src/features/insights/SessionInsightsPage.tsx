@@ -356,7 +356,7 @@ export function SessionInsightsPage() {
 
       {recommendations.length > 0 && (
         <Card title="Recomendações">
-          <ul className="list-inside list-disc space-y-1.5 text-content" role="list">
+          <ul className="list-inside list-disc space-y-1.5 text-content">
             {recommendations.map((rec, i) => (
               <li key={i}>{rec}</li>
             ))}

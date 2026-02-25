@@ -65,7 +65,7 @@ export class RedisInsightCache implements IInsightCache {
  */
 export function createRedisInsightCache(redisUrl: string): RedisInsightCache {
   const getClient = async (): Promise<RedisLike | null> => {
-    let mod: { default?: new (u: string) => RedisLike } | null = null;
+    let mod: { default?: new (u: string) => RedisLike };
     try {
       mod = (await import('ioredis')) as { default?: new (u: string) => RedisLike };
     } catch {

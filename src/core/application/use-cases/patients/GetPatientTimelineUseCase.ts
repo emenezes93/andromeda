@@ -111,8 +111,8 @@ export class GetPatientTimelineUseCase {
     }
 
     for (const g of goals) {
-      let badge: string | null = null;
-      let badgeVariant: BadgeVariant = 'default';
+      let badge: string | null;
+      let badgeVariant: BadgeVariant;
       if (g.achievedAt) { badge = 'Conquistada'; badgeVariant = 'success'; }
       else if (new Date(g.targetDate) < new Date()) { badge = 'Vencida'; badgeVariant = 'error'; }
       else { badge = 'Em andamento'; badgeVariant = 'primary'; }

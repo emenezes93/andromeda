@@ -80,8 +80,9 @@ export function AuditListPage() {
       {/* Filtros */}
       <div className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4">
         <div className="flex flex-col gap-1">
-          <label className="text-body-sm font-medium text-content-muted">Ação</label>
+          <label htmlFor="audit-filter-action" className="text-body-sm font-medium text-content-muted">Ação</label>
           <select
+            id="audit-filter-action"
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterAction}
             onChange={handleFilterChange(setFilterAction)}
@@ -93,8 +94,9 @@ export function AuditListPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-body-sm font-medium text-content-muted">Entidade</label>
+          <label htmlFor="audit-filter-entity" className="text-body-sm font-medium text-content-muted">Entidade</label>
           <select
+            id="audit-filter-entity"
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterEntity}
             onChange={handleFilterChange(setFilterEntity)}
@@ -106,8 +108,9 @@ export function AuditListPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-body-sm font-medium text-content-muted">De</label>
+          <label htmlFor="audit-filter-from" className="text-body-sm font-medium text-content-muted">De</label>
           <input
+            id="audit-filter-from"
             type="date"
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterFrom}
@@ -115,8 +118,9 @@ export function AuditListPage() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-body-sm font-medium text-content-muted">Até</label>
+          <label htmlFor="audit-filter-to" className="text-body-sm font-medium text-content-muted">Até</label>
           <input
+            id="audit-filter-to"
             type="date"
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filterTo}

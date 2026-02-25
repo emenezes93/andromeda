@@ -250,10 +250,11 @@ export function TemplateEditPage() {
 
             {/* Enunciado */}
             <div>
-              <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+              <label htmlFor={`q-text-${q._key}`} className="mb-1.5 block text-body-sm font-medium text-content-muted">
                 Enunciado <span className="text-error">*</span>
               </label>
               <textarea
+                id={`q-text-${q._key}`}
                 className="min-h-[60px] w-full resize-y rounded-input border border-border bg-surface px-3 py-2 text-body text-content transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={q.text}
                 onChange={(e) => updateQuestion(q._key, { text: e.target.value })}
@@ -265,10 +266,11 @@ export function TemplateEditPage() {
             {/* Type + Required */}
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[140px]">
-                <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                <label htmlFor={`q-type-${q._key}`} className="mb-1.5 block text-body-sm font-medium text-content-muted">
                   Tipo de resposta
                 </label>
                 <select
+                  id={`q-type-${q._key}`}
                   className="w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={q.type}
                   onChange={(e) =>
