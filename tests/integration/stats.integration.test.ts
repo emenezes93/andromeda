@@ -27,14 +27,15 @@ describe('Integration: Stats', () => {
       });
       expect(res.statusCode).toBe(200);
       const body = res.json();
-      expect(body.totalSessions).toBeDefined();
-      expect(body.completedSessions).toBeDefined();
-      expect(body.totalTemplates).toBeDefined();
-      expect(body.sessionsByDay).toBeDefined();
-      expect(body.sessionsByTemplate).toBeDefined();
+      expect(body.totals).toBeDefined();
+      expect(typeof body.totals.sessions).toBe('number');
+      expect(typeof body.totals.completed).toBe('number');
+      expect(typeof body.totals.templates).toBe('number');
+      expect(body.byDay).toBeDefined();
+      expect(body.byTemplate).toBeDefined();
       expect(body.alerts).toBeDefined();
-      expect(body.alerts.pendingQuestionnairesCount).toBeDefined();
-      expect(body.alerts.highRiskCount).toBeDefined();
+      expect(typeof body.alerts.pendingQuestionnairesCount).toBe('number');
+      expect(typeof body.alerts.highRiskCount).toBe('number');
     });
 
     it('accepts days query', async () => {
@@ -45,7 +46,7 @@ describe('Integration: Stats', () => {
       });
       expect(res.statusCode).toBe(200);
       const body = res.json();
-      expect(body.totalSessions).toBeDefined();
+      expect(body.totals).toBeDefined();
     });
 
     it('returns 401 without auth', async () => {

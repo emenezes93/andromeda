@@ -12,6 +12,13 @@ describe('E2E: Complete Assessment Flow', () => {
     const login = await loginAsOwner(app);
     ownerToken = login.token;
     tenantId = login.tenantId;
+
+    // Upgrade tenant to 'solo' plan so AI insights quota is enabled
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (app as any).prisma.tenant.update({
+      where: { id: tenantId },
+      data: { planTier: 'solo' },
+    });
   });
 
   afterAll(async () => {

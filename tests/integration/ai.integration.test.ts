@@ -15,6 +15,13 @@ describe('Integration: AI Insights', () => {
     ownerToken = login.token;
     tenantId = login.tenantId;
 
+    // Upgrade tenant to 'solo' plan so AI insights quota is enabled
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (app as any).prisma.tenant.update({
+      where: { id: tenantId },
+      data: { planTier: 'solo' },
+    });
+
     // Create a template
     const templateRes = await app.inject({
       method: 'POST',

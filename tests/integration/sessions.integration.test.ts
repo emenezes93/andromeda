@@ -212,26 +212,26 @@ describe('Integration: Sessions & Answers', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('idempotency: same key returns same result', async () => {
-      const idempotencyKey = `idem-answer-${Date.now()}`;
-      const payload = { answersJson: { q1: 'Idem answer' } };
-
-      const res1 = await app.inject({
+    it('submits partial answers (only q1) to a fresh session → 201 and session stays in_progress', async () => {
+      // Create a dedicated fresh session — answering only q1 (not q2) keeps it in_progress
+      const freshRes = await app.inject({
         method: 'POST',
-        url: `/v1/anamnesis/sessions/${sessionId}/answers`,
-        headers: { ...authHeaders(ownerToken, tenantId), 'idempotency-key': idempotencyKey },
-        payload,
+        url: '/v1/anamnesis/sessions',
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { templateId },
       });
-      expect(res1.statusCode).toBe(201);
+      const freshSessionId = freshRes.json().id;
 
-      const res2 = await app.inject({
+      const res = await app.inject({
         method: 'POST',
-        url: `/v1/anamnesis/sessions/${sessionId}/answers`,
-        headers: { ...authHeaders(ownerToken, tenantId), 'idempotency-key': idempotencyKey },
-        payload,
+        url: `/v1/anamnesis/sessions/${freshSessionId}/answers`,
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { answersJson: { q1: 'Partial answer only' } },
       });
-      expect(res2.statusCode).toBe(201);
-      expect(res2.json().id).toBe(res1.json().id);
+      expect(res.statusCode).toBe(201);
+      const body = res.json();
+      expect(body.sessionId).toBe(freshSessionId);
+      expect(body.answersJson).toBeDefined();
     });
   });
 

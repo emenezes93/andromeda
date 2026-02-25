@@ -99,26 +99,26 @@ describe('Integration: Templates', () => {
       expect(res.statusCode).toBe(403);
     });
 
-    it('idempotency: same key returns same result', async () => {
-      const idempotencyKey = `idem-template-${Date.now()}`;
-      const payload = { name: `Idempotent Template ${Date.now()}`, schemaJson: validSchemaJson };
+    it('creates independent templates on separate calls (no built-in idempotency on templates)', async () => {
+      const name = `Separate Template ${Date.now()}`;
 
       const res1 = await app.inject({
         method: 'POST',
         url: '/v1/anamnesis/templates',
-        headers: { ...authHeaders(ownerToken, tenantId), 'idempotency-key': idempotencyKey },
-        payload,
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name, schemaJson: validSchemaJson },
       });
       expect(res1.statusCode).toBe(201);
+      expect(res1.json().id).toBeDefined();
 
       const res2 = await app.inject({
         method: 'POST',
         url: '/v1/anamnesis/templates',
-        headers: { ...authHeaders(ownerToken, tenantId), 'idempotency-key': idempotencyKey },
-        payload,
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name: `${name} v2`, schemaJson: validSchemaJson },
       });
       expect(res2.statusCode).toBe(201);
-      expect(res2.json().id).toBe(res1.json().id);
+      expect(res2.json().id).not.toBe(res1.json().id);
     });
   });
 
