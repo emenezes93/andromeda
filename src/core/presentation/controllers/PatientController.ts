@@ -10,6 +10,7 @@ import type { GetPatientUseCase } from '@application/use-cases/patients/GetPatie
 import type { CreatePatientUseCase } from '@application/use-cases/patients/CreatePatientUseCase.js';
 import type { UpdatePatientUseCase } from '@application/use-cases/patients/UpdatePatientUseCase.js';
 import type { DeletePatientUseCase } from '@application/use-cases/patients/DeletePatientUseCase.js';
+import type { GetPatientTimelineUseCase } from '@application/use-cases/patients/GetPatientTimelineUseCase.js';
 
 const createPatientBodySchema = z.object({
   fullName: z.string().min(2).max(255),
@@ -47,7 +48,8 @@ export class PatientController {
     private readonly getPatientUseCase: GetPatientUseCase,
     private readonly createPatientUseCase: CreatePatientUseCase,
     private readonly updatePatientUseCase: UpdatePatientUseCase,
-    private readonly deletePatientUseCase: DeletePatientUseCase
+    private readonly deletePatientUseCase: DeletePatientUseCase,
+    private readonly getPatientTimelineUseCase?: GetPatientTimelineUseCase
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -68,6 +70,13 @@ export class PatientController {
       { schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } } },
       this.delete.bind(this)
     );
+    if (this.getPatientTimelineUseCase) {
+      app.get(
+        '/v1/patients/:id/timeline',
+        { schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } }, querystring: { type: 'object', properties: { limit: { type: 'integer' } } } } },
+        this.getTimeline.bind(this)
+      );
+    }
   }
 
   private async list(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -152,5 +161,16 @@ export class PatientController {
       actorUserId: user.userId,
     });
     await reply.status(204).send();
+  }
+
+  private async getTimeline(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const tenantId = requireTenant(request);
+    requireAuth(request);
+    Guards.readOnly(request.user!.role);
+    const { id } = request.params as { id: string };
+    const query = request.query as { limit?: string };
+    const limit = query.limit ? parseInt(query.limit, 10) : 50;
+    const result = await this.getPatientTimelineUseCase!.execute({ patientId: id, tenantId, limit });
+    await reply.status(200).send(result);
   }
 }

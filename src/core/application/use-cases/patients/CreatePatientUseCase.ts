@@ -1,6 +1,7 @@
 import type { IAuditService } from '@ports/services/IAuditService.js';
 import type { IPatientRepository } from '@ports/repositories/IPatientRepository.js';
-import { ConflictError } from '@shared/errors/index.js';
+import type { IQuotaService } from '@ports/services/IQuotaService.js';
+import { ConflictError, ForbiddenError } from '@shared/errors/index.js';
 
 export interface CreatePatientRequest {
   tenantId: string;
@@ -41,10 +42,15 @@ export interface CreatePatientResponse {
 export class CreatePatientUseCase {
   constructor(
     private readonly patientRepository: IPatientRepository,
-    private readonly auditService: IAuditService
+    private readonly auditService: IAuditService,
+    private readonly quotaService?: IQuotaService
   ) {}
 
   async execute(request: CreatePatientRequest): Promise<CreatePatientResponse> {
+    if (this.quotaService) {
+      const quota = await this.quotaService.checkPatientQuota(request.tenantId);
+      if (!quota.allowed) throw new ForbiddenError(quota.message ?? 'Patient quota exceeded');
+    }
     if (request.cpf) {
       const existing = await this.patientRepository.findByCpf(request.cpf, request.tenantId);
       if (existing) throw new ConflictError('CPF already registered for this tenant');

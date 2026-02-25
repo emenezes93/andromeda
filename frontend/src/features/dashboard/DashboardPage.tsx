@@ -16,6 +16,7 @@ import {
   type TemplateCount,
 } from '@/components/charts';
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
+import { PlanUsageCard } from '@/components/ui/PlanUsageCard';
 
 const PERIOD_OPTIONS = [
   { value: 7, label: '7 dias' },
@@ -186,6 +187,9 @@ export function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Uso do plano */}
+      <PlanUsageCard />
 
       {/* Conquistas (gamificação) */}
       <AchievementsCard

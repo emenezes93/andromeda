@@ -95,6 +95,7 @@ export async function buildApp() {
   container.auditController.registerRoutes(app);
   container.statsController.registerRoutes(app);
   container.goalController.registerRoutes(app);
+  container.quotaController.registerRoutes(app);
 
   // Legacy routes (migrating progressively to hexagonal)
   const { patientsLegacyRoutes } = await import('../modules/patients-legacy/routes.js');

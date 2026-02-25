@@ -10,6 +10,7 @@ import type { BillingPlan, SubscriptionInfo } from '@/api/billing';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
+import { PlanUsageCard } from '@/components/ui/PlanUsageCard';
 
 const STATUS_LABELS: Record<string, string> = {
   active: 'Ativa',
@@ -108,6 +109,9 @@ export function SubscriptionPage() {
           Escolha o plano e gerencie seu pagamento recorrente.
         </p>
       </div>
+
+      {/* Uso atual do plano */}
+      <PlanUsageCard />
 
       {/* Assinatura atual (quando ativa) */}
       {isActive && sub && (

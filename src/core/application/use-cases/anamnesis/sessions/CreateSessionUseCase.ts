@@ -1,7 +1,8 @@
 import type { ISessionRepository } from '@ports/repositories/ISessionRepository.js';
 import type { ITemplateRepository } from '@ports/repositories/ITemplateRepository.js';
 import type { IPatientRepository } from '@ports/repositories/IPatientRepository.js';
-import { NotFoundError } from '@shared/errors/index.js';
+import type { IQuotaService } from '@ports/services/IQuotaService.js';
+import { NotFoundError, ForbiddenError } from '@shared/errors/index.js';
 
 export interface CreateSessionRequest {
   tenantId: string;
@@ -27,10 +28,15 @@ export class CreateSessionUseCase {
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly templateRepository: ITemplateRepository,
-    private readonly patientRepository: IPatientRepository
+    private readonly patientRepository: IPatientRepository,
+    private readonly quotaService?: IQuotaService
   ) {}
 
   async execute(request: CreateSessionRequest): Promise<CreateSessionResponse> {
+    if (this.quotaService) {
+      const quota = await this.quotaService.checkSessionQuota(request.tenantId);
+      if (!quota.allowed) throw new ForbiddenError(quota.message ?? 'Session quota exceeded');
+    }
     const template = await this.templateRepository.findById(request.templateId, request.tenantId);
     if (!template || template.isDeleted()) throw new NotFoundError('Template not found');
     if (request.patientId) {
@@ -57,4 +63,3 @@ export class CreateSessionUseCase {
     };
   }
 }
-

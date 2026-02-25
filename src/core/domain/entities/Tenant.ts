@@ -9,11 +9,12 @@ export class Tenant {
     public readonly name: string,
     public readonly status: TenantStatus,
     public readonly createdAt: Date,
-    public readonly deletedAt: Date | null = null
+    public readonly deletedAt: Date | null = null,
+    public readonly planTier: string = 'free'
   ) {}
 
   static create(name: string): Tenant {
-    return new Tenant('', name, 'active', new Date(), null);
+    return new Tenant('', name, 'active', new Date(), null, 'free');
   }
 
   isActive(): boolean {
@@ -25,10 +26,10 @@ export class Tenant {
   }
 
   suspend(): Tenant {
-    return new Tenant(this.id, this.name, 'suspended', this.createdAt, this.deletedAt);
+    return new Tenant(this.id, this.name, 'suspended', this.createdAt, this.deletedAt, this.planTier);
   }
 
   activate(): Tenant {
-    return new Tenant(this.id, this.name, 'active', this.createdAt, this.deletedAt);
+    return new Tenant(this.id, this.name, 'active', this.createdAt, this.deletedAt, this.planTier);
   }
 }

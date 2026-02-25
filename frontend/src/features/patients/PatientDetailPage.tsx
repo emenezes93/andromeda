@@ -292,6 +292,9 @@ export function PatientDetailPage() {
 
       {/* ── Action strip ── */}
       <div className="flex flex-wrap items-center gap-3 pt-2">
+        <Link to={`/patients/${id}/timeline`}>
+          <Button variant="outline">Prontuário completo</Button>
+        </Link>
         <Link to={`/patients/${id}/evolution`}>
           <Button variant="outline">Ver evolução</Button>
         </Link>

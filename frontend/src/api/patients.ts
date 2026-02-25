@@ -4,6 +4,7 @@ import type {
   PatientEvolution,
   PatientWithCount,
   PatientListResponse,
+  PatientTimelineResponse,
   CreatePatientBody,
   CreateEvolutionBody,
   PaginationMeta,
@@ -58,6 +59,14 @@ export async function createEvolution(
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export async function getPatientTimeline(
+  patientId: string,
+  limit?: number
+): Promise<PatientTimelineResponse> {
+  const qs = limit != null ? `?limit=${limit}` : '';
+  return apiFetch<PatientTimelineResponse>(`/v1/patients/${patientId}/timeline${qs}`);
 }
 
 export async function exportPatientsCSV(search?: string): Promise<void> {

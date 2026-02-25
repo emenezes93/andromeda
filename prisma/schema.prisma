@@ -23,6 +23,7 @@ model Tenant {
   stripeSubscriptionId String?   @map("stripe_subscription_id")
   subscriptionStatus   String?   @map("subscription_status") // active | past_due | canceled | trialing
   currentPeriodEnd     DateTime? @map("current_period_end")
+  planTier  String  @default("free")  @map("plan_tier")
   // AI Cost Alerts
   aiCostLimitUsd       Float?    @map("ai_cost_limit_usd")
   aiCostAlertThreshold Float?    @map("ai_cost_alert_threshold") // percentage (0-100) of limit

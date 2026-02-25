@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { login } from '@/api/auth';
 import { setAuth } from '@/stores/authStore';
+import { isOnboardingDismissed } from '@/stores/onboardingStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -35,7 +36,7 @@ export function LoginPage() {
     try {
       const res = await login(data.email, data.password);
       setAuth(res.token, res.refreshToken, res.user);
-      navigate('/', { replace: true });
+      navigate(isOnboardingDismissed() ? '/' : '/onboarding', { replace: true });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao fazer login');
     }

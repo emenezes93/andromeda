@@ -208,6 +208,32 @@ export interface AiInsight {
   createdAt: string;
 }
 
+export type TimelineEventType = 'session' | 'evolution' | 'goal';
+export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'error';
+
+export interface PatientTimelineEvent {
+  id: string;
+  type: TimelineEventType;
+  date: string;
+  title: string;
+  subtitle: string | null;
+  badge: string | null;
+  badgeVariant: BadgeVariant;
+  linkTo: string | null;
+}
+
+export interface PatientTimelineResponse {
+  patientId: string;
+  events: PatientTimelineEvent[];
+}
+
+export interface PlanUsageSummary {
+  planTier: string;
+  patients: { current: number; max: number | null };
+  sessionsThisMonth: { current: number; max: number | null };
+  aiInsightsEnabled: boolean;
+}
+
 export interface AuditLog {
   id: string;
   action: string;

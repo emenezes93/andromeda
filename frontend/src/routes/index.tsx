@@ -63,6 +63,11 @@ const PatientEvolutionPage = lazy(() =>
     default: m.PatientEvolutionPage,
   }))
 );
+const PatientTimelinePage = lazy(() =>
+  import('@/features/patients/PatientTimelinePage').then((m) => ({
+    default: m.PatientTimelinePage,
+  }))
+);
 // Users
 const UsersListPage = lazy(() =>
   import('@/features/users/UsersListPage').then((m) => ({ default: m.UsersListPage }))
@@ -92,6 +97,12 @@ const TermsPage = lazy(() =>
 // AI Usage
 const AiUsagePage = lazy(() =>
   import('@/features/ai/AiUsagePage').then((m) => ({ default: m.AiUsagePage }))
+);
+// Onboarding
+const OnboardingWizardPage = lazy(() =>
+  import('@/features/onboarding/OnboardingWizardPage').then((m) => ({
+    default: m.OnboardingWizardPage,
+  }))
 );
 
 function FullPageSpinner() {
@@ -146,6 +157,7 @@ const router = createBrowserRouter([
   { path: '/patients/new', element: withLayout('Novo paciente', <PatientFormPage />) },
   { path: '/patients/:id/edit', element: withLayout('Editar paciente', <PatientFormPage />) },
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
+  { path: '/patients/:id/timeline', element: withLayout('Prontuário', <PatientTimelinePage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
   // Users
   { path: '/users', element: withLayout('Usuários', <UsersListPage />) },
@@ -161,6 +173,15 @@ const router = createBrowserRouter([
   { path: '/ai/usage', element: withLayout('Uso de IA', <AiUsagePage />) },
   // Termos e política de privacidade
   { path: '/terms', element: withLayout('Termos e política', <TermsPage />) },
+  // Onboarding (no layout, no auth wrapper - just Suspense)
+  {
+    path: '/onboarding',
+    element: (
+      <Suspense fallback={<FullPageSpinner />}>
+        <OnboardingWizardPage />
+      </Suspense>
+    ),
+  },
   // Catch-all
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

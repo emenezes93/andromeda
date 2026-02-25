@@ -78,6 +78,9 @@ import { CreateGoalUseCase } from '@application/use-cases/goals/CreateGoalUseCas
 import { UpdateGoalUseCase } from '@application/use-cases/goals/UpdateGoalUseCase.js';
 import { DeleteGoalUseCase } from '@application/use-cases/goals/DeleteGoalUseCase.js';
 import { GoalController } from '@presentation/controllers/GoalController.js';
+import { QuotaController } from '@presentation/controllers/QuotaController.js';
+import { PrismaQuotaService } from '../services/PrismaQuotaService.js';
+import { GetPatientTimelineUseCase } from '@application/use-cases/patients/GetPatientTimelineUseCase.js';
 import { env } from '@config/env.js';
 
 /**
@@ -239,6 +242,14 @@ export class Container {
       this._auditService = new PrismaAuditService(this.prisma);
     }
     return this._auditService;
+  }
+
+  private _quotaService?: PrismaQuotaService;
+  get quotaService(): PrismaQuotaService {
+    if (!this._quotaService) {
+      this._quotaService = new PrismaQuotaService(this.prisma);
+    }
+    return this._quotaService;
   }
 
   // Use Cases
@@ -447,7 +458,8 @@ export class Container {
     if (!this._createPatientUseCase) {
       this._createPatientUseCase = new CreatePatientUseCase(
         this.patientRepository,
-        this.auditService
+        this.auditService,
+        this.quotaService
       );
     }
     return this._createPatientUseCase;
@@ -473,6 +485,14 @@ export class Container {
       );
     }
     return this._deletePatientUseCase;
+  }
+
+  private _getPatientTimelineUseCase?: GetPatientTimelineUseCase;
+  get getPatientTimelineUseCase(): GetPatientTimelineUseCase {
+    if (!this._getPatientTimelineUseCase) {
+      this._getPatientTimelineUseCase = new GetPatientTimelineUseCase(this.prisma);
+    }
+    return this._getPatientTimelineUseCase;
   }
 
   // Template Use Cases
@@ -539,7 +559,8 @@ export class Container {
       this._createSessionUseCase = new CreateSessionUseCase(
         this.sessionRepository,
         this.templateRepository,
-        this.patientRepository
+        this.patientRepository,
+        this.quotaService
       );
     }
     return this._createSessionUseCase;
@@ -641,7 +662,8 @@ export class Container {
         this.insightGenerator,
         this.insightCache,
         this.auditService,
-        this.logger
+        this.logger,
+        this.quotaService
       );
     }
     return this._generateInsightsUseCase;
@@ -777,7 +799,8 @@ export class Container {
         this.getPatientUseCase,
         this.createPatientUseCase,
         this.updatePatientUseCase,
-        this.deletePatientUseCase
+        this.deletePatientUseCase,
+        this.getPatientTimelineUseCase
       );
     }
     return this._patientController;
@@ -863,5 +886,13 @@ export class Container {
       );
     }
     return this._goalController;
+  }
+
+  private _quotaController?: QuotaController;
+  get quotaController(): QuotaController {
+    if (!this._quotaController) {
+      this._quotaController = new QuotaController(this.quotaService);
+    }
+    return this._quotaController;
   }
 }

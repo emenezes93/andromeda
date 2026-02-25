@@ -83,13 +83,15 @@ export class PrismaTenantRepository implements ITenantRepository {
     status: string;
     createdAt: Date;
     deletedAt: Date | null;
+    planTier?: string;
   }): Tenant {
     return new Tenant(
       prismaTenant.id,
       prismaTenant.name,
       prismaTenant.status as Tenant['status'],
       prismaTenant.createdAt,
-      prismaTenant.deletedAt
+      prismaTenant.deletedAt,
+      prismaTenant.planTier ?? 'free'
     );
   }
 }
