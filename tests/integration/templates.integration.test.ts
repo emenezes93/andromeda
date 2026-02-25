@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestApp, loginAsOwner, authHeaders } from '../helpers/index.js';
+import { createTestApp, loginAsOwner, authHeaders, STRONG_PASSWORD } from '../helpers/index.js';
 import type { FastifyInstance } from 'fastify';
 
 const validSchemaJson = {
@@ -25,6 +25,8 @@ describe('Integration: Templates', () => {
   afterAll(async () => {
     await app.close();
   });
+
+  // ── POST /v1/anamnesis/templates ─────────────────────────────────────────
 
   describe('POST /v1/anamnesis/templates', () => {
     it('creates a template with valid schemaJson → 201', async () => {
@@ -62,6 +64,41 @@ describe('Integration: Templates', () => {
       expect([400, 422]).toContain(res.statusCode);
     });
 
+    it('returns 401 without auth', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/anamnesis/templates',
+        headers: { 'x-tenant-id': tenantId, 'content-type': 'application/json' },
+        payload: { name: 'No Auth', schemaJson: validSchemaJson },
+      });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('returns 403 for viewer role', async () => {
+      const viewerEmail = `viewer-tpl-${Date.now()}@test.com`;
+      await app.inject({
+        method: 'POST',
+        url: '/v1/users',
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { email: viewerEmail, password: STRONG_PASSWORD, role: 'viewer' },
+      });
+      const loginRes = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: { email: viewerEmail, password: STRONG_PASSWORD },
+      });
+      if (loginRes.statusCode !== 200) return;
+      const viewerToken = loginRes.json().token;
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/anamnesis/templates',
+        headers: authHeaders(viewerToken, tenantId),
+        payload: { name: 'Viewer template', schemaJson: validSchemaJson },
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
     it('idempotency: same key returns same result', async () => {
       const idempotencyKey = `idem-template-${Date.now()}`;
       const payload = { name: `Idempotent Template ${Date.now()}`, schemaJson: validSchemaJson };
@@ -84,6 +121,8 @@ describe('Integration: Templates', () => {
       expect(res2.json().id).toBe(res1.json().id);
     });
   });
+
+  // ── GET /v1/anamnesis/templates/:id ──────────────────────────────────────
 
   describe('GET /v1/anamnesis/templates/:id', () => {
     it('returns template by ID → 200', async () => {
@@ -108,6 +147,8 @@ describe('Integration: Templates', () => {
     });
   });
 
+  // ── GET /v1/anamnesis/templates ───────────────────────────────────────────
+
   describe('GET /v1/anamnesis/templates', () => {
     it('lists templates with pagination → 200', async () => {
       const res = await app.inject({
@@ -117,9 +158,7 @@ describe('Integration: Templates', () => {
       });
       expect(res.statusCode).toBe(200);
       const body = res.json();
-      expect(body.data).toBeDefined();
       expect(Array.isArray(body.data)).toBe(true);
-      expect(body.meta).toBeDefined();
       expect(body.meta.page).toBe(1);
       expect(body.meta.limit).toBe(5);
       expect(typeof body.meta.total).toBe('number');
@@ -133,8 +172,105 @@ describe('Integration: Templates', () => {
         headers: authHeaders(ownerToken, tenantId),
       });
       expect(res.statusCode).toBe(200);
+      expect(res.json().data).toHaveLength(0);
+    });
+  });
+
+  // ── PATCH /v1/anamnesis/templates/:id ────────────────────────────────────
+
+  describe('PATCH /v1/anamnesis/templates/:id', () => {
+    it('updates template name → 200', async () => {
+      const updatedName = `Updated Template ${Date.now()}`;
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/v1/anamnesis/templates/${createdTemplateId}`,
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name: updatedName },
+      });
+      expect(res.statusCode).toBe(200);
       const body = res.json();
-      expect(body.data).toHaveLength(0);
+      expect(body.name).toBe(updatedName);
+      expect(body.id).toBe(createdTemplateId);
+    });
+
+    it('updates schemaJson → 200', async () => {
+      const newSchema = {
+        questions: [
+          { id: 'q1', text: 'Nova pergunta', type: 'text', required: true },
+        ],
+      };
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/v1/anamnesis/templates/${createdTemplateId}`,
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { schemaJson: newSchema },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().schemaJson).toBeDefined();
+    });
+
+    it('returns 404 for non-existent template', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/v1/anamnesis/templates/nonexistent-id',
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name: 'X' },
+      });
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  // ── DELETE /v1/anamnesis/templates/:id ────────────────────────────────────
+
+  describe('DELETE /v1/anamnesis/templates/:id', () => {
+    it('soft-deletes template → 204', async () => {
+      // Create a fresh template to delete
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/anamnesis/templates',
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name: `To Delete ${Date.now()}`, schemaJson: validSchemaJson },
+      });
+      const idToDelete = createRes.json().id;
+
+      const deleteRes = await app.inject({
+        method: 'DELETE',
+        url: `/v1/anamnesis/templates/${idToDelete}`,
+        headers: authHeaders(ownerToken, tenantId),
+      });
+      expect(deleteRes.statusCode).toBe(204);
+    });
+
+    it('returns 404 after deletion', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/anamnesis/templates',
+        headers: authHeaders(ownerToken, tenantId),
+        payload: { name: `Delete Then Get ${Date.now()}`, schemaJson: validSchemaJson },
+      });
+      const id = createRes.json().id;
+
+      await app.inject({
+        method: 'DELETE',
+        url: `/v1/anamnesis/templates/${id}`,
+        headers: authHeaders(ownerToken, tenantId),
+      });
+
+      const getRes = await app.inject({
+        method: 'GET',
+        url: `/v1/anamnesis/templates/${id}`,
+        headers: authHeaders(ownerToken, tenantId),
+      });
+      expect(getRes.statusCode).toBe(404);
+    });
+
+    it('returns 404 for non-existent template', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/v1/anamnesis/templates/nonexistent-id',
+        headers: authHeaders(ownerToken, tenantId),
+      });
+      expect(res.statusCode).toBe(404);
     });
   });
 });
