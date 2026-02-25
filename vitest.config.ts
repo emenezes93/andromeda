@@ -9,8 +9,15 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json-summary'],
-      exclude: ['**/*.test.ts', '**/*.spec.ts', 'dist/**'],
+      reporter: ['text', 'json-summary', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        'dist/**',
+        'src/bootstrap/server.ts',
+        'prisma/**',
+      ],
     },
     testTimeout: 10000,
     hookTimeout: 5000,
