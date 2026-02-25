@@ -351,8 +351,13 @@ export class SessionController {
         : Promise.resolve(null),
     ]);
     const response = {
-      ...updated,
-      signatureName: updated.signatureName,
+      id: updated.id,
+      tenantId: updated.tenantId,
+      templateId: updated.templateId,
+      subjectId: updated.subjectId,
+      patientId: updated.patientId,
+      status: updated.status,
+      signatureName: updated.signatureName ?? body.signerName,
       signatureAgreedAt: updated.signatureAgreedAt
         ? updated.signatureAgreedAt.toISOString()
         : null,

@@ -49,7 +49,15 @@ export class GoalController {
       targetDate: body.targetDate,
       actorUserId: user.userId,
     });
-    await reply.status(201).send(result);
+    await reply.status(201).send({
+      id: result.id,
+      patientId: result.patientId,
+      type: result.type,
+      title: result.title,
+      description: result.description ?? null,
+      targetValue: result.targetValue,
+      targetDate: result.targetDate,
+    });
   }
 
   private async list(request: FastifyRequest, reply: FastifyReply): Promise<void> {

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyError } from 'fastify';
 import fp from 'fastify-plugin';
+import { Prisma } from '@prisma/client';
 import { isAppError, statusFromError, messageFromError } from '@shared/errors/index.js';
 import { env } from '@config/env.js';
 import { ZodError } from 'zod';
@@ -23,6 +24,16 @@ async function errorHandlerPlugin(fastify: FastifyInstance): Promise<void> {
       return reply.status(err.statusCode).send({
         error: err.message,
         code: err.code,
+        requestId,
+      });
+    }
+
+    // Prisma "record not found" → 404
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      request.log.warn({ err, requestId }, err.message);
+      return reply.status(404).send({
+        error: 'Not found',
+        code: 'NOT_FOUND',
         requestId,
       });
     }
