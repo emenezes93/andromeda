@@ -64,6 +64,7 @@ export class CreateGoalUseCase {
       patientId: goal.patientId,
       type: goal.type,
       title: goal.title,
+      description: goal.description,
       targetValue: goal.targetValue,
       targetDate: goal.targetDate.toISOString(),
     };

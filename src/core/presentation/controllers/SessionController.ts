@@ -352,6 +352,11 @@ export class SessionController {
     ]);
     const response = {
       ...updated,
+      signatureName: updated.signatureName,
+      signatureAgreedAt: updated.signatureAgreedAt
+        ? updated.signatureAgreedAt.toISOString()
+        : null,
+      createdAt: updated.createdAt.toISOString(),
       fillToken: null,
       template: { id: template.id, name: template.name },
       patient: patient ? { id: patient.id, fullName: patient.fullName } : null,

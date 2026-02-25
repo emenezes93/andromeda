@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { Tenant } from '@domain/entities/Tenant.js';
 import type { ITenantRepository } from '@ports/repositories/ITenantRepository.js';
+import { NotFoundError } from '@shared/errors/index.js';
 
 /**
  * Adapter: Prisma Tenant Repository Implementation
@@ -50,7 +51,7 @@ export class PrismaTenantRepository implements ITenantRepository {
 
   async suspend(id: string): Promise<Tenant> {
     const tenant = await this.findById(id);
-    if (!tenant) throw new Error('Tenant not found');
+    if (!tenant) throw new NotFoundError('Tenant not found');
     const suspended = tenant.suspend();
     const updated = await this.prisma.tenant.update({
       where: { id },
@@ -61,7 +62,7 @@ export class PrismaTenantRepository implements ITenantRepository {
 
   async activate(id: string): Promise<Tenant> {
     const tenant = await this.findById(id);
-    if (!tenant) throw new Error('Tenant not found');
+    if (!tenant) throw new NotFoundError('Tenant not found');
     const activated = tenant.activate();
     const updated = await this.prisma.tenant.update({
       where: { id },

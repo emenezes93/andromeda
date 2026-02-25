@@ -8,6 +8,7 @@ import type {
   GoalListEntry,
   PaginatedGoals,
 } from '@ports/repositories/IGoalRepository.js';
+import { NotFoundError } from '@shared/errors/index.js';
 
 export class PrismaGoalRepository implements IGoalRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -67,7 +68,7 @@ export class PrismaGoalRepository implements IGoalRepository {
     const existing = await this.prisma.patientGoal.findFirst({
       where: { id, tenantId },
     });
-    if (!existing) throw new Error('Goal not found');
+    if (!existing) throw new NotFoundError('Goal not found');
     const updated = await this.prisma.patientGoal.update({
       where: { id },
       data: {
@@ -86,7 +87,7 @@ export class PrismaGoalRepository implements IGoalRepository {
     const existing = await this.prisma.patientGoal.findFirst({
       where: { id, tenantId },
     });
-    if (!existing) throw new Error('Goal not found');
+    if (!existing) throw new NotFoundError('Goal not found');
     await this.prisma.patientGoal.update({
       where: { id },
       data: { deletedAt: new Date() },

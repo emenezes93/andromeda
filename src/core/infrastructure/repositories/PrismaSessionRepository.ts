@@ -7,6 +7,7 @@ import type {
   SessionListEntry,
 } from '@ports/repositories/ISessionRepository.js';
 import type { Paginated } from '@ports/repositories/ITemplateRepository.js';
+import { NotFoundError } from '@shared/errors/index.js';
 
 export class PrismaSessionRepository implements ISessionRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -164,7 +165,7 @@ export class PrismaSessionRepository implements ISessionRepository {
     const existing = await this.prisma.anamnesisSession.findFirst({
       where: { id, tenantId },
     });
-    if (!existing) throw new Error('Session not found');
+    if (!existing) throw new NotFoundError('Session not found');
     const updated = await this.prisma.anamnesisSession.update({
       where: { id },
       data: { status },
@@ -181,7 +182,7 @@ export class PrismaSessionRepository implements ISessionRepository {
     const existing = await this.prisma.anamnesisSession.findFirst({
       where: { id, tenantId },
     });
-    if (!existing) throw new Error('Session not found');
+    if (!existing) throw new NotFoundError('Session not found');
     const updated = await this.prisma.anamnesisSession.update({
       where: { id },
       data: { signatureName, signatureAgreedAt, status: 'completed' },
@@ -193,7 +194,7 @@ export class PrismaSessionRepository implements ISessionRepository {
     const existing = await this.prisma.anamnesisSession.findFirst({
       where: { id, tenantId },
     });
-    if (!existing) throw new Error('Session not found');
+    if (!existing) throw new NotFoundError('Session not found');
     const updated = await this.prisma.anamnesisSession.update({
       where: { id },
       data: { fillToken },
