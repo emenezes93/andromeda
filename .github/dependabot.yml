@@ -1,0 +1,57 @@
+version: 2
+
+updates:
+  # Backend npm dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      prisma:
+        patterns:
+          - '@prisma/*'
+          - 'prisma'
+      fastify:
+        patterns:
+          - 'fastify'
+          - '@fastify/*'
+      testing:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # Frontend npm dependencies
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react*'
+      tanstack:
+        patterns:
+          - '@tanstack/*'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3

@@ -1,0 +1,89 @@
+name: Bug Report
+description: Reporte um comportamento inesperado ou erro
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Preencha os campos abaixo para agilizar a correção.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do bug
+      description: Descreva claramente o que acontece de errado.
+      placeholder: "Ao chamar POST /v1/anamnesis/sessions, recebo 500 quando..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Sequência exata de ações para reproduzir o bug.
+      placeholder: |
+        1. Autenticar com role 'practitioner'
+        2. Enviar requisição com payload { ... }
+        3. Ver erro 500 no response
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+      description: O que deveria acontecer?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento atual
+      description: O que realmente acontece? Inclua logs ou stack trace se disponível.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ai_mode
+    attributes:
+      label: AI_MODE
+      options:
+        - ruleBased
+        - llmMock
+        - Não aplicável
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role do usuário
+      options:
+        - owner
+        - admin
+        - practitioner
+        - viewer
+        - Não aplicável
+    validations:
+      required: false
+
+  - type: input
+    id: tenant
+    attributes:
+      label: Tenant ID (se relevante)
+      placeholder: "uuid do tenant ou 'demo'"
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Versão do Node, como está rodando (Docker, local, etc.)
+      placeholder: |
+        - Node: 20.x
+        - Ambiente: Docker / local / CI
+        - Branch: main
+    validations:
+      required: false

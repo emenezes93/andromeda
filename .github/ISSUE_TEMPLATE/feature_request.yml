@@ -1,0 +1,72 @@
+name: Feature Request
+description: Proponha uma nova funcionalidade ou melhoria
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Descreva a feature que você gostaria de ver no Andromeda.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto / problema
+      description: Qual necessidade ou problema essa feature resolve?
+      placeholder: "Como practitioner, preciso de X para poder Y sem ter que..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução proposta
+      description: Descreva como você imagina que a feature deveria funcionar.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo afetado
+      description: Onde essa feature se encaixa na arquitetura?
+      multiple: true
+      options:
+        - src/core/ (hexagonal — auth)
+        - src/modules/anamnesis (templates/sessions/engine)
+        - src/modules/ai
+        - src/modules/patients
+        - src/modules/audit
+        - src/modules/users
+        - src/modules/tenants
+        - frontend/
+        - Infra / CI
+        - Novo módulo
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade sugerida
+      options:
+        - Alta — bloqueia uso em produção
+        - Média — melhora significativa
+        - Baixa — nice-to-have
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Existe algum workaround atual? Outras abordagens avaliadas?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Contexto adicional
+      description: Links, referências, mockups, ou qualquer outra informação útil.
+    validations:
+      required: false
