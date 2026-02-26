@@ -31,11 +31,16 @@ export class SignSessionUseCase {
     const session = await this.sessionRepository.findById(request.sessionId, request.tenantId);
     if (!session || session.isDeleted()) throw new NotFoundError('Session not found');
     if (session.signatureAgreedAt != null) throw new ConflictError('Sessão já assinada');
-    const updated = await this.sessionRepository.updateSignature(
+    await this.sessionRepository.updateSignature(
       request.sessionId,
       request.tenantId,
       request.signerName,
       new Date()
+    );
+    const updated = await this.sessionRepository.updateStatus(
+      request.sessionId,
+      request.tenantId,
+      'completed'
     );
     await this.auditService.log(
       request.tenantId,

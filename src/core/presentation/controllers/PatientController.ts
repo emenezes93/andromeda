@@ -55,6 +55,11 @@ export class PatientController {
   registerRoutes(app: FastifyInstance): void {
     app.get('/v1/patients', { schema: { querystring: { type: 'object', properties: { page: {}, limit: {}, search: {} } } } }, this.list.bind(this));
     app.get(
+      '/v1/patients/export/csv',
+      { schema: { querystring: { type: 'object', properties: { search: { type: 'string' } } } } },
+      this.exportCsv.bind(this)
+    );
+    app.get(
       '/v1/patients/:id',
       { schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } } },
       this.get.bind(this)
@@ -161,6 +166,35 @@ export class PatientController {
       actorUserId: user.userId,
     });
     await reply.status(204).send();
+  }
+
+  private async exportCsv(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const tenantId = requireTenant(request);
+    requireAuth(request);
+    Guards.readOnly(request.user!.role);
+    const query = request.query as { search?: string };
+    const result = await this.listPatientsUseCase.execute({
+      tenantId,
+      page: 1,
+      limit: 10000,
+      search: query.search,
+    });
+    const header = 'id,fullName,email,phone,cpf,birthDate,gender,profession,createdAt';
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = result.data.map((p) =>
+      [p.id, p.fullName, p.email, p.phone, p.cpf, p.birthDate, p.gender, p.profession, p.createdAt]
+        .map(escape)
+        .join(',')
+    );
+    const csv = [header, ...rows].join('\r\n');
+    await reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', 'attachment; filename="pacientes.csv"')
+      .status(200)
+      .send(csv);
   }
 
   private async getTimeline(request: FastifyRequest, reply: FastifyReply): Promise<void> {
