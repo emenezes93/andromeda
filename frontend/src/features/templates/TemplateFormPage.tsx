@@ -4,6 +4,7 @@ import { createTemplate } from '@/api/templates';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 type QuestionType = 'text' | 'number' | 'single' | 'multiple' | 'sentiment';
 
@@ -65,16 +66,22 @@ export function TemplateFormPage() {
   const [questions, setQuestions] = useState<QuestionDraft[]>([blankQuestion(0)]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useUnsavedChanges(isDirty);
 
   const updateQuestion = (key: string, patch: Partial<QuestionDraft>) => {
+    setIsDirty(true);
     setQuestions((qs) => qs.map((q) => (q._key === key ? { ...q, ...patch } : q)));
   };
 
   const addQuestion = () => {
+    setIsDirty(true);
     setQuestions((qs) => [...qs, blankQuestion(qs.length)]);
   };
 
   const removeQuestion = (key: string) => {
+    setIsDirty(true);
     setQuestions((qs) => qs.filter((q) => q._key !== key));
   };
 
@@ -111,7 +118,10 @@ export function TemplateFormPage() {
     const schemaJson = buildSchemaJson(questions);
     setLoading(true);
     createTemplate({ name: name.trim(), schemaJson })
-      .then((t) => navigate(`/templates/${t.id}`))
+      .then((t) => {
+        setIsDirty(false);
+        navigate(`/templates/${t.id}`);
+      })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Erro ao criar template');
         setLoading(false);
@@ -124,7 +134,7 @@ export function TemplateFormPage() {
         <Input
           label="Nome do template"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); setIsDirty(true); }}
           placeholder="Ex: Anamnese inicial"
           required
         />

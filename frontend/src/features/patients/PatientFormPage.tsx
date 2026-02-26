@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 const CONSENT_VERSION = '1.0';
 
@@ -87,10 +88,13 @@ export function PatientFormPage() {
   const isEditMode = Boolean(id);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [isDirty, setIsDirty] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditMode);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useUnsavedChanges(isDirty);
 
   // --------------------------------------------------------------------------
   // Load existing patient in edit mode
@@ -127,6 +131,7 @@ export function PatientFormPage() {
   // Field updater
   // --------------------------------------------------------------------------
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setIsDirty(true);
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -152,10 +157,12 @@ export function PatientFormPage() {
     try {
       if (isEditMode && id) {
         await updatePatient(id, body);
+        setIsDirty(false);
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${id}`);
       } else {
         const created = await createPatient(body);
+        setIsDirty(false);
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${created.id}`);
       }

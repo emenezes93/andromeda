@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Stripe from 'stripe';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
+import { requireRole } from '@shared/utils/rbac.js';
 import { BadRequestError } from '@shared/errors/index.js';
 import {
   isBillingEnabled,
@@ -76,7 +77,8 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const tenantId = requireTenant(request);
-      requireAuth(request);
+      const user = requireAuth(request);
+      requireRole(user.role, 'admin');
 
       if (!isBillingEnabled()) {
         return reply.status(503).send({ error: 'Billing is not configured' });
@@ -129,7 +131,8 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const tenantId = requireTenant(request);
-      requireAuth(request);
+      const user = requireAuth(request);
+      requireRole(user.role, 'admin');
 
       if (!isBillingEnabled()) {
         return reply.status(503).send({ error: 'Billing is not configured' });

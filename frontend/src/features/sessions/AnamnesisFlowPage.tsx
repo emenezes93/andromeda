@@ -21,6 +21,9 @@ export function AnamnesisFlowPage() {
   const [error, setError] = useState<string | null>(null);
   const [showSignatureStep, setShowSignatureStep] = useState(false);
   const [pendingFinalAnswers, setPendingFinalAnswers] = useState<Record<string, unknown> | null>(null);
+  const [questionHistory, setQuestionHistory] = useState<
+    Array<{ question: QuestionSchema; value: string | number | string[]; completionPercent: number }>
+  >([]);
 
   // Carrega apenas a primeira pergunta ao montar (respostas existentes são carregadas abaixo)
   const fetchNext = useCallback(
@@ -90,6 +93,7 @@ export function AnamnesisFlowPage() {
           setCompletionPercent(100);
           return;
         }
+        setQuestionHistory((prev) => [...prev, { question, value, completionPercent }]);
         setAnswers(newAnswers);
         setQuestion(res.nextQuestion);
         setCompletionPercent(res.completionPercent);
@@ -97,6 +101,20 @@ export function AnamnesisFlowPage() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro'))
       .finally(() => setSubmitting(false));
+  };
+
+  const handleBack = () => {
+    if (questionHistory.length === 0) return;
+    const prev = questionHistory[questionHistory.length - 1];
+    setQuestionHistory((h) => h.slice(0, -1));
+    // Remove last answer from answers object
+    const prevAnswers = { ...answers };
+    delete prevAnswers[prev.question.id];
+    setAnswers(prevAnswers);
+    setQuestion(prev.question);
+    setCurrentValue(prev.value);
+    setCompletionPercent(prev.completionPercent);
+    setError(null);
   };
 
   const handleSigned = useCallback(
@@ -293,9 +311,15 @@ export function AnamnesisFlowPage() {
           </p>
         )}
         <div className="mt-6 flex items-center justify-between gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/sessions/${id}`)}>
-            Voltar à sessão
-          </Button>
+          {questionHistory.length > 0 ? (
+            <Button variant="ghost" size="sm" onClick={handleBack} disabled={submitting}>
+              ← Pergunta anterior
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/sessions/${id}`)}>
+              Voltar à sessão
+            </Button>
+          )}
           <Button onClick={handleNext} loading={submitting} size="lg">
             {completionPercent >= 90 ? 'Concluir' : 'Próxima'}
           </Button>

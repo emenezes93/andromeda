@@ -33,6 +33,7 @@ export class PublicSignSessionUseCase {
       request.signerName,
       new Date()
     );
+    await this.sessionRepository.updateStatus(session.id, session.tenantId, 'completed');
     return { ok: true };
   }
 }
