@@ -42,8 +42,13 @@ export async function buildApp() {
         ? Buffer.from(body, 'utf8')
         : Buffer.from(body as Uint8Array);
     req.rawBody = buf;
+    const raw = buf.toString('utf8').trim();
+    if (raw === '') {
+      done(null, {});
+      return;
+    }
     try {
-      done(null, JSON.parse(buf.toString('utf8')));
+      done(null, JSON.parse(raw));
     } catch (e) {
       done(e as Error, undefined);
     }
