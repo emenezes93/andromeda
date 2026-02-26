@@ -16,7 +16,10 @@ npm run start            # Production server (node dist/server.js)
 
 # Testing
 npm run test             # Run all tests once
-npm run test:watch       # Run tests in watch mode
+npm run test:unit        # Unit tests only (no DB required)
+npm run test:integration # Integration tests (requires DB)
+npm run test:coverage    # With coverage report
+npm run test:watch       # Watch mode
 npx vitest run src/shared/rbac.test.ts   # Run a single test file
 
 # Database
@@ -57,9 +60,9 @@ Modules: `health`, `auth`, `tenants`, `users`, `anamnesis/templates`, `anamnesis
 
 ### Backend: core (hexagonal) vs modules (legacy)
 - **Entry:** `src/bootstrap/app.ts` builds the app; it uses `@config/env`, `@http/*` (plugins/middleware) and registers **both** the hexagonal auth and legacy routes.
-- **src/core/** — Arquitetura hexagonal: domain, application (use cases), infrastructure (Prisma, JWT), ports. O **auth** (login, register, refresh, logout) é atendido pelo `AuthController` e use cases. Use para **novo código** de domínio crítico ou quando quiser testabilidade e inversão de dependência.
-- **src/modules/** — Rotas Fastify “legacy” (tenants, users, templates, sessions, engine, ai, audit, patients). Use para **manutenção e novas features** que não migraram para core. Novas rotas podem ser adicionadas aqui; migração para core é opcional e incremental.
-- **Fonte de env:** usar apenas `src/config/env.ts`; `src/plugins/env.ts` existe mas o app usa `@config/env`.
+- **src/core/** — Hexagonal architecture: domain, application (use cases), infrastructure (Prisma, JWT), ports. **Auth** (login, register, refresh, logout) is handled by `AuthController` and use cases. Use for **new critical domain code** requiring testability and dependency inversion.
+- **src/modules/** — Fastify "legacy" routes (tenants, users, templates, sessions, engine, ai, audit, patients). Use for **maintenance and new features** that haven't migrated to core. Migration to core is optional and incremental.
+- **Env source:** use only `src/config/env.ts`; `src/plugins/env.ts` exists but the app uses `@config/env`.
 
 ### Multi-Tenancy via RLS
 - Every request includes `x-tenant-id` header
@@ -102,4 +105,39 @@ Controlled by `AI_MODE` env var:
 
 ## Environment
 
-Copy `.env.example` to `.env`. Key vars: `DATABASE_URL`, `JWT_SECRET` (min 32 chars), `AI_MODE`. See `src/plugins/env.ts` for the full Zod validation schema.
+Copy `.env.example` to `.env`. Key vars: `DATABASE_URL`, `JWT_SECRET` (min 32 chars), `AI_MODE`. See `src/config/env.ts` for the full Zod validation schema.
+
+## CI/CD
+
+### Workflows
+
+| File | Trigger | Purpose |
+|---|---|---|
+| `.github/workflows/ci.yml` | push to main | Full test suite + coverage + Docker build |
+| `.github/workflows/pr-checks.yml` | PR to main / `workflow_dispatch` | Fast feedback: lint + typecheck + unit tests (parallel, ~2 min) + PR title validation |
+| `.github/workflows/release.yml` | tag push | Semantic release |
+| `.github/workflows/pages.yml` | push to main | Deploy docs/website to GitHub Pages |
+| `.github/dependabot.yml` | weekly (Monday 09h BRT) | Auto-update npm (backend + frontend) and Actions |
+
+### PR Title Convention
+
+All PR titles **must** follow [Conventional Commits](https://www.conventionalcommits.org):
+```
+feat: add patient export endpoint
+fix: resolve RLS bypass on unauthenticated requests
+refactor(auth): extract token rotation to use case
+chore: bump fastify to 5.3
+```
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+The `pr-title` job in `pr-checks.yml` validates this automatically via `amannn/action-semantic-pull-request@v5`.
+
+### GitHub Templates
+
+- **PR template**: `.github/PULL_REQUEST_TEMPLATE.md` — checklist for tests, lint, migrations, `any` usage
+- **Bug report**: `.github/ISSUE_TEMPLATE/bug_report.yml` — structured form with role/tenant/AI_MODE fields
+- **Feature request**: `.github/ISSUE_TEMPLATE/feature_request.yml` — form with module selector (core vs modules)
+
+### Known CI Issue
+
+The `frontend-checks` job (lint) is currently failing on Dependabot PRs. This is a pre-existing issue in the frontend ESLint config, not introduced by the pr-checks workflow. Fix the frontend lint before merging Dependabot PRs.
