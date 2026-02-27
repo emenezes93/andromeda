@@ -13,6 +13,8 @@ import {
   constructWebhookEvent,
   handleSubscriptionUpdated,
   handleSubscriptionDeleted,
+  handleInvoicePaymentFailed,
+  handleInvoicePaid,
 } from './service.js';
 
 export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
@@ -215,8 +217,10 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
           await handleSubscriptionDeleted(fastify.prisma, event.data.object as Stripe.Subscription);
           break;
         case 'invoice.paid':
+          await handleInvoicePaid(fastify.prisma, event.data.object as Stripe.Invoice);
+          break;
         case 'invoice.payment_failed':
-          // Optional: send email, update status on payment_failed, etc.
+          await handleInvoicePaymentFailed(fastify.prisma, event.data.object as Stripe.Invoice);
           break;
         default:
           // ignore other events

@@ -103,6 +103,8 @@ export async function buildApp() {
   container.quotaController.registerRoutes(app);
 
   // Legacy routes (migrating progressively to hexagonal)
+  // Note: patients-legacy provides /evolutions and /evolution-report endpoints
+  // not yet migrated to PatientController. Do not remove without migrating first.
   const { patientsLegacyRoutes } = await import('../modules/patients-legacy/routes.js');
   await app.register(patientsLegacyRoutes);
   await app.register(billingRoutes);
