@@ -47,47 +47,105 @@ export function PatientTimelinePage() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-heading font-semibold text-content">
-            Prontuário completo
-          </h2>
-          {patient && (
-            <p className="mt-0.5 text-body-sm text-content-muted">{patient.fullName}</p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Link to={`/sessions/new?patientId=${id}`}>
-            <Button size="sm">Nova sessão</Button>
-          </Link>
-          <Link to={`/patients/${id}`}>
-            <Button variant="secondary" size="sm">Voltar ao paciente</Button>
-          </Link>
-        </div>
-      </div>
+  const printedAt = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-      <Card padding="none">
-        {events.length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            <p className="text-body text-content-muted">Nenhum evento registrado ainda.</p>
-            <p className="mt-1 text-body-sm text-content-subtle">
-              Sessões, evoluções e metas aparecerão aqui.
+  return (
+    <>
+      {/* Print-only styles */}
+      <style>{`
+        @media print {
+          /* Hide navigation, sidebar, header actions, buttons */
+          nav, aside, header, .no-print, [data-no-print] {
+            display: none !important;
+          }
+          /* Remove shadows and borders for cleaner print */
+          * {
+            box-shadow: none !important;
+          }
+          body {
+            background: white !important;
+          }
+          /* Page title visible on print */
+          .print-header {
+            display: block !important;
+          }
+        }
+        .print-header {
+          display: none;
+        }
+      `}</style>
+
+      <div className="space-y-6">
+        {/* Screen header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between no-print" data-no-print>
+          <div>
+            <h2 className="text-heading font-semibold text-content">
+              Prontuário completo
+            </h2>
+            {patient && (
+              <p className="mt-0.5 text-body-sm text-content-muted">{patient.fullName}</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+            >
+              Exportar PDF
+            </Button>
+            <Link to={`/sessions/new?patientId=${id}`}>
+              <Button size="sm">Nova sessão</Button>
+            </Link>
+            <Link to={`/patients/${id}`}>
+              <Button variant="secondary" size="sm">Voltar ao paciente</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Print-only header */}
+        <div className="print-header">
+          <h1 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
+            Prontuário completo
+          </h1>
+          {patient && (
+            <p style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>
+              Paciente: <strong>{patient.fullName}</strong>
             </p>
-          </div>
-        ) : (
-          <div className="px-4 py-2">
-            {events.map((event, index) => (
-              <TimelineItem
-                key={event.id}
-                event={event}
-                isLast={index === events.length - 1}
-              />
-            ))}
-          </div>
-        )}
-      </Card>
-    </div>
+          )}
+          <p style={{ fontSize: '12px', color: '#888' }}>
+            Exportado em {printedAt}
+          </p>
+          <hr style={{ margin: '12px 0', borderColor: '#ddd' }} />
+        </div>
+
+        <Card padding="none">
+          {events.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <p className="text-body text-content-muted">Nenhum evento registrado ainda.</p>
+              <p className="mt-1 text-body-sm text-content-subtle">
+                Sessões, evoluções e metas aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="px-4 py-2">
+              {events.map((event, index) => (
+                <TimelineItem
+                  key={event.id}
+                  event={event}
+                  isLast={index === events.length - 1}
+                />
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    </>
   );
 }

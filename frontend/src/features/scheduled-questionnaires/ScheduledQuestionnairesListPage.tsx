@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listScheduledQuestionnaires,
   deleteScheduledQuestionnaire,
   updateScheduledQuestionnaire,
 } from '@/api/scheduled-questionnaires';
-import type { ScheduledQuestionnaireListResponse, ScheduledQuestionnaire } from '@/types';
+import type { ScheduledQuestionnaire } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -51,32 +52,26 @@ function scheduleLabel(item: ScheduledQuestionnaire): string {
 
 export function ScheduledQuestionnairesListPage() {
   const toast = useToast();
-  const [data, setData] = useState<ScheduledQuestionnaireListResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined);
 
-  const fetchItems = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    listScheduledQuestionnaires({ page, limit: LIMIT, active: activeFilter })
-      .then(setData)
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Erro ao carregar agendamentos'),
-      )
-      .finally(() => setLoading(false));
-  }, [page, activeFilter]);
+  const queryKey = ['scheduled-questionnaires', page, activeFilter] as const;
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey,
+    queryFn: () => listScheduledQuestionnaires({ page, limit: LIMIT, active: activeFilter }),
+  });
+
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar agendamentos' : null;
+  const items = data?.data ?? [];
+  const meta = data?.meta;
 
   async function handleToggleActive(item: ScheduledQuestionnaire) {
     try {
       await updateScheduledQuestionnaire(item.id, { active: !item.active });
       toast.success(item.active ? 'Agendamento pausado.' : 'Agendamento reativado.');
-      fetchItems();
+      queryClient.invalidateQueries({ queryKey: ['scheduled-questionnaires'] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar agendamento.');
     }
@@ -87,7 +82,7 @@ export function ScheduledQuestionnairesListPage() {
     try {
       await deleteScheduledQuestionnaire(item.id);
       toast.success('Agendamento removido.');
-      fetchItems();
+      queryClient.invalidateQueries({ queryKey: ['scheduled-questionnaires'] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao remover agendamento.');
     }
@@ -109,15 +104,12 @@ export function ScheduledQuestionnairesListPage() {
     return (
       <div className="rounded-card border border-error bg-error-light p-5 shadow-card">
         <p className="font-medium text-error">{error}</p>
-        <Button className="mt-4" onClick={fetchItems}>
+        <Button className="mt-4" onClick={() => refetch()}>
           Tentar novamente
         </Button>
       </div>
     );
   }
-
-  const items = data?.data ?? [];
-  const meta = data?.meta;
 
   return (
     <div className="space-y-6">

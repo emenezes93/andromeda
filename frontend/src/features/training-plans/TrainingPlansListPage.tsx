@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { listTrainingPlans } from '@/api/training-plans';
-import type { TrainingPlanListResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -22,9 +22,6 @@ export function TrainingPlansListPage() {
   const [searchParams] = useSearchParams();
   const patientIdFilter = searchParams.get('patientId') ?? undefined;
 
-  const [data, setData] = useState<TrainingPlanListResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -38,26 +35,21 @@ export function TrainingPlansListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const fetchPlans = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    listTrainingPlans({
-      page,
-      limit: LIMIT,
-      patientId: patientIdFilter,
-      active: activeFilter,
-      name: debouncedSearch || undefined,
-    })
-      .then((res) => setData(res))
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Erro ao carregar planos de treino')
-      )
-      .finally(() => setLoading(false));
-  }, [page, patientIdFilter, activeFilter, debouncedSearch]);
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['training-plans', page, debouncedSearch, activeFilter, patientIdFilter],
+    queryFn: () =>
+      listTrainingPlans({
+        page,
+        limit: LIMIT,
+        patientId: patientIdFilter,
+        active: activeFilter,
+        name: debouncedSearch || undefined,
+      }),
+  });
 
-  useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar planos de treino' : null;
+  const plans = data?.data ?? [];
+  const meta = data?.meta;
 
   if (loading && !data) {
     return (
@@ -75,15 +67,12 @@ export function TrainingPlansListPage() {
     return (
       <div className="rounded-card border border-error bg-error-light p-5 shadow-card">
         <p className="font-medium text-error">{error}</p>
-        <Button className="mt-4" onClick={fetchPlans}>
+        <Button className="mt-4" onClick={() => refetch()}>
           Tentar novamente
         </Button>
       </div>
     );
   }
-
-  const plans = data?.data ?? [];
-  const meta = data?.meta;
 
   return (
     <div className="space-y-6">
@@ -101,7 +90,7 @@ export function TrainingPlansListPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setActiveFilter(undefined)}
+              onClick={() => { setActiveFilter(undefined); setPage(1); }}
               className={`rounded-button px-3 py-1.5 text-body-sm font-medium transition-calm ${
                 activeFilter === undefined
                   ? 'bg-primary text-white'
@@ -111,7 +100,7 @@ export function TrainingPlansListPage() {
               Todos
             </button>
             <button
-              onClick={() => setActiveFilter(true)}
+              onClick={() => { setActiveFilter(true); setPage(1); }}
               className={`rounded-button px-3 py-1.5 text-body-sm font-medium transition-calm ${
                 activeFilter === true
                   ? 'bg-primary text-white'
@@ -121,7 +110,7 @@ export function TrainingPlansListPage() {
               Ativos
             </button>
             <button
-              onClick={() => setActiveFilter(false)}
+              onClick={() => { setActiveFilter(false); setPage(1); }}
               className={`rounded-button px-3 py-1.5 text-body-sm font-medium transition-calm ${
                 activeFilter === false
                   ? 'bg-primary text-white'
@@ -182,7 +171,6 @@ export function TrainingPlansListPage() {
           )}
         </Card>
       )}
-
 
       {plans.length > 0 && (
         <>

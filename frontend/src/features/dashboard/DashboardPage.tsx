@@ -20,6 +20,7 @@ import {
 } from '@/components/charts';
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 import { PlanUsageCard } from '@/components/ui/PlanUsageCard';
+import { NotificationsWidget } from '@/components/ui/NotificationsWidget';
 
 const PERIOD_OPTIONS = [
   { value: 7, label: '7 dias' },
@@ -212,6 +213,9 @@ export function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Alertas / Notificações */}
+      <NotificationsWidget />
 
       {/* Uso do plano */}
       <PlanUsageCard />
