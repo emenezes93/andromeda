@@ -18,6 +18,12 @@ export default defineConfig({
         'src/bootstrap/server.ts',
         'prisma/**',
       ],
+      thresholds: {
+        lines: 75,
+        functions: 75,
+        branches: 75,
+        statements: 75,
+      },
     },
     testTimeout: 10000,
     hookTimeout: 15000,
