@@ -133,24 +133,23 @@ export async function processScheduledQuestionnaires(
         });
         created++;
       } else {
-        // Criar para todos os pacientes ativos do tenant
+        // Criar para todos os pacientes ativos do tenant usando createMany (evita N+1)
         const patients = await prisma.patient.findMany({
-          where: {
-            tenantId: schedule.tenantId,
-            deletedAt: null,
-          },
+          where: { tenantId: schedule.tenantId, deletedAt: null },
+          select: { id: true },
         });
 
-        for (const patient of patients) {
-          await prisma.anamnesisSession.create({
-            data: {
+        if (patients.length > 0) {
+          const result = await prisma.anamnesisSession.createMany({
+            data: patients.map((patient) => ({
               tenantId: schedule.tenantId,
               templateId: schedule.templateId,
               patientId: patient.id,
               status: 'in_progress',
-            },
+            })),
+            skipDuplicates: true,
           });
-          created++;
+          created += result.count;
         }
       }
 

@@ -68,6 +68,37 @@ const PatientTimelinePage = lazy(() =>
     default: m.PatientTimelinePage,
   }))
 );
+// Goals
+const GoalFormPage = lazy(() =>
+  import('@/features/goals/GoalFormPage').then((m) => ({ default: m.GoalFormPage }))
+);
+// Scheduled Questionnaires
+const ScheduledQuestionnairesListPage = lazy(() =>
+  import('@/features/scheduled-questionnaires/ScheduledQuestionnairesListPage').then((m) => ({
+    default: m.ScheduledQuestionnairesListPage,
+  }))
+);
+const ScheduledQuestionnaireFormPage = lazy(() =>
+  import('@/features/scheduled-questionnaires/ScheduledQuestionnaireFormPage').then((m) => ({
+    default: m.ScheduledQuestionnaireFormPage,
+  }))
+);
+// Training Plans
+const TrainingPlansListPage = lazy(() =>
+  import('@/features/training-plans/TrainingPlansListPage').then((m) => ({
+    default: m.TrainingPlansListPage,
+  }))
+);
+const TrainingPlanFormPage = lazy(() =>
+  import('@/features/training-plans/TrainingPlanFormPage').then((m) => ({
+    default: m.TrainingPlanFormPage,
+  }))
+);
+const TrainingPlanDetailPage = lazy(() =>
+  import('@/features/training-plans/TrainingPlanDetailPage').then((m) => ({
+    default: m.TrainingPlanDetailPage,
+  }))
+);
 // Users
 const UsersListPage = lazy(() =>
   import('@/features/users/UsersListPage').then((m) => ({ default: m.UsersListPage }))
@@ -159,6 +190,36 @@ const router = createBrowserRouter([
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
   { path: '/patients/:id/timeline', element: withLayout('Prontuário', <PatientTimelinePage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
+  // Goals
+  { path: '/goals/new', element: withLayout('Nova meta', <GoalFormPage />) },
+  { path: '/goals/:id/edit', element: withLayout('Editar meta', <GoalFormPage />) },
+  // Scheduled Questionnaires
+  {
+    path: '/scheduled-questionnaires',
+    element: withLayout('Agendamentos', <ScheduledQuestionnairesListPage />),
+  },
+  {
+    path: '/scheduled-questionnaires/new',
+    element: withLayout('Novo agendamento', <ScheduledQuestionnaireFormPage />),
+  },
+  {
+    path: '/scheduled-questionnaires/:id/edit',
+    element: withLayout('Editar agendamento', <ScheduledQuestionnaireFormPage />),
+  },
+  // Training Plans
+  { path: '/training-plans', element: withLayout('Planos de Treino', <TrainingPlansListPage />) },
+  {
+    path: '/training-plans/new',
+    element: withLayout('Novo Plano de Treino', <TrainingPlanFormPage />),
+  },
+  {
+    path: '/training-plans/:id/edit',
+    element: withLayout('Editar Plano', <TrainingPlanFormPage />),
+  },
+  {
+    path: '/training-plans/:id',
+    element: withLayout(undefined, <TrainingPlanDetailPage />),
+  },
   // Users
   { path: '/users', element: withLayout('Usuários', <UsersListPage />) },
   { path: '/users/invite', element: withLayout('Convidar usuário', <InviteUserPage />) },

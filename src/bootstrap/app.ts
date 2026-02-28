@@ -42,8 +42,13 @@ export async function buildApp() {
         ? Buffer.from(body, 'utf8')
         : Buffer.from(body as Uint8Array);
     req.rawBody = buf;
+    const raw = buf.toString('utf8').trim();
+    if (raw === '') {
+      done(null, {});
+      return;
+    }
     try {
-      done(null, JSON.parse(buf.toString('utf8')));
+      done(null, JSON.parse(raw));
     } catch (e) {
       done(e as Error, undefined);
     }
@@ -98,6 +103,8 @@ export async function buildApp() {
   container.quotaController.registerRoutes(app);
 
   // Legacy routes (migrating progressively to hexagonal)
+  // Note: patients-legacy provides /evolutions and /evolution-report endpoints
+  // not yet migrated to PatientController. Do not remove without migrating first.
   const { patientsLegacyRoutes } = await import('../modules/patients-legacy/routes.js');
   await app.register(patientsLegacyRoutes);
   await app.register(billingRoutes);

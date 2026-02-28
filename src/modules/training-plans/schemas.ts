@@ -16,6 +16,7 @@ export const updateTrainingPlanSchema = createTrainingPlanSchema.partial();
 export const listTrainingPlansQuerySchema = paginationQuerySchema.extend({
   patientId: z.string().optional(),
   active: z.coerce.boolean().optional(),
+  name: z.string().optional(),
 });
 
 export type CreateTrainingPlanBody = z.infer<typeof createTrainingPlanSchema>;

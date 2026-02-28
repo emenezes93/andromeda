@@ -98,6 +98,7 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
             limit: { type: 'number' },
             patientId: { type: 'string' },
             active: { type: 'boolean' },
+            name: { type: 'string' },
           },
         },
       },
@@ -111,14 +112,13 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
       const { page = 1, limit = 20 } = query;
       const skip = skipFor(page, limit);
 
-      const where: {
-        tenantId: string;
-        deletedAt: null;
-        patientId?: string;
-        active?: boolean;
-      } = { tenantId, deletedAt: null };
-      if (query.patientId) where.patientId = query.patientId;
-      if (query.active !== undefined) where.active = query.active;
+      const where = {
+        tenantId,
+        deletedAt: null as null,
+        ...(query.patientId && { patientId: query.patientId }),
+        ...(query.active !== undefined && { active: query.active }),
+        ...(query.name && { name: { contains: query.name, mode: 'insensitive' as const } }),
+      };
 
       const [items, total] = await Promise.all([
         fastify.prisma.trainingPlan.findMany({

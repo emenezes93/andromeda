@@ -248,3 +248,156 @@ export interface AuditListResponse {
   data: AuditLog[];
   meta: PaginationMeta;
 }
+
+// Training Plans
+export interface TrainingPlan {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  name: string;
+  description: string | null;
+  planJson: Record<string, unknown>;
+  startDate: string;
+  endDate: string | null;
+  active: boolean;
+  executionsCount: number;
+  createdAt?: string;
+}
+export interface TrainingPlanListResponse {
+  data: TrainingPlan[];
+  meta: PaginationMeta;
+}
+export interface CreateTrainingPlanBody {
+  patientId: string;
+  name: string;
+  description?: string;
+  planJson: Record<string, unknown>;
+  startDate: string;
+  endDate?: string;
+  active?: boolean;
+}
+
+// Training Executions
+export interface TrainingExecution {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  trainingPlanId: string | null;
+  planName: string | null;
+  executedAt: string;
+  durationMinutes: number | null;
+  notes: string | null;
+  completed: boolean;
+  createdAt: string;
+}
+export interface TrainingExecutionListResponse {
+  data: TrainingExecution[];
+  meta: PaginationMeta;
+}
+export interface CreateTrainingExecutionBody {
+  patientId: string;
+  trainingPlanId?: string;
+  executedAt: string;
+  durationMinutes?: number;
+  notes?: string;
+  completed?: boolean;
+}
+
+// Progress Photos
+export interface ProgressPhoto {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  imageUrl: string;
+  takenAt: string;
+  notes: string | null;
+  createdAt: string;
+}
+export interface ProgressPhotoListResponse {
+  data: ProgressPhoto[];
+  meta: PaginationMeta;
+}
+export interface CreateProgressPhotoBody {
+  patientId: string;
+  imageUrl: string;
+  takenAt: string;
+  notes?: string;
+}
+
+// Goals
+export type GoalType = 'weight_loss' | 'muscle_gain' | 'performance' | 'health' | 'other';
+
+export interface Goal {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  type: GoalType;
+  title: string;
+  description: string | null;
+  currentValue: number | null;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  targetDate: string;
+  achievedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface GoalListResponse {
+  data: Goal[];
+  meta: PaginationMeta;
+}
+export interface CreateGoalBody {
+  patientId: string;
+  type: GoalType;
+  title: string;
+  description?: string;
+  currentValue?: number;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  targetDate: string;
+}
+export interface UpdateGoalBody {
+  title?: string;
+  description?: string;
+  currentValue?: number;
+  targetValue?: number;
+  targetDate?: string;
+  achievedAt?: string;
+}
+
+// Scheduled Questionnaires
+export type QuestionnaireFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+
+export interface ScheduledQuestionnaire {
+  id: string;
+  templateId: string;
+  templateName: string;
+  patientId: string | null;
+  patientName: string | null;
+  frequency: QuestionnaireFrequency;
+  dayOfWeek: number | null;
+  dayOfMonth: number | null;
+  startDate: string;
+  endDate: string | null;
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+  active: boolean;
+}
+export interface ScheduledQuestionnaireListResponse {
+  data: ScheduledQuestionnaire[];
+  meta: PaginationMeta;
+}
+export interface CreateScheduledQuestionnaireBody {
+  templateId: string;
+  patientId?: string;
+  frequency: QuestionnaireFrequency;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+}

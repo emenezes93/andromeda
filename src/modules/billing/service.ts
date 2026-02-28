@@ -235,3 +235,63 @@ export async function handleSubscriptionDeleted(
     },
   });
 }
+
+/** Extract subscription ID from Stripe Invoice (compatible with Stripe v20 parent structure). */
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const parent = invoice.parent as
+    | { subscription_details?: { subscription?: string | { id: string } | null } | null }
+    | null
+    | undefined;
+  const sub = parent?.subscription_details?.subscription;
+  if (!sub) return null;
+  return typeof sub === 'string' ? sub : sub.id;
+}
+
+/**
+ * Suspends tenant access on payment failure.
+ * The tenant record is updated with status 'past_due' so the application
+ * can gate features while the subscription is delinquent.
+ */
+export async function handleInvoicePaymentFailed(
+  prisma: PrismaClient,
+  invoice: Stripe.Invoice
+): Promise<void> {
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
+
+  const tenant = await prisma.tenant.findFirst({
+    where: { stripeSubscriptionId: subscriptionId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!tenant) return;
+
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: { subscriptionStatus: 'past_due' },
+  });
+}
+
+/**
+ * Restores tenant access when a previously failed invoice is successfully paid.
+ */
+export async function handleInvoicePaid(
+  prisma: PrismaClient,
+  invoice: Stripe.Invoice
+): Promise<void> {
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
+
+  const tenant = await prisma.tenant.findFirst({
+    where: { stripeSubscriptionId: subscriptionId, deletedAt: null },
+    select: { id: true, subscriptionStatus: true },
+  });
+  if (!tenant) return;
+
+  // Only restore if it was previously past_due (avoid overwriting 'canceled' etc.)
+  if (tenant.subscriptionStatus === 'past_due') {
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { subscriptionStatus: 'active' },
+    });
+  }
+}

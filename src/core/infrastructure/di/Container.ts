@@ -14,6 +14,7 @@ import { PrismaGoalRepository } from '../repositories/PrismaGoalRepository.js';
 import { BcryptPasswordService } from '../services/BcryptPasswordService.js';
 import { RuleBasedInsightGenerator } from '../services/RuleBasedInsightGenerator.js';
 import { LLMMockInsightGenerator } from '../services/LLMMockInsightGenerator.js';
+import { LlmInsightGenerator } from '../services/LlmInsightGenerator.js';
 import { NoopInsightCache } from '../services/NoopInsightCache.js';
 import { createRedisInsightCache } from '../services/RedisInsightCache.js';
 import type { IInsightCache } from '@ports/services/IInsightCache.js';
@@ -201,13 +202,16 @@ export class Container {
     return this._insightCache;
   }
 
-  private _insightGenerator?: RuleBasedInsightGenerator | LLMMockInsightGenerator;
-  get insightGenerator(): RuleBasedInsightGenerator | LLMMockInsightGenerator {
+  private _insightGenerator?: RuleBasedInsightGenerator | LLMMockInsightGenerator | LlmInsightGenerator;
+  get insightGenerator(): RuleBasedInsightGenerator | LLMMockInsightGenerator | LlmInsightGenerator {
     if (!this._insightGenerator) {
-      this._insightGenerator =
-        env.AI_MODE === 'llmMock'
-          ? new LLMMockInsightGenerator()
-          : new RuleBasedInsightGenerator();
+      if (env.AI_MODE === 'llm' && env.AI_PROVIDER === 'anthropic' && env.AI_API_KEY) {
+        this._insightGenerator = new LlmInsightGenerator(env.AI_API_KEY, env.AI_MODEL);
+      } else if (env.AI_MODE === 'llmMock') {
+        this._insightGenerator = new LLMMockInsightGenerator();
+      } else {
+        this._insightGenerator = new RuleBasedInsightGenerator();
+      }
     }
     return this._insightGenerator;
   }

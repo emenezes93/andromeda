@@ -38,6 +38,53 @@ function IconAi() {
   );
 }
 
+function IconSchedule() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="12" cy="16" r="2" />
+    </svg>
+  );
+}
+
+function IconTraining() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6.5 6.5h11" />
+      <path d="M6.5 17.5h11" />
+      <path d="M3 10v4" />
+      <path d="M21 10v4" />
+      <path d="M5 8v8" />
+      <path d="M19 8v8" />
+    </svg>
+  );
+}
+
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -48,6 +95,8 @@ const navItems = [
   { to: '/templates', label: 'Templates', icon: IconTemplates },
   { to: '/sessions', label: 'Sessões', icon: IconSessions },
   { to: '/patients', label: 'Pacientes', icon: IconPatients },
+  { to: '/training-plans', label: 'Planos de Treino', icon: IconTraining },
+  { to: '/scheduled-questionnaires', label: 'Agendamentos', icon: IconSchedule },
   { to: '/audit', label: 'Auditoria', icon: IconAudit },
   { to: '/ai/usage', label: 'Uso de IA', icon: IconAi },
 ];
