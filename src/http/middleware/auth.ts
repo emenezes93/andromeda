@@ -47,7 +47,7 @@ async function authPlugin(fastify: FastifyInstance, opts: AuthPluginOptions): Pr
 
     const token = authHeader.slice(7);
     try {
-      const payload = jwt.verify(token, secret) as {
+      const payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as {
         userId: string;
         email: string;
         role: string;

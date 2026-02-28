@@ -440,6 +440,7 @@ model TrainingExecution {
   notes           String?   @db.Text
   completed       Boolean   @default(true)
   createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   patient  Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)

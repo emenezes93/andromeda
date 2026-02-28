@@ -14,11 +14,14 @@ async function tenantPlugin(fastify: FastifyInstance): Promise<void> {
   fastify.decorateRequest('tenantId', undefined);
 
   fastify.addHook('preHandler', async (request: FastifyRequest, _reply: FastifyReply) => {
-    const tenantId = request.headers[HEADER_TENANT] as string | undefined;
-    if (tenantId) {
-      request.tenantId = tenantId.trim();
-      if (request.tenantId && fastify.setTenantId) {
-        await fastify.setTenantId(request.tenantId);
+    const raw = request.headers[HEADER_TENANT] as string | undefined;
+    if (raw) {
+      const trimmed = raw.trim();
+      if (trimmed.length > 0) {
+        request.tenantId = trimmed;
+        if (fastify.setTenantId) {
+          await fastify.setTenantId(trimmed);
+        }
       }
     }
   });
