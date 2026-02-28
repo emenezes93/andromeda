@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { dismissOnboarding } from '@/stores/onboardingStore';
+import { listTemplates } from '@/api/templates';
+import { listPatients } from '@/api/patients';
+import { listSessions } from '@/api/sessions';
+import { listTrainingPlans } from '@/api/training-plans';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Static step definitions
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface Step {
   id: string;
@@ -67,11 +76,23 @@ const STEPS: Step[] = [
     ),
   },
   {
-    id: 'done',
-    title: 'Tudo pronto!',
+    id: 'training',
+    title: 'Crie um plano de treino',
     description:
-      'Você está pronto para usar o Anamnese Inteligente. Explore o dashboard, configure notificações e muito mais.',
-    actionLabel: 'Ir para o dashboard',
+      'Associe planos de treino personalizados aos seus pacientes e registre execuções para acompanhar a aderência.',
+    actionLabel: 'Criar plano de treino',
+    actionPath: '/training-plans/new',
+    icon: (
+      <svg className="size-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 6.5h11M6.5 17.5h11M3 10v4M21 10v4M5 8v8M19 8v8" />
+      </svg>
+    ),
+  },
+  {
+    id: 'checklist',
+    title: 'Checklist de configuração',
+    description: 'Veja o progresso da configuração da sua conta.',
+    actionLabel: 'Concluir',
     actionPath: '/',
     icon: (
       <svg className="size-10 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -80,6 +101,126 @@ const STEPS: Step[] = [
     ),
   },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Checklist step component
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ChecklistItem {
+  label: string;
+  done: boolean;
+  href: string;
+  loading: boolean;
+}
+
+function ChecklistStep({ onFinish }: { onFinish: () => void }) {
+  const { data: tmplData, isLoading: loadingTmpl } = useQuery({
+    queryKey: ['onboarding-templates'],
+    queryFn: () => listTemplates({ page: 1, limit: 1 }),
+  });
+  const { data: ptData, isLoading: loadingPt } = useQuery({
+    queryKey: ['onboarding-patients'],
+    queryFn: () => listPatients({ page: 1, limit: 1 }),
+  });
+  const { data: sessData, isLoading: loadingSess } = useQuery({
+    queryKey: ['onboarding-sessions'],
+    queryFn: () => listSessions({ page: 1, limit: 1, status: 'completed' }),
+  });
+  const { data: planData, isLoading: loadingPlan } = useQuery({
+    queryKey: ['onboarding-plans'],
+    queryFn: () => listTrainingPlans({ page: 1, limit: 1 }),
+  });
+
+  const items: ChecklistItem[] = [
+    {
+      label: 'Criar um template de anamnese',
+      done: (tmplData?.meta.total ?? 0) >= 1,
+      href: '/templates/new',
+      loading: loadingTmpl,
+    },
+    {
+      label: 'Cadastrar um paciente',
+      done: (ptData?.meta.total ?? 0) >= 1,
+      href: '/patients/new',
+      loading: loadingPt,
+    },
+    {
+      label: 'Realizar uma sessão completa',
+      done: (sessData?.meta.total ?? 0) >= 1,
+      href: '/sessions/new',
+      loading: loadingSess,
+    },
+    {
+      label: 'Criar um plano de treino',
+      done: (planData?.meta.total ?? 0) >= 1,
+      href: '/training-plans/new',
+      loading: loadingPlan,
+    },
+  ];
+
+  const doneCount = items.filter((i) => i.done).length;
+  const allLoading = items.every((i) => i.loading);
+  const pct = Math.round((doneCount / items.length) * 100);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="mb-1 flex items-center justify-between text-body-sm">
+          <span className="font-medium text-content">{doneCount}/{items.length} concluídos</span>
+          <span className="text-content-muted">{pct}%</span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item.label}>
+            <div className="flex items-center gap-3 rounded-button px-3 py-2.5">
+              {item.loading ? (
+                <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : item.done ? (
+                <svg className="h-5 w-5 shrink-0 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <div className="h-5 w-5 shrink-0 rounded-full border-2 border-border" />
+              )}
+              <span className={`flex-1 text-body-sm ${item.done ? 'text-content-muted line-through' : 'text-content'}`}>
+                {item.label}
+              </span>
+              {!item.done && !item.loading && (
+                <Link
+                  to={item.href}
+                  className="shrink-0 text-xs font-medium text-primary hover:underline"
+                >
+                  Fazer agora →
+                </Link>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <Button
+        onClick={onFinish}
+        size="lg"
+        className="w-full"
+        disabled={allLoading}
+      >
+        {doneCount === items.length ? 'Tudo pronto! Ir para o dashboard' : 'Continuar para o dashboard'}
+      </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Progress bar
+// ─────────────────────────────────────────────────────────────────────────────
 
 function StepProgress({ total, current }: { total: number; current: number }) {
   return (
@@ -96,16 +237,25 @@ function StepProgress({ total, current }: { total: number; current: number }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function OnboardingWizardPage() {
   const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex];
-  const isLast = stepIndex === STEPS.length - 1;
+  const isChecklist = step.id === 'checklist';
+  const isLast = isChecklist;
+
+  const handleFinish = () => {
+    dismissOnboarding();
+    navigate('/');
+  };
 
   const handleAction = () => {
     if (isLast) {
-      dismissOnboarding();
-      navigate('/');
+      handleFinish();
       return;
     }
     if (step.actionPath) {
@@ -116,8 +266,7 @@ export function OnboardingWizardPage() {
 
   const handleSkipStep = () => {
     if (isLast) {
-      dismissOnboarding();
-      navigate('/');
+      handleFinish();
       return;
     }
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
@@ -151,25 +300,18 @@ export function OnboardingWizardPage() {
             <p className="text-body text-content-muted leading-relaxed">{step.description}</p>
           </div>
 
-          <div className="flex flex-col gap-2 pt-2">
-            <Button
-              onClick={handleAction}
-              size="lg"
-              className="w-full"
-            >
-              {step.actionLabel}
-            </Button>
-            {!isLast && (
-              <Button
-                onClick={handleSkipStep}
-                variant="ghost"
-                size="sm"
-                className="w-full"
-              >
+          {isChecklist ? (
+            <ChecklistStep onFinish={handleFinish} />
+          ) : (
+            <div className="flex flex-col gap-2 pt-2">
+              <Button onClick={handleAction} size="lg" className="w-full">
+                {step.actionLabel}
+              </Button>
+              <Button onClick={handleSkipStep} variant="ghost" size="sm" className="w-full">
                 Fazer depois
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-body-sm text-content-subtle">

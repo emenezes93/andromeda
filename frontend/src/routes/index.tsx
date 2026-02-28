@@ -68,6 +68,11 @@ const PatientTimelinePage = lazy(() =>
     default: m.PatientTimelinePage,
   }))
 );
+const PatientReportPage = lazy(() =>
+  import('@/features/patients/PatientReportPage').then((m) => ({
+    default: m.PatientReportPage,
+  }))
+);
 // Goals
 const GoalFormPage = lazy(() =>
   import('@/features/goals/GoalFormPage').then((m) => ({ default: m.GoalFormPage }))
@@ -189,6 +194,7 @@ const router = createBrowserRouter([
   { path: '/patients/:id/edit', element: withLayout('Editar paciente', <PatientFormPage />) },
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
   { path: '/patients/:id/timeline', element: withLayout('Prontuário', <PatientTimelinePage />) },
+  { path: '/patients/:id/report', element: withLayout('Relatório', <PatientReportPage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
   // Goals
   { path: '/goals/new', element: withLayout('Nova meta', <GoalFormPage />) },

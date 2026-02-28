@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getStoredUser } from '@/stores/authStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { listSessions } from '@/api/sessions';
 import { listPatients } from '@/api/patients';
 import { listGoals } from '@/api/goals';
@@ -28,16 +29,17 @@ const PERIOD_OPTIONS = [
   { value: 90, label: '90 dias' },
 ] as const;
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
-
 export function DashboardPage() {
   const user = getStoredUser();
+  const { t } = useTranslation();
   const [periodDays, setPeriodDays] = useState<number>(30);
+
+  function getGreeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return t.dashboard.greetingMorning;
+    if (h < 18) return t.dashboard.greetingAfternoon;
+    return t.dashboard.greetingEvening;
+  }
 
   const { data: sessionsData, isLoading: loadingSessions } = useQuery({
     queryKey: ['dashboard-sessions'],
@@ -119,13 +121,13 @@ export function DashboardPage() {
             {greeting}, <span className="text-primary">{user?.name || user?.email}</span>
           </h1>
           <p className="text-body-sm text-content-muted">
-            Acompanhe suas sessões, conquistas e métricas abaixo.
+            {t.dashboard.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <label htmlFor="period" className="text-body-sm text-content-muted">
-              Período:
+              {t.dashboard.period}
             </label>
             <select
               id="period"
@@ -141,7 +143,7 @@ export function DashboardPage() {
             </select>
           </div>
           <Link to="/sessions/new">
-            <Button size="sm">Nova sessão</Button>
+            <Button size="sm">{t.dashboard.newSession}</Button>
           </Link>
         </div>
       </div>
@@ -154,7 +156,7 @@ export function DashboardPage() {
               <IconSessions className="size-5" />
             </div>
             <div>
-              <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
+              <p className="text-body-sm font-medium text-content-muted">{t.dashboard.totalSessions}</p>
               {loading ? (
                 <Skeleton height={32} width={60} className="mt-1" />
               ) : (
@@ -169,7 +171,7 @@ export function DashboardPage() {
               <IconTemplates className="size-5" />
             </div>
             <div>
-              <p className="text-body-sm font-medium text-content-muted">Templates ativos</p>
+              <p className="text-body-sm font-medium text-content-muted">{t.dashboard.activeTemplates}</p>
               {loading ? (
                 <Skeleton height={32} width={60} className="mt-1" />
               ) : (
@@ -185,7 +187,7 @@ export function DashboardPage() {
                 <IconPatients className="size-5" />
               </div>
               <div>
-                <p className="text-body-sm font-medium text-content-muted">Pacientes</p>
+                <p className="text-body-sm font-medium text-content-muted">{t.dashboard.patients}</p>
                 {loadingPatients ? (
                   <Skeleton height={32} width={60} className="mt-1" />
                 ) : (
@@ -202,7 +204,7 @@ export function DashboardPage() {
                 <IconGoals className="size-5" />
               </div>
               <div>
-                <p className="text-body-sm font-medium text-content-muted">Metas ativas</p>
+                <p className="text-body-sm font-medium text-content-muted">{t.dashboard.activeGoals}</p>
                 {loadingGoals ? (
                   <Skeleton height={32} width={60} className="mt-1" />
                 ) : (
@@ -229,25 +231,25 @@ export function DashboardPage() {
 
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Sessões nos últimos dias" padding="md">
+        <Card title={t.dashboard.sessionsByDay} padding="md">
           <SessionsByDayChart data={byDayFormatted} loading={loading} />
         </Card>
-        <Card title="Sessões por template" padding="md">
+        <Card title={t.dashboard.sessionsByTemplate} padding="md">
           <SessionsByTemplateChart data={byTemplateFormatted} loading={loading} />
         </Card>
       </div>
 
       {/* Tabela de sessões recentes */}
-      <Card title="Sessões recentes" padding="none">
+      <Card title={t.dashboard.recentSessions} padding="none">
         {loading ? (
           <div className="flex justify-center py-12">
             <span className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : sessions.length === 0 ? (
           <p className="px-5 py-8 text-body text-content-muted">
-            Nenhuma sessão ainda.{' '}
+            {t.dashboard.noSessionsYet}{' '}
             <Link to="/sessions/new" className="font-medium text-primary hover:underline">
-              Criar primeira sessão
+              {t.dashboard.createFirstSession}
             </Link>
           </p>
         ) : (
@@ -255,11 +257,11 @@ export function DashboardPage() {
             <table className="w-full text-left text-body-sm">
               <thead>
                 <tr className="border-b border-border-muted bg-surface-muted">
-                  <th className="px-4 py-3 font-medium text-content-muted">Data</th>
-                  <th className="px-4 py-3 font-medium text-content-muted">Template</th>
-                  <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.date}</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.template}</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.status}</th>
                   <th className="px-4 py-3 font-medium text-content-muted">ID</th>
-                  <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                  <th className="px-4 py-3 text-right font-medium text-content-muted">{t.dashboard.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,11 +285,11 @@ export function DashboardPage() {
                     <td className="px-4 py-3 text-right">
                       <Link to={`/sessions/${s.id}`} className="mr-2">
                         <Button variant="ghost" size="sm">
-                          Ver
+                          {t.dashboard.view}
                         </Button>
                       </Link>
                       <Link to={`/sessions/${s.id}/flow`}>
-                        <Button size="sm" variant="tactile">Continuar</Button>
+                        <Button size="sm" variant="tactile">{t.dashboard.continue}</Button>
                       </Link>
                     </td>
                   </tr>
@@ -299,7 +301,7 @@ export function DashboardPage() {
         {!loading && sessions.length > 0 && (
           <div className="border-t border-border-muted px-4 py-3">
             <Link to="/sessions" className="text-body-sm font-medium text-primary hover:underline">
-              Ver todas as sessões →
+              {t.dashboard.viewAllSessions}
             </Link>
           </div>
         )}

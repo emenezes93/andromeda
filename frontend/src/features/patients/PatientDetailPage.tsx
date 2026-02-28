@@ -416,6 +416,11 @@ export function PatientDetailPage() {
                 Prontuário completo
               </Button>
             </Link>
+            <Link to={`/patients/${id}/report`}>
+              <Button variant="outline" size="sm">
+                Relatório
+              </Button>
+            </Link>
             <Link to={`/patients/${id}/evolution`}>
               <Button variant="outline" size="sm">
                 Ver evolução
