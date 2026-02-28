@@ -16,6 +16,7 @@ import {
   IconSubscription,
 } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTranslation } from '@/hooks/useTranslation';
 
 function IconAi() {
   return (
@@ -100,15 +101,35 @@ const navItems = [
   { to: '/audit', label: 'Auditoria', icon: IconAudit },
   { to: '/ai/usage', label: 'Uso de IA', icon: IconAi },
 ];
+}
 
-function roleLabel(role: string): string {
-  const labels: Record<string, string> = {
-    owner: 'Proprietário',
-    admin: 'Administrador',
-    practitioner: 'Praticante',
-    viewer: 'Visualizador',
-  };
-  return labels[role] ?? role;
+function IconTraining() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6.5 6.5h11" />
+      <path d="M6.5 17.5h11" />
+      <path d="M3 10v4" />
+      <path d="M21 10v4" />
+      <path d="M5 8v8" />
+      <path d="M19 8v8" />
+    </svg>
+  );
+}
+
+interface PageLayoutProps {
+  children: React.ReactNode;
+  title?: string;
 }
 
 function IconMenu() {
@@ -164,6 +185,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { t, locale, setLocale } = useTranslation();
 
   // Fecha sidebar ao navegar em mobile
   useEffect(() => {
@@ -177,6 +199,27 @@ export function PageLayout({ children, title }: PageLayoutProps) {
 
   const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
   const isOwner = user?.role === 'owner';
+
+  const navItems = [
+    { to: '/', label: t.nav.dashboard, icon: IconDashboard },
+    { to: '/templates', label: t.nav.templates, icon: IconTemplates },
+    { to: '/sessions', label: t.nav.sessions, icon: IconSessions },
+    { to: '/patients', label: t.nav.patients, icon: IconPatients },
+    { to: '/training-plans', label: t.nav.trainingPlans, icon: IconTraining },
+    { to: '/scheduled-questionnaires', label: t.nav.scheduledQuestionnaires, icon: IconSchedule },
+    { to: '/audit', label: t.nav.audit, icon: IconAudit },
+    { to: '/ai/usage', label: t.nav.aiUsage, icon: IconAi },
+  ];
+
+  const roleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      owner: t.roles.owner,
+      admin: t.roles.admin,
+      practitioner: t.roles.practitioner,
+      viewer: t.roles.viewer,
+    };
+    return labels[role] ?? role;
+  };
 
   const sidebarContent = (
     <>
@@ -207,18 +250,18 @@ export function PageLayout({ children, title }: PageLayoutProps) {
         {isAdminOrOwner && (
           <NavLink to="/users" className={navLinkClass}>
             <IconUsers />
-            Usuários
+            {t.nav.users}
           </NavLink>
         )}
         {isOwner && (
           <NavLink to="/tenants" className={navLinkClass}>
             <IconTenants />
-            Tenants
+            {t.nav.tenants}
           </NavLink>
         )}
         <NavLink to="/subscription" className={navLinkClass}>
           <IconSubscription />
-          Assinatura
+          {t.nav.subscription}
         </NavLink>
       </nav>
 
@@ -226,7 +269,17 @@ export function PageLayout({ children, title }: PageLayoutProps) {
       <div className="border-t border-border-muted p-3">
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
-          <ThemeToggle />
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setLocale(locale === 'pt-BR' ? 'en-US' : 'pt-BR')}
+              className="rounded-button px-1.5 py-0.5 text-xs font-semibold text-content-muted hover:bg-surface-muted hover:text-content transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Alternar idioma"
+              title={locale === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
+            >
+              {locale === 'pt-BR' ? 'EN' : 'PT'}
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
         <p className="truncate px-2 py-1 text-body-sm text-content-subtle" title={user?.email}>
           {user?.email}
@@ -237,7 +290,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
           className="mt-1 w-full justify-start gap-2"
         >
           <IconLogout />
-          Sair
+          {t.sidebar.logout}
         </Button>
       </div>
     </>
@@ -268,7 +321,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
         <button
           className="absolute right-3 top-3.5 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setSidebarOpen(false)}
-          aria-label="Fechar menu"
+          aria-label={t.sidebar.closeMenu}
         >
           <IconX />
         </button>
@@ -283,7 +336,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             <button
               className="flex min-h-touch min-w-[40px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => setSidebarOpen(true)}
-              aria-label="Abrir menu"
+              aria-label={t.sidebar.openMenu}
               aria-expanded={sidebarOpen}
             >
               <IconMenu />
@@ -311,7 +364,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
                 to="/terms"
                 className="hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-button"
               >
-                Política de privacidade e termos de uso
+                {t.sidebar.terms}
               </Link>
             </div>
           </footer>

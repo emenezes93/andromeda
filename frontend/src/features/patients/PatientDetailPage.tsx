@@ -8,6 +8,7 @@ import type { PatientWithCount, PatientEvolution, Session, TrainingPlan, Goal } 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 
 // ---------------------------------------------------------------------------
@@ -39,6 +40,8 @@ function genderVariant(
   if (gender === 'F') return 'success';
   return 'default';
 }
+
+const todayIso = () => new Date().toISOString().split('T')[0];
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -81,6 +84,7 @@ type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
 
+  // ── Core data ──────────────────────────────────────────────────────────
   const [patient, setPatient] = useState<PatientWithCount | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
@@ -92,6 +96,31 @@ export function PatientDetailPage() {
   const [loadingGoals, setLoadingGoals] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
+
+  // ── Tab ───────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<TabId>('dados');
+
+  // ── Execution inline form ─────────────────────────────────────────────
+  const [showExecForm, setShowExecForm] = useState(false);
+  const [execForm, setExecForm] = useState({
+    trainingPlanId: '',
+    executedAt: todayIso(),
+    durationMinutes: '',
+    notes: '',
+    completed: true,
+  });
+  const [submittingExec, setSubmittingExec] = useState(false);
+
+  // ── Photo inline form ─────────────────────────────────────────────────
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const [photoForm, setPhotoForm] = useState({
+    imageUrl: '',
+    takenAt: todayIso(),
+    notes: '',
+  });
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+
+  // ── Initial loads ──────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!id) return;

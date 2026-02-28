@@ -2,13 +2,16 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getStoredUser } from '@/stores/authStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { listSessions } from '@/api/sessions';
+import { listPatients } from '@/api/patients';
+import { listGoals } from '@/api/goals';
 import { getDashboardStats } from '@/api/stats';
 import type { Session } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
-import { IconSessions, IconTemplates } from '@/components/icons';
+import { IconSessions, IconTemplates, IconPatients, IconGoals } from '@/components/icons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   SessionsByDayChart,
@@ -18,19 +21,13 @@ import {
 } from '@/components/charts';
 import { AchievementsCard } from '@/components/gamification/AchievementsCard';
 import { PlanUsageCard } from '@/components/ui/PlanUsageCard';
+import { NotificationsWidget } from '@/components/ui/NotificationsWidget';
 
 const PERIOD_OPTIONS = [
   { value: 7, label: '7 dias' },
   { value: 30, label: '30 dias' },
   { value: 90, label: '90 dias' },
 ] as const;
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
 
 export function DashboardPage() {
   const user = getStoredUser();
@@ -93,6 +90,9 @@ export function DashboardPage() {
       minute: '2-digit',
     });
 
+  const totalPatients = patientsData?.meta.total ?? null;
+  const activeGoals = goalsData?.meta.total ?? null;
+
   const greeting = getGreeting();
 
   return (
@@ -103,37 +103,42 @@ export function DashboardPage() {
             {greeting}, <span className="text-primary">{user?.name || user?.email}</span>
           </h1>
           <p className="text-body-sm text-content-muted">
-            Acompanhe suas sessões, conquistas e métricas abaixo.
+            {t.dashboard.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="period" className="text-body-sm text-content-muted">
-            Período:
-          </label>
-          <select
-            id="period"
-            className="rounded-button border border-border bg-surface px-3 py-1.5 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            value={periodDays}
-            onChange={(e) => setPeriodDays(Number(e.target.value))}
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="period" className="text-body-sm text-content-muted">
+              {t.dashboard.period}
+            </label>
+            <select
+              id="period"
+              className="rounded-button border border-border bg-surface px-3 py-1.5 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              value={periodDays}
+              onChange={(e) => setPeriodDays(Number(e.target.value))}
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Link to="/sessions/new">
+            <Button size="sm">{t.dashboard.newSession}</Button>
+          </Link>
         </div>
       </div>
 
       {/* Stats cards com ícones */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card padding="md" className="border-l-4 border-l-primary">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <IconSessions className="size-5" />
             </div>
             <div>
-              <p className="text-body-sm font-medium text-content-muted">Total de sessões</p>
+              <p className="text-body-sm font-medium text-content-muted">{t.dashboard.totalSessions}</p>
               {loading ? (
                 <Skeleton height={32} width={60} className="mt-1" />
               ) : (
@@ -148,7 +153,7 @@ export function DashboardPage() {
               <IconTemplates className="size-5" />
             </div>
             <div>
-              <p className="text-body-sm font-medium text-content-muted">Templates ativos</p>
+              <p className="text-body-sm font-medium text-content-muted">{t.dashboard.activeTemplates}</p>
               {loading ? (
                 <Skeleton height={32} width={60} className="mt-1" />
               ) : (
@@ -157,13 +162,44 @@ export function DashboardPage() {
             </div>
           </div>
         </Card>
-        <Link to="/sessions/new" className="block focus-visible:outline-none">
-          <Card padding="md" className="h-full transition-calm hover:shadow-soft hover:border-primary/30">
-            <p className="text-body-sm font-medium text-content-muted">Nova sessão</p>
-            <p className="mt-1 text-body font-medium text-primary">Iniciar anamnese →</p>
+        <Link to="/patients" className="block focus-visible:outline-none">
+          <Card padding="md" className="h-full border-l-4 border-l-success transition-calm hover:shadow-soft">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                <IconPatients className="size-5" />
+              </div>
+              <div>
+                <p className="text-body-sm font-medium text-content-muted">{t.dashboard.patients}</p>
+                {loadingPatients ? (
+                  <Skeleton height={32} width={60} className="mt-1" />
+                ) : (
+                  <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{totalPatients ?? 0}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Link>
+        <Link to="/goals/new" className="block focus-visible:outline-none">
+          <Card padding="md" className="h-full border-l-4 border-l-warning transition-calm hover:shadow-soft">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                <IconGoals className="size-5" />
+              </div>
+              <div>
+                <p className="text-body-sm font-medium text-content-muted">{t.dashboard.activeGoals}</p>
+                {loadingGoals ? (
+                  <Skeleton height={32} width={60} className="mt-1" />
+                ) : (
+                  <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{activeGoals ?? 0}</p>
+                )}
+              </div>
+            </div>
           </Card>
         </Link>
       </div>
+
+      {/* Alertas / Notificações */}
+      <NotificationsWidget />
 
       {/* Uso do plano */}
       <PlanUsageCard />
@@ -177,25 +213,25 @@ export function DashboardPage() {
 
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Sessões nos últimos dias" padding="md">
+        <Card title={t.dashboard.sessionsByDay} padding="md">
           <SessionsByDayChart data={byDayFormatted} loading={loading} />
         </Card>
-        <Card title="Sessões por template" padding="md">
+        <Card title={t.dashboard.sessionsByTemplate} padding="md">
           <SessionsByTemplateChart data={byTemplateFormatted} loading={loading} />
         </Card>
       </div>
 
       {/* Tabela de sessões recentes */}
-      <Card title="Sessões recentes" padding="none">
+      <Card title={t.dashboard.recentSessions} padding="none">
         {loading ? (
           <div className="flex justify-center py-12">
             <span className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : sessions.length === 0 ? (
           <p className="px-5 py-8 text-body text-content-muted">
-            Nenhuma sessão ainda.{' '}
+            {t.dashboard.noSessionsYet}{' '}
             <Link to="/sessions/new" className="font-medium text-primary hover:underline">
-              Criar primeira sessão
+              {t.dashboard.createFirstSession}
             </Link>
           </p>
         ) : (
@@ -203,11 +239,11 @@ export function DashboardPage() {
             <table className="w-full text-left text-body-sm">
               <thead>
                 <tr className="border-b border-border-muted bg-surface-muted">
-                  <th className="px-4 py-3 font-medium text-content-muted">Data</th>
-                  <th className="px-4 py-3 font-medium text-content-muted">Template</th>
-                  <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.date}</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.template}</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">{t.dashboard.status}</th>
                   <th className="px-4 py-3 font-medium text-content-muted">ID</th>
-                  <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                  <th className="px-4 py-3 text-right font-medium text-content-muted">{t.dashboard.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,11 +267,11 @@ export function DashboardPage() {
                     <td className="px-4 py-3 text-right">
                       <Link to={`/sessions/${s.id}`} className="mr-2">
                         <Button variant="ghost" size="sm">
-                          Ver
+                          {t.dashboard.view}
                         </Button>
                       </Link>
                       <Link to={`/sessions/${s.id}/flow`}>
-                        <Button size="sm" variant="tactile">Continuar</Button>
+                        <Button size="sm" variant="tactile">{t.dashboard.continue}</Button>
                       </Link>
                     </td>
                   </tr>
@@ -247,7 +283,7 @@ export function DashboardPage() {
         {!loading && sessions.length > 0 && (
           <div className="border-t border-border-muted px-4 py-3">
             <Link to="/sessions" className="text-body-sm font-medium text-primary hover:underline">
-              Ver todas as sessões →
+              {t.dashboard.viewAllSessions}
             </Link>
           </div>
         )}
