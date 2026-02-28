@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { listPatients, exportPatientsCSV } from '@/api/patients';
-import type { PatientListResponse } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -42,35 +42,26 @@ const DEBOUNCE_MS = 400;
 
 export function PatientsListPage() {
   const toast = useToast();
-  const [data, setData] = useState<PatientListResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(1); // Reset to first page on new search
+      setPage(1);
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const fetchPatients = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    listPatients({ page, limit: LIMIT, search: debouncedSearch || undefined })
-      .then((res) => setData(res))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar pacientes'))
-      .finally(() => setLoading(false));
-  }, [page, debouncedSearch]);
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['patients', page, debouncedSearch],
+    queryFn: () => listPatients({ page, limit: LIMIT, search: debouncedSearch || undefined }),
+  });
 
-  useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar pacientes' : null;
+  const fetchPatients = refetch;
 
   const handleExportCSV = useCallback(() => {
     setExporting(true);

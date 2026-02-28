@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
-import type { PatientWithCount, PatientEvolution, Session, TrainingPlan } from '@/types';
+import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
+import type { PatientWithCount, PatientEvolution, Session, TrainingPlan, Goal } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -71,7 +72,7 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
-type TabId = 'dados' | 'sessoes' | 'treinos';
+type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -84,9 +85,11 @@ export function PatientDetailPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [loadingGoals, setLoadingGoals] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
 
@@ -131,6 +134,19 @@ export function PatientDetailPage() {
     if (activeTab === 'treinos') loadPlans();
   }, [activeTab, loadPlans]);
 
+  const loadGoals = useCallback(() => {
+    if (!id) return;
+    setLoadingGoals(true);
+    listGoals({ patientId: id, limit: 50 })
+      .then((res) => setGoals(res.data))
+      .catch(() => setGoals([]))
+      .finally(() => setLoadingGoals(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'metas') loadGoals();
+  }, [activeTab, loadGoals]);
+
   // ── Guards ──────────────────────────────────────────────────────────────
 
   if (!id) {
@@ -160,6 +176,7 @@ export function PatientDetailPage() {
     { id: 'dados', label: 'Dados' },
     { id: 'sessoes', label: `Sessões${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
     { id: 'treinos', label: 'Planos de Treino' },
+    { id: 'metas', label: 'Metas' },
   ];
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -431,6 +448,127 @@ export function PatientDetailPage() {
                 </Link>
               </div>
             </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Metas ── */}
+      {activeTab === 'metas' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Metas do paciente</h3>
+            <Link to={`/goals/new?patientId=${id}`}>
+              <Button size="sm">Nova meta</Button>
+            </Link>
+          </div>
+
+          {loadingGoals ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : goals.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhuma meta cadastrada para este paciente.
+              </p>
+              <Link to={`/goals/new?patientId=${id}`} className="mt-3 inline-block">
+                <Button size="sm">Criar meta</Button>
+              </Link>
+            </Card>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {goals.map((goal) => {
+                const progress =
+                  goal.currentValue != null
+                    ? Math.min(100, Math.max(0, (goal.currentValue / goal.targetValue) * 100))
+                    : null;
+                const achieved = goal.achievedAt != null;
+                return (
+                  <li key={goal.id}>
+                    <Card padding="md" className={achieved ? 'border-success/40 bg-success-light/30' : ''}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="font-semibold text-content leading-snug">{goal.title}</p>
+                          <p className="mt-0.5 text-body-sm text-content-muted capitalize">
+                            {goal.type.replace('_', ' ')} · {goal.unit}
+                          </p>
+                        </div>
+                        {achieved ? (
+                          <Badge variant="success">Concluída</Badge>
+                        ) : (
+                          <Badge variant="primary">Em andamento</Badge>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-body-sm">
+                        <span className="text-content-muted">
+                          {goal.currentValue != null ? goal.currentValue : '—'} /{' '}
+                          {goal.targetValue} {goal.unit}
+                        </span>
+                        {progress != null && (
+                          <span className="font-medium text-primary">{Math.round(progress)}%</span>
+                        )}
+                      </div>
+
+                      {progress != null && (
+                        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+                          <div
+                            className={`h-full rounded-full transition-all ${achieved ? 'bg-success' : 'bg-primary'}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-xs text-content-subtle">
+                          Prazo: {formatDate(goal.targetDate)}
+                        </span>
+                        <div className="flex gap-1">
+                          <Link to={`/goals/${goal.id}/edit`}>
+                            <Button variant="ghost" size="sm">
+                              Editar
+                            </Button>
+                          </Link>
+                          {!achieved && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await updateGoal(goal.id, {
+                                    achievedAt: new Date().toISOString(),
+                                  });
+                                  loadGoals();
+                                } catch {
+                                  // silently retry
+                                }
+                              }}
+                            >
+                              Concluir
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (!window.confirm('Remover esta meta?')) return;
+                              try {
+                                await deleteGoal(goal.id);
+                                loadGoals();
+                              } catch {
+                                // silently retry
+                              }
+                            }}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       )}

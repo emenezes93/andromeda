@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { listSessions } from '@/api/sessions';
 import { listTemplates } from '@/api/templates';
 import type { Session, Template } from '@/types';
@@ -17,41 +18,32 @@ const STATUS_OPTIONS = [
 export function SessionsListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const patientIdFromUrl = searchParams.get('patientId') ?? '';
-  const [data, setData] = useState<{
-    data: Session[];
-    meta: { page: number; totalPages: number; total: number };
-  } | null>(null);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [templateFilter, setTemplateFilter] = useState('');
   const limit = 10;
 
-  useEffect(() => {
-    listTemplates({ page: 1, limit: 100 })
-      .then((res) => setTemplates(res.data))
-      .catch(() => setTemplates([]));
-  }, []);
+  const { data: templatesData } = useQuery({
+    queryKey: ['templates-select'],
+    queryFn: () => listTemplates({ page: 1, limit: 100 }),
+  });
+  const templates: Template[] = templatesData?.data ?? [];
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    listSessions({
-      page,
-      limit,
-      status: statusFilter || undefined,
-      templateId: templateFilter || undefined,
-      patientId: patientIdFromUrl || undefined,
-    })
-      .then((res) => setData(res))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
-      .finally(() => setLoading(false));
-  }, [page, statusFilter, templateFilter, patientIdFromUrl]);
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['sessions', page, statusFilter, templateFilter, patientIdFromUrl],
+    queryFn: () =>
+      listSessions({
+        page,
+        limit,
+        status: statusFilter || undefined,
+        templateId: templateFilter || undefined,
+        patientId: patientIdFromUrl || undefined,
+      }),
+  });
 
-  const sessions = data?.data ?? [];
+  const sessions: Session[] = data?.data ?? [];
   const hasFilter = statusFilter !== '' || templateFilter !== '' || patientIdFromUrl !== '';
+  const error = queryError instanceof Error ? queryError.message : null;
 
   if (loading && !data) {
     return (
@@ -68,11 +60,11 @@ export function SessionsListPage() {
     );
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <Card className="border-error bg-error-light">
         <p className="text-error">{error}</p>
-        <Button className="mt-4" onClick={() => setPage(1)}>
+        <Button className="mt-4" onClick={() => refetch()}>
           Tentar novamente
         </Button>
       </Card>

@@ -326,3 +326,78 @@ export interface CreateProgressPhotoBody {
   takenAt: string;
   notes?: string;
 }
+
+// Goals
+export type GoalType = 'weight_loss' | 'muscle_gain' | 'performance' | 'health' | 'other';
+
+export interface Goal {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  type: GoalType;
+  title: string;
+  description: string | null;
+  currentValue: number | null;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  targetDate: string;
+  achievedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface GoalListResponse {
+  data: Goal[];
+  meta: PaginationMeta;
+}
+export interface CreateGoalBody {
+  patientId: string;
+  type: GoalType;
+  title: string;
+  description?: string;
+  currentValue?: number;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  targetDate: string;
+}
+export interface UpdateGoalBody {
+  title?: string;
+  description?: string;
+  currentValue?: number;
+  targetValue?: number;
+  targetDate?: string;
+  achievedAt?: string;
+}
+
+// Scheduled Questionnaires
+export type QuestionnaireFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+
+export interface ScheduledQuestionnaire {
+  id: string;
+  templateId: string;
+  templateName: string;
+  patientId: string | null;
+  patientName: string | null;
+  frequency: QuestionnaireFrequency;
+  dayOfWeek: number | null;
+  dayOfMonth: number | null;
+  startDate: string;
+  endDate: string | null;
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+  active: boolean;
+}
+export interface ScheduledQuestionnaireListResponse {
+  data: ScheduledQuestionnaire[];
+  meta: PaginationMeta;
+}
+export interface CreateScheduledQuestionnaireBody {
+  templateId: string;
+  patientId?: string;
+  frequency: QuestionnaireFrequency;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+}
