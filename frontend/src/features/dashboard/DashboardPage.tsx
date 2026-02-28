@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { getStoredUser } from '@/stores/authStore';
 import { listSessions } from '@/api/sessions';
 import { getDashboardStats } from '@/api/stats';
@@ -33,49 +34,25 @@ function getGreeting(): string {
 
 export function DashboardPage() {
   const user = getStoredUser();
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [periodDays, setPeriodDays] = useState<number>(30);
-  const [totalSessions, setTotalSessions] = useState<number | null>(null);
-  const [totalTemplates, setTotalTemplates] = useState<number | null>(null);
-  const [completedCount, setCompletedCount] = useState<number | null>(null);
-  const [byDay, setByDay] = useState<Record<string, number>>({});
-  const [byTemplate, setByTemplate] = useState<Array<{ templateId: string; templateName: string; count: number }>>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    Promise.all([
-      listSessions({ page: 1, limit: 5 }),
-      getDashboardStats({ days: periodDays }),
-    ])
-      .then(([recentRes, stats]) => {
-        if (!cancelled) {
-          setSessions(recentRes.data);
-          setTotalSessions(stats.totals.sessions);
-          setCompletedCount(stats.totals.completed);
-          setTotalTemplates(stats.totals.templates);
-          setByDay(stats.byDay);
-          setByTemplate(stats.byTemplate);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSessions([]);
-          setTotalSessions(0);
-          setCompletedCount(0);
-          setTotalTemplates(0);
-          setByDay({});
-          setByTemplate([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [periodDays]);
+  const { data: sessionsData, isLoading: loadingSessions } = useQuery({
+    queryKey: ['dashboard-sessions'],
+    queryFn: () => listSessions({ page: 1, limit: 5 }),
+  });
+
+  const { data: stats, isLoading: loadingStats } = useQuery({
+    queryKey: ['dashboard-stats', periodDays],
+    queryFn: () => getDashboardStats({ days: periodDays }),
+  });
+
+  const loading = loadingSessions || loadingStats;
+  const sessions: Session[] = sessionsData?.data ?? [];
+  const totalSessions = stats?.totals.sessions ?? null;
+  const totalTemplates = stats?.totals.templates ?? null;
+  const completedCount = stats?.totals.completed ?? null;
+  const byDay = stats?.byDay ?? {};
+  const byTemplate = stats?.byTemplate ?? [];
 
   const byDayFormatted: DayCount[] = useMemo(() => {
     return Object.entries(byDay)

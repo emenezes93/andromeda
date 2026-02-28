@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
-import type { PatientWithCount, PatientEvolution, Session } from '@/types';
+import { listTrainingPlans } from '@/api/training-plans';
+import type { PatientWithCount, PatientEvolution, Session, TrainingPlan } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -14,12 +15,6 @@ import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatDateShort(value: string): string {
   const d = new Date(value);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -76,6 +71,8 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
+type TabId = 'dados' | 'sessoes' | 'treinos';
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -86,13 +83,15 @@ export function PatientDetailPage() {
   const [patient, setPatient] = useState<PatientWithCount | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
+  const [plans, setPlans] = useState<TrainingPlan[]>([]);
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [loadingPlans, setLoadingPlans] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('dados');
 
   useEffect(() => {
     if (!id) return;
-
     setLoadingPatient(true);
     setPatientError(null);
     getPatient(id)
@@ -105,7 +104,6 @@ export function PatientDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-
     setLoadingSessions(true);
     listSessions({ page: 1, limit: 20, patientId: id })
       .then((res) => setSessions(res.data.slice(0, 10)))
@@ -119,6 +117,19 @@ export function PatientDetailPage() {
       .then((res) => setLastEvolution(res.data[0] ?? null))
       .catch(() => setLastEvolution(null));
   }, [id]);
+
+  const loadPlans = useCallback(() => {
+    if (!id) return;
+    setLoadingPlans(true);
+    listTrainingPlans({ patientId: id, limit: 50 })
+      .then((res) => setPlans(res.data))
+      .catch(() => setPlans([]))
+      .finally(() => setLoadingPlans(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'treinos') loadPlans();
+  }, [activeTab, loadPlans]);
 
   // ── Guards ──────────────────────────────────────────────────────────────
 
@@ -145,6 +156,12 @@ export function PatientDetailPage() {
     );
   }
 
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'dados', label: 'Dados' },
+    { id: 'sessoes', label: `Sessões${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
+    { id: 'treinos', label: 'Planos de Treino' },
+  ];
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -164,6 +181,11 @@ export function PatientDetailPage() {
           <Link to={`/sessions/new?patientId=${id}`}>
             <Button size="sm">Nova sessão</Button>
           </Link>
+          <Link to="/patients">
+            <Button variant="outline" size="sm">
+              Voltar
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -175,7 +197,8 @@ export function PatientDetailPage() {
         return (
           <Card className="border-primary/30 bg-primary-subtle/30" padding="md">
             <p className="text-body text-content">
-              Última evolução há <strong>{days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`}</strong>.
+              Última evolução há{' '}
+              <strong>{days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`}</strong>.
               Registrar nova?
             </p>
             <Link to={`/patients/${id}/evolution`} className="mt-3 inline-block">
@@ -185,123 +208,232 @@ export function PatientDetailPage() {
         );
       })()}
 
-      {/* ── Dados do paciente ── */}
-      <Card title="Dados do paciente" padding="md">
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InfoRow label="Data de nascimento" value={formatDate(patient.birthDate)} />
-          <InfoRow label="CPF" value={patient.cpf} />
-          <InfoRow label="Email" value={patient.email} />
-          <InfoRow label="Telefone" value={patient.phone} />
-          <InfoRow label="Profissão" value={patient.profession} />
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-body-sm font-medium text-content-muted">Sessões / Evoluções</dt>
-            <dd className="flex items-center gap-3 text-body text-content">
-              <span>
-                <span className="font-semibold text-primary">{patient._count.sessions}</span>{' '}
-                <span className="text-content-muted">sessões</span>
-              </span>
-              <span className="text-border-soft">·</span>
-              <span>
-                <span className="font-semibold text-primary">{patient._count.evolutions}</span>{' '}
-                <span className="text-content-muted">evoluções</span>
-              </span>
-            </dd>
-          </div>
-        </dl>
-      </Card>
+      {/* ── Tabs ── */}
+      <div className="border-b border-border">
+        <nav className="-mb-px flex gap-1" aria-label="Abas do paciente">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-button ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-content-muted hover:text-content'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-      {/* ── Optional text cards ── */}
-      {patient.mainGoal && <TextCard title="Objetivo principal" text={patient.mainGoal} />}
-      {patient.mainComplaint && (
-        <TextCard title="Queixa principal" text={patient.mainComplaint} />
-      )}
-      {patient.notes && <TextCard title="Observações" text={patient.notes} />}
+      {/* ── Tab: Dados ── */}
+      {activeTab === 'dados' && (
+        <div className="space-y-4">
+          <Card title="Dados do paciente" padding="md">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <InfoRow label="Data de nascimento" value={formatDate(patient.birthDate)} />
+              <InfoRow label="CPF" value={patient.cpf} />
+              <InfoRow label="Email" value={patient.email} />
+              <InfoRow label="Telefone" value={patient.phone} />
+              <InfoRow label="Profissão" value={patient.profession} />
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-body-sm font-medium text-content-muted">Sessões / Evoluções</dt>
+                <dd className="flex items-center gap-3 text-body text-content">
+                  <span>
+                    <span className="font-semibold text-primary">{patient._count.sessions}</span>{' '}
+                    <span className="text-content-muted">sessões</span>
+                  </span>
+                  <span className="text-border-soft">·</span>
+                  <span>
+                    <span className="font-semibold text-primary">{patient._count.evolutions}</span>{' '}
+                    <span className="text-content-muted">evoluções</span>
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </Card>
 
-      {/* ── Sessões (aba) ── */}
-      <Card title="Sessões" padding="none">
-        {loadingSessions ? (
-          <div className="flex justify-center py-10">
-            <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="px-5 py-8">
-            <p className="text-body text-content-muted">
-              Nenhuma sessão registrada para este paciente.
-            </p>
-            <Link to={`/sessions/new?patientId=${id}`} className="mt-3 inline-block">
-              <Button size="sm">Criar sessão</Button>
+          {patient.mainGoal && <TextCard title="Objetivo principal" text={patient.mainGoal} />}
+          {patient.mainComplaint && (
+            <TextCard title="Queixa principal" text={patient.mainComplaint} />
+          )}
+          {patient.notes && <TextCard title="Observações" text={patient.notes} />}
+
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link to={`/patients/${id}/timeline`}>
+              <Button variant="outline" size="sm">
+                Prontuário completo
+              </Button>
+            </Link>
+            <Link to={`/patients/${id}/evolution`}>
+              <Button variant="outline" size="sm">
+                Ver evolução
+              </Button>
             </Link>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-body-sm">
-                <thead>
-                  <tr className="border-b border-border-muted bg-surface-muted">
-                    <th className="px-4 py-3 font-medium text-content-muted">Data</th>
-                    <th className="px-4 py-3 font-medium text-content-muted">Template</th>
-                    <th className="px-4 py-3 font-medium text-content-muted">Status</th>
-                    <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.map((s) => (
-                    <tr
-                      key={s.id}
-                      className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
-                    >
-                      <td className="whitespace-nowrap px-4 py-3 text-content-muted">
-                        {formatDateShort(s.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-content">
-                        {s.template?.name ?? s.templateId.slice(0, 8) + '…'}
-                      </td>
-                      <td className="px-4 py-3">
-                        {s.status && <SessionStatusBadge status={s.status} />}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link to={`/sessions/${s.id}`} className="mr-2">
-                          <Button variant="ghost" size="sm">
-                            Ver
-                          </Button>
-                        </Link>
-                        {s.status !== 'completed' && s.status !== 'cancelled' && (
-                          <Link to={`/sessions/${s.id}/flow`}>
-                            <Button size="sm" variant="secondary">
-                              Continuar
-                            </Button>
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        </div>
+      )}
+
+      {/* ── Tab: Sessões ── */}
+      {activeTab === 'sessoes' && (
+        <Card title="Sessões" padding="none">
+          {loadingSessions ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
-            <div className="border-t border-border-muted px-4 py-3">
-              <Link
-                to={`/sessions?patientId=${id}`}
-                className="text-body-sm font-medium text-primary hover:underline"
-              >
-                Ver todas as sessões deste paciente →
+          ) : sessions.length === 0 ? (
+            <div className="px-5 py-8">
+              <p className="text-body text-content-muted">
+                Nenhuma sessão registrada para este paciente.
+              </p>
+              <Link to={`/sessions/new?patientId=${id}`} className="mt-3 inline-block">
+                <Button size="sm">Criar sessão</Button>
               </Link>
             </div>
-          </>
-        )}
-      </Card>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-body-sm">
+                  <thead>
+                    <tr className="border-b border-border-muted bg-surface-muted">
+                      <th className="px-4 py-3 font-medium text-content-muted">Data</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Template</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                      <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map((s) => (
+                      <tr
+                        key={s.id}
+                        className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {formatDate(s.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-content">
+                          {s.template?.name ?? s.templateId.slice(0, 8) + '…'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.status && <SessionStatusBadge status={s.status} />}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link to={`/sessions/${s.id}`} className="mr-2">
+                            <Button variant="ghost" size="sm">
+                              Ver
+                            </Button>
+                          </Link>
+                          {s.status !== 'completed' && s.status !== 'cancelled' && (
+                            <Link to={`/sessions/${s.id}/flow`}>
+                              <Button size="sm" variant="secondary">
+                                Continuar
+                              </Button>
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-border-muted px-4 py-3">
+                <Link
+                  to={`/sessions?patientId=${id}`}
+                  className="text-body-sm font-medium text-primary hover:underline"
+                >
+                  Ver todas as sessões deste paciente →
+                </Link>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
-      {/* ── Action strip ── */}
-      <div className="flex flex-wrap items-center gap-3 pt-2">
-        <Link to={`/patients/${id}/timeline`}>
-          <Button variant="outline">Prontuário completo</Button>
-        </Link>
-        <Link to={`/patients/${id}/evolution`}>
-          <Button variant="outline">Ver evolução</Button>
-        </Link>
-        <Link to="/patients">
-          <Button variant="secondary">Voltar à lista</Button>
-        </Link>
-      </div>
+      {/* ── Tab: Planos de Treino ── */}
+      {activeTab === 'treinos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Planos de treino</h3>
+            <Link to={`/training-plans/new?patientId=${id}`}>
+              <Button size="sm">Novo plano</Button>
+            </Link>
+          </div>
+
+          {loadingPlans ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : plans.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhum plano de treino cadastrado para este paciente.
+              </p>
+              <Link to={`/training-plans/new?patientId=${id}`} className="mt-3 inline-block">
+                <Button size="sm">Criar plano</Button>
+              </Link>
+            </Card>
+          ) : (
+            <Card padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-body-sm">
+                  <thead>
+                    <tr className="border-b border-border-muted bg-surface-muted">
+                      <th className="px-4 py-3 font-medium text-content-muted">Nome</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Início</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Término</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Execuções</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                      <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plans.map((plan) => (
+                      <tr
+                        key={plan.id}
+                        className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
+                      >
+                        <td className="px-4 py-3 font-medium text-content">{plan.name}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {formatDate(plan.startDate)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {formatDate(plan.endDate)}
+                        </td>
+                        <td className="px-4 py-3 text-content">
+                          <span className="inline-flex items-center rounded-button bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
+                            {plan.executionsCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={plan.active ? 'success' : 'default'}>
+                            {plan.active ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link to={`/training-plans/${plan.id}`}>
+                            <Button variant="ghost" size="sm">
+                              Ver
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-border-muted px-4 py-3">
+                <Link
+                  to={`/training-plans?patientId=${id}`}
+                  className="text-body-sm font-medium text-primary hover:underline"
+                >
+                  Ver todos os planos deste paciente →
+                </Link>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

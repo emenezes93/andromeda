@@ -248,3 +248,81 @@ export interface AuditListResponse {
   data: AuditLog[];
   meta: PaginationMeta;
 }
+
+// Training Plans
+export interface TrainingPlan {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  name: string;
+  description: string | null;
+  planJson: Record<string, unknown>;
+  startDate: string;
+  endDate: string | null;
+  active: boolean;
+  executionsCount: number;
+  createdAt?: string;
+}
+export interface TrainingPlanListResponse {
+  data: TrainingPlan[];
+  meta: PaginationMeta;
+}
+export interface CreateTrainingPlanBody {
+  patientId: string;
+  name: string;
+  description?: string;
+  planJson: Record<string, unknown>;
+  startDate: string;
+  endDate?: string;
+  active?: boolean;
+}
+
+// Training Executions
+export interface TrainingExecution {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  trainingPlanId: string | null;
+  planName: string | null;
+  executedAt: string;
+  durationMinutes: number | null;
+  notes: string | null;
+  completed: boolean;
+  createdAt: string;
+}
+export interface TrainingExecutionListResponse {
+  data: TrainingExecution[];
+  meta: PaginationMeta;
+}
+export interface CreateTrainingExecutionBody {
+  patientId: string;
+  trainingPlanId?: string;
+  executedAt: string;
+  durationMinutes?: number;
+  notes?: string;
+  completed?: boolean;
+}
+
+// Progress Photos
+export interface ProgressPhoto {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  imageUrl: string;
+  takenAt: string;
+  notes: string | null;
+  createdAt: string;
+}
+export interface ProgressPhotoListResponse {
+  data: ProgressPhoto[];
+  meta: PaginationMeta;
+}
+export interface CreateProgressPhotoBody {
+  patientId: string;
+  imageUrl: string;
+  takenAt: string;
+  notes?: string;
+}
