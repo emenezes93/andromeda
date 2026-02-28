@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getStoredUser } from '@/stores/authStore';
 import { listSessions } from '@/api/sessions';
+import { listPatients } from '@/api/patients';
+import { listGoals } from '@/api/goals';
 import { getDashboardStats } from '@/api/stats';
 import type { Session } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
-import { IconSessions, IconTemplates } from '@/components/icons';
+import { IconSessions, IconTemplates, IconPatients, IconGoals } from '@/components/icons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   SessionsByDayChart,
@@ -44,6 +46,16 @@ export function DashboardPage() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['dashboard-stats', periodDays],
     queryFn: () => getDashboardStats({ days: periodDays }),
+  });
+
+  const { data: patientsData, isLoading: loadingPatients } = useQuery({
+    queryKey: ['dashboard-patients'],
+    queryFn: () => listPatients({ page: 1, limit: 1 }),
+  });
+
+  const { data: goalsData, isLoading: loadingGoals } = useQuery({
+    queryKey: ['dashboard-goals-active'],
+    queryFn: () => listGoals({ limit: 1, achieved: false }),
   });
 
   const loading = loadingSessions || loadingStats;
@@ -93,6 +105,9 @@ export function DashboardPage() {
       minute: '2-digit',
     });
 
+  const totalPatients = patientsData?.meta.total ?? null;
+  const activeGoals = goalsData?.meta.total ?? null;
+
   const greeting = getGreeting();
 
   return (
@@ -106,27 +121,32 @@ export function DashboardPage() {
             Acompanhe suas sessões, conquistas e métricas abaixo.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="period" className="text-body-sm text-content-muted">
-            Período:
-          </label>
-          <select
-            id="period"
-            className="rounded-button border border-border bg-surface px-3 py-1.5 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            value={periodDays}
-            onChange={(e) => setPeriodDays(Number(e.target.value))}
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="period" className="text-body-sm text-content-muted">
+              Período:
+            </label>
+            <select
+              id="period"
+              className="rounded-button border border-border bg-surface px-3 py-1.5 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              value={periodDays}
+              onChange={(e) => setPeriodDays(Number(e.target.value))}
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Link to="/sessions/new">
+            <Button size="sm">Nova sessão</Button>
+          </Link>
         </div>
       </div>
 
       {/* Stats cards com ícones */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card padding="md" className="border-l-4 border-l-primary">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -157,10 +177,38 @@ export function DashboardPage() {
             </div>
           </div>
         </Card>
-        <Link to="/sessions/new" className="block focus-visible:outline-none">
-          <Card padding="md" className="h-full transition-calm hover:shadow-soft hover:border-primary/30">
-            <p className="text-body-sm font-medium text-content-muted">Nova sessão</p>
-            <p className="mt-1 text-body font-medium text-primary">Iniciar anamnese →</p>
+        <Link to="/patients" className="block focus-visible:outline-none">
+          <Card padding="md" className="h-full border-l-4 border-l-success transition-calm hover:shadow-soft">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                <IconPatients className="size-5" />
+              </div>
+              <div>
+                <p className="text-body-sm font-medium text-content-muted">Pacientes</p>
+                {loadingPatients ? (
+                  <Skeleton height={32} width={60} className="mt-1" />
+                ) : (
+                  <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{totalPatients ?? 0}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Link>
+        <Link to="/goals/new" className="block focus-visible:outline-none">
+          <Card padding="md" className="h-full border-l-4 border-l-warning transition-calm hover:shadow-soft">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                <IconGoals className="size-5" />
+              </div>
+              <div>
+                <p className="text-body-sm font-medium text-content-muted">Metas ativas</p>
+                {loadingGoals ? (
+                  <Skeleton height={32} width={60} className="mt-1" />
+                ) : (
+                  <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">{activeGoals ?? 0}</p>
+                )}
+              </div>
+            </div>
           </Card>
         </Link>
       </div>

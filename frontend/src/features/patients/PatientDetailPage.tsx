@@ -3,11 +3,30 @@ import { useParams, Link } from 'react-router-dom';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
+import {
+  listTrainingExecutions,
+  createTrainingExecution,
+  deleteTrainingExecution,
+} from '@/api/training-executions';
+import {
+  listProgressPhotos,
+  createProgressPhoto,
+  deleteProgressPhoto,
+} from '@/api/progress-photos';
 import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
-import type { PatientWithCount, PatientEvolution, Session, TrainingPlan, Goal } from '@/types';
+import type {
+  PatientWithCount,
+  PatientEvolution,
+  Session,
+  TrainingPlan,
+  TrainingExecution,
+  ProgressPhoto,
+  Goal,
+} from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 
 // ---------------------------------------------------------------------------
@@ -39,6 +58,8 @@ function genderVariant(
   if (gender === 'F') return 'success';
   return 'default';
 }
+
+const todayIso = () => new Date().toISOString().split('T')[0];
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -72,7 +93,7 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
-type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
+type TabId = 'dados' | 'sessoes' | 'treinos' | 'execucoes' | 'fotos' | 'metas';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -81,17 +102,48 @@ type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
 
+  // ── Core data ──────────────────────────────────────────────────────────
   const [patient, setPatient] = useState<PatientWithCount | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
+  const [executions, setExecutions] = useState<TrainingExecution[]>([]);
+  const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+
+  // ── Loading flags ──────────────────────────────────────────────────────
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [loadingExecutions, setLoadingExecutions] = useState(false);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [loadingGoals, setLoadingGoals] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
+
+  // ── Tab ───────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>('dados');
+
+  // ── Execution inline form ─────────────────────────────────────────────
+  const [showExecForm, setShowExecForm] = useState(false);
+  const [execForm, setExecForm] = useState({
+    trainingPlanId: '',
+    executedAt: todayIso(),
+    durationMinutes: '',
+    notes: '',
+    completed: true,
+  });
+  const [submittingExec, setSubmittingExec] = useState(false);
+
+  // ── Photo inline form ─────────────────────────────────────────────────
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const [photoForm, setPhotoForm] = useState({
+    imageUrl: '',
+    takenAt: todayIso(),
+    notes: '',
+  });
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+
+  // ── Initial loads ──────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!id) return;
@@ -121,6 +173,8 @@ export function PatientDetailPage() {
       .catch(() => setLastEvolution(null));
   }, [id]);
 
+  // ── Lazy tab loads ─────────────────────────────────────────────────────
+
   const loadPlans = useCallback(() => {
     if (!id) return;
     setLoadingPlans(true);
@@ -134,6 +188,32 @@ export function PatientDetailPage() {
     if (activeTab === 'treinos') loadPlans();
   }, [activeTab, loadPlans]);
 
+  const loadExecutions = useCallback(() => {
+    if (!id) return;
+    setLoadingExecutions(true);
+    listTrainingExecutions({ patientId: id, limit: 50 })
+      .then((res) => setExecutions(res.data))
+      .catch(() => setExecutions([]))
+      .finally(() => setLoadingExecutions(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'execucoes') loadExecutions();
+  }, [activeTab, loadExecutions]);
+
+  const loadPhotos = useCallback(() => {
+    if (!id) return;
+    setLoadingPhotos(true);
+    listProgressPhotos({ patientId: id, limit: 50 })
+      .then((res) => setPhotos(res.data))
+      .catch(() => setPhotos([]))
+      .finally(() => setLoadingPhotos(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'fotos') loadPhotos();
+  }, [activeTab, loadPhotos]);
+
   const loadGoals = useCallback(() => {
     if (!id) return;
     setLoadingGoals(true);
@@ -146,6 +226,52 @@ export function PatientDetailPage() {
   useEffect(() => {
     if (activeTab === 'metas') loadGoals();
   }, [activeTab, loadGoals]);
+
+  // ── Submit handlers ────────────────────────────────────────────────────
+
+  async function handleExecSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id) return;
+    setSubmittingExec(true);
+    try {
+      await createTrainingExecution({
+        patientId: id,
+        trainingPlanId: execForm.trainingPlanId || undefined,
+        executedAt: execForm.executedAt,
+        durationMinutes: execForm.durationMinutes ? Number(execForm.durationMinutes) : undefined,
+        notes: execForm.notes.trim() || undefined,
+        completed: execForm.completed,
+      });
+      setShowExecForm(false);
+      setExecForm({ trainingPlanId: '', executedAt: todayIso(), durationMinutes: '', notes: '', completed: true });
+      loadExecutions();
+    } catch {
+      // errors surfaced via API toast in apiFetch
+    } finally {
+      setSubmittingExec(false);
+    }
+  }
+
+  async function handlePhotoSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !photoForm.imageUrl.trim()) return;
+    setSubmittingPhoto(true);
+    try {
+      await createProgressPhoto({
+        patientId: id,
+        imageUrl: photoForm.imageUrl.trim(),
+        takenAt: photoForm.takenAt,
+        notes: photoForm.notes.trim() || undefined,
+      });
+      setShowPhotoForm(false);
+      setPhotoForm({ imageUrl: '', takenAt: todayIso(), notes: '' });
+      loadPhotos();
+    } catch {
+      // errors surfaced via API toast in apiFetch
+    } finally {
+      setSubmittingPhoto(false);
+    }
+  }
 
   // ── Guards ──────────────────────────────────────────────────────────────
 
@@ -176,8 +302,15 @@ export function PatientDetailPage() {
     { id: 'dados', label: 'Dados' },
     { id: 'sessoes', label: `Sessões${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
     { id: 'treinos', label: 'Planos de Treino' },
+    { id: 'execucoes', label: 'Execuções' },
+    { id: 'fotos', label: 'Fotos' },
     { id: 'metas', label: 'Metas' },
   ];
+
+  const selectClass =
+    'w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+  const textareaClass =
+    'min-h-[64px] w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -227,12 +360,12 @@ export function PatientDetailPage() {
 
       {/* ── Tabs ── */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex gap-1" aria-label="Abas do paciente">
+        <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Abas do paciente">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-button ${
+              className={`whitespace-nowrap px-4 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-button ${
                 activeTab === tab.id
                   ? 'border-b-2 border-primary text-primary'
                   : 'text-content-muted hover:text-content'
@@ -452,6 +585,275 @@ export function PatientDetailPage() {
         </div>
       )}
 
+      {/* ── Tab: Execuções ── */}
+      {activeTab === 'execucoes' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Execuções de treino</h3>
+            <Button size="sm" onClick={() => setShowExecForm((v) => !v)}>
+              {showExecForm ? 'Cancelar' : 'Registrar execução'}
+            </Button>
+          </div>
+
+          {showExecForm && (
+            <Card padding="md">
+              <h4 className="mb-4 text-body-sm font-semibold text-content">Nova execução</h4>
+              <form onSubmit={handleExecSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Plano de treino (opcional)
+                  </label>
+                  <select
+                    value={execForm.trainingPlanId}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, trainingPlanId: e.target.value }))}
+                    className={selectClass}
+                  >
+                    <option value="">Sem plano específico</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {plans.length === 0 && (
+                    <p className="mt-1 text-xs text-content-subtle">
+                      Carregue a aba "Planos de Treino" primeiro para ver os planos disponíveis.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Data"
+                    name="executedAt"
+                    type="date"
+                    required
+                    value={execForm.executedAt}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, executedAt: e.target.value }))}
+                  />
+                  <Input
+                    label="Duração (minutos)"
+                    name="durationMinutes"
+                    type="number"
+                    placeholder="ex: 60"
+                    value={execForm.durationMinutes}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Observações
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Como foi o treino?"
+                    value={execForm.notes}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className={textareaClass}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="exec-completed"
+                    type="checkbox"
+                    checked={execForm.completed}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, completed: e.target.checked }))}
+                    className="rounded border-border text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="exec-completed" className="text-body-sm text-content">
+                    Treino concluído
+                  </label>
+                </div>
+
+                <Button type="submit" loading={submittingExec} disabled={submittingExec}>
+                  Registrar
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {loadingExecutions ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : executions.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhuma execução registrada para este paciente.
+              </p>
+            </Card>
+          ) : (
+            <Card padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-body-sm">
+                  <thead>
+                    <tr className="border-b border-border-muted bg-surface-muted">
+                      <th className="px-4 py-3 font-medium text-content-muted">Data</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Plano</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Duração</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Notas</th>
+                      <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {executions.map((exec) => (
+                      <tr
+                        key={exec.id}
+                        className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {formatDate(exec.executedAt)}
+                        </td>
+                        <td className="px-4 py-3 text-content">
+                          {exec.planName ?? <span className="text-content-subtle">—</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {exec.durationMinutes != null ? `${exec.durationMinutes} min` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={exec.completed ? 'success' : 'warning'}>
+                            {exec.completed ? 'Concluído' : 'Parcial'}
+                          </Badge>
+                        </td>
+                        <td className="max-w-[200px] truncate px-4 py-3 text-content-muted">
+                          {exec.notes ?? '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (!window.confirm('Remover esta execução?')) return;
+                              try {
+                                await deleteTrainingExecution(exec.id);
+                                loadExecutions();
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                          >
+                            Remover
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Fotos ── */}
+      {activeTab === 'fotos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Fotos de progresso</h3>
+            <Button size="sm" onClick={() => setShowPhotoForm((v) => !v)}>
+              {showPhotoForm ? 'Cancelar' : 'Adicionar foto'}
+            </Button>
+          </div>
+
+          {showPhotoForm && (
+            <Card padding="md">
+              <h4 className="mb-4 text-body-sm font-semibold text-content">Nova foto</h4>
+              <form onSubmit={handlePhotoSubmit} className="space-y-4">
+                <Input
+                  label="URL da imagem"
+                  name="imageUrl"
+                  required
+                  placeholder="https://..."
+                  value={photoForm.imageUrl}
+                  onChange={(e) => setPhotoForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                />
+                <Input
+                  label="Data"
+                  name="takenAt"
+                  type="date"
+                  required
+                  value={photoForm.takenAt}
+                  onChange={(e) => setPhotoForm((prev) => ({ ...prev, takenAt: e.target.value }))}
+                />
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Observações
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Frente, lateral, costas…"
+                    value={photoForm.notes}
+                    onChange={(e) => setPhotoForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className={textareaClass}
+                  />
+                </div>
+                <Button type="submit" loading={submittingPhoto} disabled={submittingPhoto}>
+                  Salvar foto
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {loadingPhotos ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : photos.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhuma foto de progresso registrada para este paciente.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {photos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="overflow-hidden rounded-card border border-border bg-surface"
+                >
+                  <img
+                    src={photo.imageUrl}
+                    alt={photo.notes ?? 'Foto de progresso'}
+                    className="h-48 w-full object-cover"
+                    onError={(e) => {
+                      const el = e.target as HTMLImageElement;
+                      el.style.display = 'none';
+                    }}
+                  />
+                  <div className="p-3">
+                    <p className="text-body-sm font-medium text-content">
+                      {formatDate(photo.takenAt)}
+                    </p>
+                    {photo.notes && (
+                      <p className="mt-0.5 text-body-sm text-content-muted">{photo.notes}</p>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={async () => {
+                        if (!window.confirm('Remover esta foto?')) return;
+                        try {
+                          await deleteProgressPhoto(photo.id);
+                          loadPhotos();
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Tab: Metas ── */}
       {activeTab === 'metas' && (
         <div className="space-y-4">
@@ -540,7 +942,7 @@ export function PatientDetailPage() {
                                   });
                                   loadGoals();
                                 } catch {
-                                  // silently retry
+                                  // ignore
                                 }
                               }}
                             >
@@ -556,7 +958,7 @@ export function PatientDetailPage() {
                                 await deleteGoal(goal.id);
                                 loadGoals();
                               } catch {
-                                // silently retry
+                                // ignore
                               }
                             }}
                           >
