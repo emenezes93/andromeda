@@ -31,15 +31,7 @@ const PERIOD_OPTIONS = [
 
 export function DashboardPage() {
   const user = getStoredUser();
-  const { t } = useTranslation();
   const [periodDays, setPeriodDays] = useState<number>(30);
-
-  function getGreeting(): string {
-    const h = new Date().getHours();
-    if (h < 12) return t.dashboard.greetingMorning;
-    if (h < 18) return t.dashboard.greetingAfternoon;
-    return t.dashboard.greetingEvening;
-  }
 
   const { data: sessionsData, isLoading: loadingSessions } = useQuery({
     queryKey: ['dashboard-sessions'],
@@ -49,16 +41,6 @@ export function DashboardPage() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['dashboard-stats', periodDays],
     queryFn: () => getDashboardStats({ days: periodDays }),
-  });
-
-  const { data: patientsData, isLoading: loadingPatients } = useQuery({
-    queryKey: ['dashboard-patients'],
-    queryFn: () => listPatients({ page: 1, limit: 1 }),
-  });
-
-  const { data: goalsData, isLoading: loadingGoals } = useQuery({
-    queryKey: ['dashboard-goals-active'],
-    queryFn: () => listGoals({ limit: 1, achieved: false }),
   });
 
   const loading = loadingSessions || loadingStats;

@@ -3,26 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
-import {
-  listTrainingExecutions,
-  createTrainingExecution,
-  deleteTrainingExecution,
-} from '@/api/training-executions';
-import {
-  listProgressPhotos,
-  createProgressPhoto,
-  deleteProgressPhoto,
-} from '@/api/progress-photos';
 import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
-import type {
-  PatientWithCount,
-  PatientEvolution,
-  Session,
-  TrainingPlan,
-  TrainingExecution,
-  ProgressPhoto,
-  Goal,
-} from '@/types';
+import type { PatientWithCount, PatientEvolution, Session, TrainingPlan, Goal } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -93,7 +75,7 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
-type TabId = 'dados' | 'sessoes' | 'treinos' | 'execucoes' | 'fotos' | 'metas';
+type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -107,18 +89,13 @@ export function PatientDetailPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
-  const [executions, setExecutions] = useState<TrainingExecution[]>([]);
-  const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-
-  // ── Loading flags ──────────────────────────────────────────────────────
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingPlans, setLoadingPlans] = useState(false);
-  const [loadingExecutions, setLoadingExecutions] = useState(false);
-  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [loadingGoals, setLoadingGoals] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('dados');
 
   // ── Tab ───────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>('dados');
@@ -173,8 +150,6 @@ export function PatientDetailPage() {
       .catch(() => setLastEvolution(null));
   }, [id]);
 
-  // ── Lazy tab loads ─────────────────────────────────────────────────────
-
   const loadPlans = useCallback(() => {
     if (!id) return;
     setLoadingPlans(true);
@@ -188,32 +163,6 @@ export function PatientDetailPage() {
     if (activeTab === 'treinos') loadPlans();
   }, [activeTab, loadPlans]);
 
-  const loadExecutions = useCallback(() => {
-    if (!id) return;
-    setLoadingExecutions(true);
-    listTrainingExecutions({ patientId: id, limit: 50 })
-      .then((res) => setExecutions(res.data))
-      .catch(() => setExecutions([]))
-      .finally(() => setLoadingExecutions(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === 'execucoes') loadExecutions();
-  }, [activeTab, loadExecutions]);
-
-  const loadPhotos = useCallback(() => {
-    if (!id) return;
-    setLoadingPhotos(true);
-    listProgressPhotos({ patientId: id, limit: 50 })
-      .then((res) => setPhotos(res.data))
-      .catch(() => setPhotos([]))
-      .finally(() => setLoadingPhotos(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === 'fotos') loadPhotos();
-  }, [activeTab, loadPhotos]);
-
   const loadGoals = useCallback(() => {
     if (!id) return;
     setLoadingGoals(true);
@@ -226,52 +175,6 @@ export function PatientDetailPage() {
   useEffect(() => {
     if (activeTab === 'metas') loadGoals();
   }, [activeTab, loadGoals]);
-
-  // ── Submit handlers ────────────────────────────────────────────────────
-
-  async function handleExecSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id) return;
-    setSubmittingExec(true);
-    try {
-      await createTrainingExecution({
-        patientId: id,
-        trainingPlanId: execForm.trainingPlanId || undefined,
-        executedAt: execForm.executedAt,
-        durationMinutes: execForm.durationMinutes ? Number(execForm.durationMinutes) : undefined,
-        notes: execForm.notes.trim() || undefined,
-        completed: execForm.completed,
-      });
-      setShowExecForm(false);
-      setExecForm({ trainingPlanId: '', executedAt: todayIso(), durationMinutes: '', notes: '', completed: true });
-      loadExecutions();
-    } catch {
-      // errors surfaced via API toast in apiFetch
-    } finally {
-      setSubmittingExec(false);
-    }
-  }
-
-  async function handlePhotoSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id || !photoForm.imageUrl.trim()) return;
-    setSubmittingPhoto(true);
-    try {
-      await createProgressPhoto({
-        patientId: id,
-        imageUrl: photoForm.imageUrl.trim(),
-        takenAt: photoForm.takenAt,
-        notes: photoForm.notes.trim() || undefined,
-      });
-      setShowPhotoForm(false);
-      setPhotoForm({ imageUrl: '', takenAt: todayIso(), notes: '' });
-      loadPhotos();
-    } catch {
-      // errors surfaced via API toast in apiFetch
-    } finally {
-      setSubmittingPhoto(false);
-    }
-  }
 
   // ── Guards ──────────────────────────────────────────────────────────────
 
@@ -306,11 +209,6 @@ export function PatientDetailPage() {
     { id: 'fotos', label: 'Fotos' },
     { id: 'metas', label: 'Metas' },
   ];
-
-  const selectClass =
-    'w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
-  const textareaClass =
-    'min-h-[64px] w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -363,12 +261,12 @@ export function PatientDetailPage() {
 
       {/* ── Tabs ── */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Abas do paciente">
+        <nav className="-mb-px flex gap-1" aria-label="Abas do paciente">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap px-4 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-button ${
+              className={`px-4 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-button ${
                 activeTab === tab.id
                   ? 'border-b-2 border-primary text-primary'
                   : 'text-content-muted hover:text-content'
@@ -417,11 +315,6 @@ export function PatientDetailPage() {
             <Link to={`/patients/${id}/timeline`}>
               <Button variant="outline" size="sm">
                 Prontuário completo
-              </Button>
-            </Link>
-            <Link to={`/patients/${id}/report`}>
-              <Button variant="outline" size="sm">
-                Relatório
               </Button>
             </Link>
             <Link to={`/patients/${id}/evolution`}>
@@ -950,7 +843,7 @@ export function PatientDetailPage() {
                                   });
                                   loadGoals();
                                 } catch {
-                                  // ignore
+                                  // silently retry
                                 }
                               }}
                             >
@@ -966,7 +859,7 @@ export function PatientDetailPage() {
                                 await deleteGoal(goal.id);
                                 loadGoals();
                               } catch {
-                                // ignore
+                                // silently retry
                               }
                             }}
                           >

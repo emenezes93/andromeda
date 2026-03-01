@@ -112,6 +112,47 @@ interface PageLayoutProps {
   title?: string;
 }
 
+const navItems = [
+  { to: '/', label: 'Dashboard', icon: IconDashboard },
+  { to: '/templates', label: 'Templates', icon: IconTemplates },
+  { to: '/sessions', label: 'Sessões', icon: IconSessions },
+  { to: '/patients', label: 'Pacientes', icon: IconPatients },
+  { to: '/training-plans', label: 'Planos de Treino', icon: IconTraining },
+  { to: '/scheduled-questionnaires', label: 'Agendamentos', icon: IconSchedule },
+  { to: '/audit', label: 'Auditoria', icon: IconAudit },
+  { to: '/ai/usage', label: 'Uso de IA', icon: IconAi },
+];
+}
+
+function IconTraining() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6.5 6.5h11" />
+      <path d="M6.5 17.5h11" />
+      <path d="M3 10v4" />
+      <path d="M21 10v4" />
+      <path d="M5 8v8" />
+      <path d="M19 8v8" />
+    </svg>
+  );
+}
+
+interface PageLayoutProps {
+  children: React.ReactNode;
+  title?: string;
+}
+
 function IconMenu() {
   return (
     <svg
