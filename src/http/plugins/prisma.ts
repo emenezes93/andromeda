@@ -26,6 +26,7 @@ const SOFT_DELETE_MODELS = [
   'ScheduledQuestionnaire',
   'PatientGoal',
   'TrainingPlan',
+  'TrainingExecution',
   'ProgressPhoto',
 ];
 

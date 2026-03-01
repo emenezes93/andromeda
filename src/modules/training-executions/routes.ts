@@ -229,7 +229,10 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
       });
       if (!existing) throw new NotFoundError('Execução de treino não encontrada');
 
-      await fastify.prisma.trainingExecution.delete({ where: { id } });
+      await fastify.prisma.trainingExecution.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
       await auditLog(fastify.prisma, tenantId, 'delete', 'training_execution', id, user.userId);
       return reply.status(204).send();
     }
