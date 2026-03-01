@@ -117,7 +117,7 @@ export function NotificationsWidget() {
         {staleSessions.length > 0 && (
           <li>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-content-muted">
-              Sessões incompletas ({staleSessions.length})
+              Avaliações incompletas ({staleSessions.length})
             </p>
             <ul className="space-y-1">
               {staleSessions.slice(0, 3).map((n) => (

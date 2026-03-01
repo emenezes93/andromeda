@@ -174,7 +174,7 @@ export function TrainingPlansListPage() {
           <p className="text-content-muted">
             {debouncedSearch
               ? `Nenhum plano encontrado para "${debouncedSearch}".`
-              : 'Nenhum plano de treino cadastrado ainda.'}
+              : 'Ainda não há planos de treino. Crie um para começar a acompanhar a evolução.'}
           </p>
           {!debouncedSearch && (
             <Link to="/training-plans/new">

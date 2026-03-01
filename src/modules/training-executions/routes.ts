@@ -30,11 +30,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
         response: {
           201: {
             type: 'object',
-            properties: {
-              id: { type: 'string' },
-              patientId: { type: 'string' },
-              executedAt: { type: 'string' },
-            },
+            additionalProperties: true,
           },
         },
       },
@@ -83,7 +79,11 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
       return reply.status(201).send({
         id: execution.id,
         patientId: execution.patientId,
+        trainingPlanId: execution.trainingPlanId,
         executedAt: execution.executedAt.toISOString(),
+        durationMinutes: execution.durationMinutes,
+        notes: execution.notes,
+        completed: execution.completed,
       });
     }
   );

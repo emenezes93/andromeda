@@ -64,7 +64,7 @@ export function PlanUsageCard() {
             max={usage.patients.max}
           />
           <QuotaUsageBar
-            label="Sessões este mês"
+            label="Avaliações este mês"
             current={usage.sessionsThisMonth.current}
             max={usage.sessionsThisMonth.max}
           />

@@ -70,12 +70,12 @@ export function SessionsByDayChart({ data, loading }: SessionsByDayChartProps) {
               fontSize: 12,
             }}
             labelStyle={{ color: 'var(--color-content-muted)' }}
-            formatter={(value: number) => [value, 'Sessões']}
+            formatter={(value: number) => [value, 'Avaliações']}
             labelFormatter={(label) => `Data: ${label}`}
           />
           <Bar
             dataKey="count"
-            name="Sessões"
+            name="Avaliações"
             radius={[4, 4, 0, 0]}
             maxBarSize={48}
             isAnimationActive

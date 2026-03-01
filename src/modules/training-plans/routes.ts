@@ -32,12 +32,7 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
         response: {
           201: {
             type: 'object',
-            properties: {
-              id: { type: 'string' },
-              patientId: { type: 'string' },
-              name: { type: 'string' },
-              startDate: { type: 'string' },
-            },
+            additionalProperties: true,
           },
         },
       },
@@ -55,7 +50,9 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
       if (!patient) throw new NotFoundError('Paciente não encontrado');
 
       const startDate = new Date(body.startDate);
+      if (isNaN(startDate.getTime())) throw new BadRequestError('Data de início inválida');
       const endDate = body.endDate ? new Date(body.endDate) : null;
+      if (endDate && isNaN(endDate.getTime())) throw new BadRequestError('Data de término inválida');
       if (endDate && endDate <= startDate) {
         throw new BadRequestError('Data de término deve ser posterior à data de início');
       }
@@ -71,6 +68,10 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
           endDate,
           active: body.active ?? true,
         },
+        include: {
+          patient: { select: { id: true, fullName: true } },
+          _count: { select: { executions: true } },
+        },
       });
 
       await auditLog(fastify.prisma, tenantId, 'create', 'training_plan', plan.id, user.userId, {
@@ -81,8 +82,14 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
       return reply.status(201).send({
         id: plan.id,
         patientId: plan.patientId,
+        patientName: plan.patient.fullName,
         name: plan.name,
+        description: plan.description,
+        planJson: plan.planJson,
         startDate: plan.startDate.toISOString(),
+        endDate: plan.endDate?.toISOString() ?? null,
+        active: plan.active,
+        executionsCount: plan._count.executions,
       });
     }
   );
@@ -125,7 +132,7 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
           where,
           skip,
           take: limit,
-          orderBy: { startDate: 'desc' },
+          orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
           include: {
             patient: { select: { id: true, fullName: true } },
             _count: { select: { executions: true } },
@@ -261,6 +268,7 @@ export async function trainingPlansRoutes(fastify: FastifyInstance): Promise<voi
         name: plan.name,
         active: plan.active,
         endDate: plan.endDate?.toISOString() ?? null,
+        planJson: plan.planJson,
       });
     }
   );

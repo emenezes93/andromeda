@@ -64,10 +64,10 @@ const STEPS: Step[] = [
   },
   {
     id: 'session',
-    title: 'Inicie uma sessão de anamnese',
+    title: 'Inicie uma avaliação de saúde',
     description:
       'Vincule um template a um paciente e inicie o questionário adaptativo com insights de IA.',
-    actionLabel: 'Iniciar sessão',
+    actionLabel: 'Iniciar avaliação',
     actionPath: '/sessions/new',
     icon: (
       <svg className="size-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -145,7 +145,7 @@ function ChecklistStep({ onFinish }: { onFinish: () => void }) {
       loading: loadingPt,
     },
     {
-      label: 'Realizar uma sessão completa',
+      label: 'Realizar uma avaliação completa',
       done: (sessData?.meta.total ?? 0) >= 1,
       href: '/sessions/new',
       loading: loadingSess,

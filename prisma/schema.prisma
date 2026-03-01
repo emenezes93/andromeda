@@ -46,6 +46,8 @@ model Tenant {
   trainingPlans      TrainingPlan[]
   trainingExecutions TrainingExecution[]
   progressPhotos     ProgressPhoto[]
+  dietPlans          DietPlan[]
+  dietEntries        DietEntry[]
 
   @@map("tenants")
 }
@@ -174,6 +176,8 @@ model Patient {
   trainingPlans     TrainingPlan[]
   trainingExecutions TrainingExecution[]
   progressPhotos    ProgressPhoto[]
+  dietPlans         DietPlan[]
+  dietEntries       DietEntry[]
 
   @@unique([tenantId, cpf])
   // Partial unique index: enforced at DB level only when email IS NOT NULL (see migration).
@@ -471,4 +475,69 @@ model ProgressPhoto {
   @@index([patientId])
   @@index([patientId, takenAt(sort: Desc)])
   @@map("progress_photos")
+}
+
+// Plano de dieta prescrito pelo profissional
+model DietPlan {
+  id           String    @id @default(cuid())
+  tenantId     String    @map("tenant_id")
+  patientId    String    @map("patient_id")
+  name         String
+  description  String?   @db.Text
+  // Metas diárias de macronutrientes
+  caloriesKcal Int?      @map("calories_kcal")
+  proteinG     Float?    @map("protein_g")
+  carbsG       Float?    @map("carbs_g")
+  fatG         Float?    @map("fat_g")
+  waterMl      Int?      @map("water_ml")
+  // Restrições alimentares
+  restrictions String[]
+  // Detalhamento opcional das refeições (café, almoço, jantar, snack)
+  mealPlanJson Json?     @map("meal_plan_json")
+  // Link com sessão de anamnese que originou o plano
+  basedOnSessionId String? @map("based_on_session_id")
+  startDate    DateTime  @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  tenant  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  entries DietEntry[]
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([patientId, active])
+  @@map("diet_plans")
+}
+
+// Registro diário de refeições (diário alimentar)
+model DietEntry {
+  id            String    @id @default(cuid())
+  tenantId      String    @map("tenant_id")
+  patientId     String    @map("patient_id")
+  dietPlanId    String?   @map("diet_plan_id")
+  entryDate     DateTime  @map("entry_date") @db.Date
+  mealType      String    @map("meal_type") // breakfast | lunch | dinner | snack | other
+  foodsJson     Json      @map("foods_json") // [{ name, quantity, unit, caloriesKcal, proteinG, carbsG, fatG }]
+  totalCalories Int?      @map("total_calories")
+  totalProteinG Float?    @map("total_protein_g")
+  totalCarbsG   Float?    @map("total_carbs_g")
+  totalFatG     Float?    @map("total_fat_g")
+  waterMl       Int?      @map("water_ml")
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  tenant  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  plan    DietPlan? @relation(fields: [dietPlanId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([patientId, entryDate(sort: Desc)])
+  @@index([dietPlanId])
+  @@map("diet_entries")
 }

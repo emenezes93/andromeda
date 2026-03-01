@@ -15,7 +15,7 @@ export const updateTrainingPlanSchema = createTrainingPlanSchema.partial();
 
 export const listTrainingPlansQuerySchema = paginationQuerySchema.extend({
   patientId: z.string().optional(),
-  active: z.coerce.boolean().optional(),
+  active: z.preprocess((v) => (v === 'false' ? false : v === 'true' ? true : v), z.boolean().optional()),
   name: z.string().optional(),
 });
 

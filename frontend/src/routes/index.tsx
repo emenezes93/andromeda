@@ -88,6 +88,19 @@ const ScheduledQuestionnaireFormPage = lazy(() =>
     default: m.ScheduledQuestionnaireFormPage,
   }))
 );
+// Diet Plans
+const DietPlansListPage = lazy(() =>
+  import('@/features/diet/DietPlansListPage').then((m) => ({ default: m.DietPlansListPage }))
+);
+const DietPlanFormPage = lazy(() =>
+  import('@/features/diet/DietPlanFormPage').then((m) => ({ default: m.DietPlanFormPage }))
+);
+const DietPlanDetailPage = lazy(() =>
+  import('@/features/diet/DietPlanDetailPage').then((m) => ({ default: m.DietPlanDetailPage }))
+);
+const DietDashboardPage = lazy(() =>
+  import('@/features/diet/DietDashboardPage').then((m) => ({ default: m.DietDashboardPage }))
+);
 // Training Plans
 const TrainingPlansListPage = lazy(() =>
   import('@/features/training-plans/TrainingPlansListPage').then((m) => ({
@@ -183,8 +196,8 @@ const router = createBrowserRouter([
   { path: '/templates/:id/report', element: withLayout('Relatório', <TemplateReportPage />) },
   { path: '/templates/:id', element: withLayout(undefined, <TemplateDetailPage />) },
   // Sessions
-  { path: '/sessions', element: withLayout('Sessões', <SessionsListPage />) },
-  { path: '/sessions/new', element: withLayout('Nova sessão', <NewSessionPage />) },
+  { path: '/sessions', element: withLayout('Avaliações', <SessionsListPage />) },
+  { path: '/sessions/new', element: withLayout('Nova avaliação', <NewSessionPage />) },
   { path: '/sessions/:id', element: withLayout(undefined, <SessionDetailPage />) },
   { path: '/sessions/:id/flow', element: withLayout('Anamnese', <AnamnesisFlowPage />) },
   { path: '/sessions/:id/insights', element: withLayout('Insights', <SessionInsightsPage />) },
@@ -193,7 +206,7 @@ const router = createBrowserRouter([
   { path: '/patients/new', element: withLayout('Novo paciente', <PatientFormPage />) },
   { path: '/patients/:id/edit', element: withLayout('Editar paciente', <PatientFormPage />) },
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
-  { path: '/patients/:id/timeline', element: withLayout('Prontuário', <PatientTimelinePage />) },
+  { path: '/patients/:id/timeline', element: withLayout('Histórico do Paciente', <PatientTimelinePage />) },
   { path: '/patients/:id/report', element: withLayout('Relatório', <PatientReportPage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
   // Goals
@@ -212,6 +225,12 @@ const router = createBrowserRouter([
     path: '/scheduled-questionnaires/:id/edit',
     element: withLayout('Editar agendamento', <ScheduledQuestionnaireFormPage />),
   },
+  // Diet Plans
+  { path: '/diet-plans', element: withLayout('Planos de Dieta', <DietPlansListPage />) },
+  { path: '/diet-plans/new', element: withLayout('Novo Plano de Dieta', <DietPlanFormPage />) },
+  { path: '/diet-plans/:id/edit', element: withLayout('Editar Plano', <DietPlanFormPage />) },
+  { path: '/diet-plans/:id', element: withLayout(undefined, <DietPlanDetailPage />) },
+  { path: '/diet-dashboard/:patientId', element: withLayout('Dashboard Dieta', <DietDashboardPage />) },
   // Training Plans
   { path: '/training-plans', element: withLayout('Planos de Treino', <TrainingPlansListPage />) },
   {
@@ -230,12 +249,12 @@ const router = createBrowserRouter([
   { path: '/users', element: withLayout('Usuários', <UsersListPage />) },
   { path: '/users/invite', element: withLayout('Convidar usuário', <InviteUserPage />) },
   // Tenants (owner only – guard inside page)
-  { path: '/tenants', element: withLayout('Tenants', <TenantsListPage />) },
-  { path: '/tenants/new', element: withLayout('Novo tenant', <TenantFormPage />) },
+  { path: '/tenants', element: withLayout('Organizações', <TenantsListPage />) },
+  { path: '/tenants/new', element: withLayout('Nova organização', <TenantFormPage />) },
   // Assinatura (pagamento recorrente)
   { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
   // Audit
-  { path: '/audit', element: withLayout('Auditoria', <AuditListPage />) },
+  { path: '/audit', element: withLayout('Histórico de Atividades', <AuditListPage />) },
   // AI Usage
   { path: '/ai/usage', element: withLayout('Uso de IA', <AiUsagePage />) },
   // Termos e política de privacidade

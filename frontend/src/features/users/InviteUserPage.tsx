@@ -156,7 +156,7 @@ export function InviteUserPage() {
           Convidar usuário
         </h1>
         <p className="mt-1 text-body-sm text-content-muted">
-          Adicione um novo membro ao tenant com as credenciais e o papel
+          Adicione um novo membro à organização com as credenciais e o papel
           desejados.
         </p>
       </div>

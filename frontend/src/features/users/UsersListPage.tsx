@@ -234,7 +234,7 @@ export function UsersListPage() {
         <div>
           <h1 className="text-heading font-semibold text-content">Usuários</h1>
           <p className="mt-0.5 text-body-sm text-content-muted">
-            {members.length} {members.length === 1 ? 'membro' : 'membros'} neste tenant
+            {members.length} {members.length === 1 ? 'membro' : 'membros'} nesta organização
           </p>
         </div>
         {canManage && (
@@ -370,7 +370,7 @@ export function UsersListPage() {
         title="Remover usuário"
         message={
           confirmRemove
-            ? `Tem certeza que deseja remover "${confirmRemove.name ?? confirmRemove.email}" do tenant? Essa ação não pode ser desfeita.`
+            ? `Tem certeza que deseja remover "${confirmRemove.name ?? confirmRemove.email}" da organização? Essa ação não pode ser desfeita.`
             : ''
         }
         confirmLabel="Remover"

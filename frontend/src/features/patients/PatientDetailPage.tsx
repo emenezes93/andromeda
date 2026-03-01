@@ -203,8 +203,10 @@ export function PatientDetailPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'dados', label: 'Dados' },
-    { id: 'sessoes', label: `Sessões${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
+    { id: 'sessoes', label: `Avaliações${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
     { id: 'treinos', label: 'Planos de Treino' },
+    { id: 'execucoes', label: 'Treinos Realizados' },
+    { id: 'fotos', label: 'Fotos' },
     { id: 'metas', label: 'Metas' },
   ];
 
@@ -225,7 +227,10 @@ export function PatientDetailPage() {
             </Button>
           </Link>
           <Link to={`/sessions/new?patientId=${id}`}>
-            <Button size="sm">Nova sessão</Button>
+            <Button size="sm">Nova avaliação</Button>
+          </Link>
+          <Link to={`/diet-dashboard/${id}`}>
+            <Button variant="secondary" size="sm">🥗 Dieta</Button>
           </Link>
           <Link to="/patients">
             <Button variant="outline" size="sm">
@@ -284,11 +289,11 @@ export function PatientDetailPage() {
               <InfoRow label="Telefone" value={patient.phone} />
               <InfoRow label="Profissão" value={patient.profession} />
               <div className="flex flex-col gap-0.5">
-                <dt className="text-body-sm font-medium text-content-muted">Sessões / Evoluções</dt>
+                <dt className="text-body-sm font-medium text-content-muted">Avaliações / Evoluções</dt>
                 <dd className="flex items-center gap-3 text-body text-content">
                   <span>
                     <span className="font-semibold text-primary">{patient._count.sessions}</span>{' '}
-                    <span className="text-content-muted">sessões</span>
+                    <span className="text-content-muted">avaliações</span>
                   </span>
                   <span className="text-border-soft">·</span>
                   <span>
@@ -321,9 +326,9 @@ export function PatientDetailPage() {
         </div>
       )}
 
-      {/* ── Tab: Sessões ── */}
+      {/* ── Tab: Avaliações ── */}
       {activeTab === 'sessoes' && (
-        <Card title="Sessões" padding="none">
+        <Card title="Avaliações" padding="none">
           {loadingSessions ? (
             <div className="flex justify-center py-10">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -331,10 +336,10 @@ export function PatientDetailPage() {
           ) : sessions.length === 0 ? (
             <div className="px-5 py-8">
               <p className="text-body text-content-muted">
-                Nenhuma sessão registrada para este paciente.
+                Nenhuma avaliação ainda. Que tal iniciar a primeira?
               </p>
               <Link to={`/sessions/new?patientId=${id}`} className="mt-3 inline-block">
-                <Button size="sm">Criar sessão</Button>
+                <Button size="sm">Criar avaliação</Button>
               </Link>
             </div>
           ) : (
@@ -388,7 +393,7 @@ export function PatientDetailPage() {
                   to={`/sessions?patientId=${id}`}
                   className="text-body-sm font-medium text-primary hover:underline"
                 >
-                  Ver todas as sessões deste paciente →
+                  Ver todas as avaliações deste paciente →
                 </Link>
               </div>
             </>
@@ -413,7 +418,7 @@ export function PatientDetailPage() {
           ) : plans.length === 0 ? (
             <Card padding="md">
               <p className="text-body text-content-muted">
-                Nenhum plano de treino cadastrado para este paciente.
+                Ainda não há planos de treino. Crie um para começar a acompanhar a evolução.
               </p>
               <Link to={`/training-plans/new?patientId=${id}`} className="mt-3 inline-block">
                 <Button size="sm">Criar plano</Button>
@@ -428,7 +433,7 @@ export function PatientDetailPage() {
                       <th className="px-4 py-3 font-medium text-content-muted">Nome</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Início</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Término</th>
-                      <th className="px-4 py-3 font-medium text-content-muted">Execuções</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Treinos realizados</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Status</th>
                       <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
                     </tr>
@@ -477,6 +482,275 @@ export function PatientDetailPage() {
                 </Link>
               </div>
             </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Treinos Realizados ── */}
+      {activeTab === 'execucoes' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Treinos realizados</h3>
+            <Button size="sm" onClick={() => setShowExecForm((v) => !v)}>
+              {showExecForm ? 'Cancelar' : 'Registrar treino'}
+            </Button>
+          </div>
+
+          {showExecForm && (
+            <Card padding="md">
+              <h4 className="mb-4 text-body-sm font-semibold text-content">Novo treino realizado</h4>
+              <form onSubmit={handleExecSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Plano de treino (opcional)
+                  </label>
+                  <select
+                    value={execForm.trainingPlanId}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, trainingPlanId: e.target.value }))}
+                    className={selectClass}
+                  >
+                    <option value="">Sem plano específico</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {plans.length === 0 && (
+                    <p className="mt-1 text-xs text-content-subtle">
+                      Carregue a aba "Planos de Treino" primeiro para ver os planos disponíveis.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Data"
+                    name="executedAt"
+                    type="date"
+                    required
+                    value={execForm.executedAt}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, executedAt: e.target.value }))}
+                  />
+                  <Input
+                    label="Duração (minutos)"
+                    name="durationMinutes"
+                    type="number"
+                    placeholder="ex: 60"
+                    value={execForm.durationMinutes}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Observações
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Como foi o treino?"
+                    value={execForm.notes}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className={textareaClass}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="exec-completed"
+                    type="checkbox"
+                    checked={execForm.completed}
+                    onChange={(e) => setExecForm((prev) => ({ ...prev, completed: e.target.checked }))}
+                    className="rounded border-border text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="exec-completed" className="text-body-sm text-content">
+                    Treino concluído
+                  </label>
+                </div>
+
+                <Button type="submit" loading={submittingExec} disabled={submittingExec}>
+                  Registrar
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {loadingExecutions ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : executions.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhum treino registrado ainda. Registre um treino realizado para acompanhar a evolução.
+              </p>
+            </Card>
+          ) : (
+            <Card padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-body-sm">
+                  <thead>
+                    <tr className="border-b border-border-muted bg-surface-muted">
+                      <th className="px-4 py-3 font-medium text-content-muted">Data</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Plano</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Duração</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Status</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Notas</th>
+                      <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {executions.map((exec) => (
+                      <tr
+                        key={exec.id}
+                        className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {formatDate(exec.executedAt)}
+                        </td>
+                        <td className="px-4 py-3 text-content">
+                          {exec.planName ?? <span className="text-content-subtle">—</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+                          {exec.durationMinutes != null ? `${exec.durationMinutes} min` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={exec.completed ? 'success' : 'warning'}>
+                            {exec.completed ? 'Concluído' : 'Parcial'}
+                          </Badge>
+                        </td>
+                        <td className="max-w-[200px] truncate px-4 py-3 text-content-muted">
+                          {exec.notes ?? '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (!window.confirm('Remover esta execução?')) return;
+                              try {
+                                await deleteTrainingExecution(exec.id);
+                                loadExecutions();
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                          >
+                            Remover
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Fotos ── */}
+      {activeTab === 'fotos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-body font-semibold text-content">Fotos de progresso</h3>
+            <Button size="sm" onClick={() => setShowPhotoForm((v) => !v)}>
+              {showPhotoForm ? 'Cancelar' : 'Adicionar foto'}
+            </Button>
+          </div>
+
+          {showPhotoForm && (
+            <Card padding="md">
+              <h4 className="mb-4 text-body-sm font-semibold text-content">Nova foto</h4>
+              <form onSubmit={handlePhotoSubmit} className="space-y-4">
+                <Input
+                  label="URL da imagem"
+                  name="imageUrl"
+                  required
+                  placeholder="https://..."
+                  value={photoForm.imageUrl}
+                  onChange={(e) => setPhotoForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                />
+                <Input
+                  label="Data"
+                  name="takenAt"
+                  type="date"
+                  required
+                  value={photoForm.takenAt}
+                  onChange={(e) => setPhotoForm((prev) => ({ ...prev, takenAt: e.target.value }))}
+                />
+                <div>
+                  <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
+                    Observações
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Frente, lateral, costas…"
+                    value={photoForm.notes}
+                    onChange={(e) => setPhotoForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className={textareaClass}
+                  />
+                </div>
+                <Button type="submit" loading={submittingPhoto} disabled={submittingPhoto}>
+                  Salvar foto
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {loadingPhotos ? (
+            <div className="flex justify-center py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : photos.length === 0 ? (
+            <Card padding="md">
+              <p className="text-body text-content-muted">
+                Nenhuma foto de progresso registrada para este paciente.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {photos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="overflow-hidden rounded-card border border-border bg-surface"
+                >
+                  <img
+                    src={photo.imageUrl}
+                    alt={photo.notes ?? 'Foto de progresso'}
+                    className="h-48 w-full object-cover"
+                    onError={(e) => {
+                      const el = e.target as HTMLImageElement;
+                      el.style.display = 'none';
+                    }}
+                  />
+                  <div className="p-3">
+                    <p className="text-body-sm font-medium text-content">
+                      {formatDate(photo.takenAt)}
+                    </p>
+                    {photo.notes && (
+                      <p className="mt-0.5 text-body-sm text-content-muted">{photo.notes}</p>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={async () => {
+                        if (!window.confirm('Remover esta foto?')) return;
+                        try {
+                          await deleteProgressPhoto(photo.id);
+                          loadPhotos();
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

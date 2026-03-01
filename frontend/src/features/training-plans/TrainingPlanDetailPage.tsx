@@ -25,6 +25,91 @@ import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
+// PlanStructureView — renders structured planJson (new format) or raw JSON
+// ---------------------------------------------------------------------------
+
+interface ExerciseRow {
+  id?: string;
+  name?: string;
+  sets?: number;
+  reps?: string;
+  rest?: string;
+  muscleGroup?: string;
+  tip?: string;
+}
+
+interface PlanDay {
+  id?: string;
+  label?: string;
+  focus?: string;
+  exercises?: ExerciseRow[];
+}
+
+function PlanStructureView({ planJson }: { planJson: Record<string, unknown> }) {
+  if (!Array.isArray(planJson.days) || planJson.days.length === 0) {
+    return (
+      <pre className="overflow-x-auto rounded-input bg-surface-muted p-4 text-body-sm text-content">
+        {JSON.stringify(planJson, null, 2)}
+      </pre>
+    );
+  }
+
+  const days = planJson.days as PlanDay[];
+  const levelEmoji: Record<string, string> = {
+    beginner: '🌱',
+    intermediate: '⚡',
+    advanced: '🔥',
+    custom: '✏️',
+  };
+  const level = String(planJson.level ?? 'custom');
+
+  return (
+    <div className="space-y-4">
+      {typeof planJson.level === 'string' && (
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{levelEmoji[level] ?? '🏋️'}</span>
+          <span className="text-body-sm font-medium text-content-muted capitalize">{level}</span>
+        </div>
+      )}
+      {days.map((day, di) => (
+        <div key={day.id ?? di} className="rounded-card border border-border">
+          <div className="flex items-center gap-2 border-b border-border bg-surface-muted px-4 py-2.5">
+            <span className="font-semibold text-content">{day.label ?? `Dia ${di + 1}`}</span>
+            {day.focus && (
+              <span className="text-body-sm text-content-muted">· {day.focus}</span>
+            )}
+            {day.exercises && (
+              <span className="ml-auto text-xs text-content-subtle">
+                {day.exercises.length} exercício{day.exercises.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-border px-4">
+            {(day.exercises ?? []).map((ex, ei) => (
+              <div key={ex.id ?? ei} className="flex flex-wrap items-center gap-2 py-2.5">
+                <span className="font-medium text-content">{ex.name ?? '—'}</span>
+                {ex.muscleGroup && (
+                  <span className="rounded-button bg-surface-muted px-1.5 py-0.5 text-xs text-content-muted">
+                    {ex.muscleGroup}
+                  </span>
+                )}
+                <span className="ml-auto text-sm text-content-muted">
+                  {ex.sets}×{ex.reps}
+                  {ex.rest && <span className="ml-1 text-content-subtle">· {ex.rest}</span>}
+                </span>
+                {ex.tip && (
+                  <p className="w-full text-xs text-content-subtle">💡 {ex.tip}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -341,7 +426,7 @@ export function TrainingPlanDetailPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'info', label: 'Informações' },
-    { id: 'executions', label: 'Execuções' },
+    { id: 'executions', label: 'Treinos Realizados' },
     { id: 'photos', label: 'Fotos' },
   ];
 
@@ -429,18 +514,16 @@ export function TrainingPlanDetailPage() {
             </Card>
           )}
           <Card title="Estrutura do plano" padding="md">
-            <pre className="overflow-x-auto rounded-input bg-surface-muted p-4 text-body-sm text-content">
-              {JSON.stringify(plan.planJson, null, 2)}
-            </pre>
+            <PlanStructureView planJson={plan.planJson} />
           </Card>
         </div>
       )}
 
-      {/* Tab: Execuções */}
+      {/* Tab: Treinos Realizados */}
       {activeTab === 'executions' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-body font-semibold text-content">Execuções registradas</h3>
+            <h3 className="text-body font-semibold text-content">Treinos realizados</h3>
             <Button
               variant={showExecForm ? 'secondary' : 'primary'}
               size="sm"
@@ -466,10 +549,10 @@ export function TrainingPlanDetailPage() {
           <Card padding="none">
             {executions.length === 0 ? (
               <div className="px-5 py-8 text-center">
-                <p className="text-body text-content-muted">Nenhuma execução registrada.</p>
+                <p className="text-body text-content-muted">Nenhum treino realizado ainda.</p>
                 {!showExecForm && (
                   <Button className="mt-3" size="sm" onClick={() => setShowExecForm(true)}>
-                    Adicionar execução
+                    Registrar treino
                   </Button>
                 )}
               </div>

@@ -85,11 +85,11 @@ export function SessionsByTemplateChart({ data, loading }: SessionsByTemplateCha
               value,
               props.payload?.name ?? '',
             ]}
-            labelFormatter={() => 'Sessões'}
+            labelFormatter={() => 'Avaliações'}
           />
           <Bar
             dataKey="count"
-            name="Sessões"
+            name="Avaliações"
             radius={[0, 4, 4, 0]}
             maxBarSize={24}
             isAnimationActive

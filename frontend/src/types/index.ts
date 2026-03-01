@@ -401,3 +401,134 @@ export interface CreateScheduledQuestionnaireBody {
   startDate: string;
   endDate?: string;
 }
+
+// Diet Plans
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other';
+
+export interface DietFood {
+  name: string;
+  quantity: number;
+  unit: string;
+  caloriesKcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+export interface DietPlan {
+  id: string;
+  tenantId: string;
+  patientId: string;
+  patientName: string;
+  name: string;
+  description: string | null;
+  caloriesKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  waterMl: number | null;
+  restrictions: string[];
+  mealPlanJson: Record<string, unknown> | null;
+  basedOnSessionId: string | null;
+  startDate: string;
+  endDate: string | null;
+  active: boolean;
+  entriesCount: number;
+}
+
+export interface DietPlanListResponse {
+  data: DietPlan[];
+  meta: PaginationMeta;
+}
+
+export interface CreateDietPlanBody {
+  patientId: string;
+  name: string;
+  description?: string;
+  caloriesKcal?: number;
+  proteinG?: number;
+  carbsG?: number;
+  fatG?: number;
+  waterMl?: number;
+  restrictions?: string[];
+  mealPlanJson?: Record<string, unknown>;
+  basedOnSessionId?: string;
+  startDate: string;
+  endDate?: string;
+  active?: boolean;
+}
+
+export interface DietEntry {
+  id: string;
+  patientId: string;
+  dietPlanId: string | null;
+  planName: string | null;
+  entryDate: string;
+  mealType: MealType;
+  foodsJson: DietFood[];
+  totalCalories: number | null;
+  totalProteinG: number | null;
+  totalCarbsG: number | null;
+  totalFatG: number | null;
+  waterMl: number | null;
+  notes: string | null;
+}
+
+export interface DietEntryListResponse {
+  data: DietEntry[];
+  meta: PaginationMeta;
+}
+
+export interface CreateDietEntryBody {
+  patientId: string;
+  dietPlanId?: string;
+  entryDate: string;
+  mealType: MealType;
+  foodsJson: DietFood[];
+  totalCalories?: number;
+  totalProteinG?: number;
+  totalCarbsG?: number;
+  totalFatG?: number;
+  waterMl?: number;
+  notes?: string;
+}
+
+export interface DietBodyMetric {
+  date: string;
+  weightKg: number | null;
+  bodyFatPercent: number | null;
+  leanMassKg: number | null;
+}
+
+export interface DietActivePlan {
+  id: string;
+  name: string;
+  caloriesKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  waterMl: number | null;
+}
+
+export interface DietTodaySummary {
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  waterMl: number;
+}
+
+export interface DietStats {
+  streak: number;
+  xpTotal: number;
+  level: string;
+  levelLabel: string;
+  nextLevelXp: number;
+  xpProgress: number;
+  badges: string[];
+  macroAdherence: number;
+  activePlan: DietActivePlan | null;
+  todaySummary: DietTodaySummary;
+  bodyMetrics: DietBodyMetric[];
+  totalEntries: number;
+}

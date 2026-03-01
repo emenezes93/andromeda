@@ -1,7 +1,9 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getPatient, listEvolutions, listSessions } from '@/api/patients';
+import { getPatient, listEvolutions } from '@/api/patients';
+import { listSessions } from '@/api/sessions';
 import { listGoals } from '@/api/goals';
+import type { Session } from '@/types';
 import { listTrainingExecutions } from '@/api/training-executions';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -104,8 +106,8 @@ export function PatientReportPage() {
   const overdueGoals = activeGoals.filter((g) => g.targetDate && new Date(g.targetDate) < now);
 
   const sessions = sessionsData?.data ?? [];
-  const completedSessions = sessions.filter((s) => s.status === 'completed');
-  const inProgressSessions = sessions.filter((s) => s.status === 'in_progress');
+  const completedSessions = sessions.filter((s: Session) => s.status === 'completed');
+  const inProgressSessions = sessions.filter((s: Session) => s.status === 'in_progress');
 
   const evolutions = evolutionsData?.data ?? [];
   const lastEvolution = evolutions[0] ?? null;
@@ -210,7 +212,7 @@ export function PatientReportPage() {
         {/* Metric summary */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Sessões realizadas"
+            label="Avaliações realizadas"
             value={completedSessions.length}
             sub={`${inProgressSessions.length} em andamento`}
           />
@@ -310,10 +312,10 @@ export function PatientReportPage() {
         </Card>
 
         {/* Training executions (last 30 days) */}
-        <Card title="Execuções de treino — últimos 30 dias" padding="md">
+        <Card title="Treinos realizados — últimos 30 dias" padding="md">
           {executionsLast30.length === 0 ? (
             <p className="text-body text-content-muted">
-              Nenhuma execução de treino nos últimos 30 dias.
+              Nenhum treino realizado nos últimos 30 dias.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -363,14 +365,14 @@ export function PatientReportPage() {
                   {formatDateTime(lastEvolution.recordedAt)}
                 </span>
               </p>
-              {lastEvolution.weight != null && (
+              {lastEvolution.weightKg != null && (
                 <p className="text-body text-content">
-                  <span className="font-medium">Peso:</span> {lastEvolution.weight} kg
+                  <span className="font-medium">Peso:</span> {lastEvolution.weightKg} kg
                 </p>
               )}
-              {lastEvolution.height != null && (
+              {lastEvolution.heightCm != null && (
                 <p className="text-body text-content">
-                  <span className="font-medium">Altura:</span> {lastEvolution.height} cm
+                  <span className="font-medium">Altura:</span> {lastEvolution.heightCm} cm
                 </p>
               )}
               {lastEvolution.bmi != null && (
@@ -388,9 +390,9 @@ export function PatientReportPage() {
         </Card>
 
         {/* Recent sessions */}
-        <Card title="Sessões recentes" padding="none">
-          {sessions.length === 0 ? (
-            <p className="px-5 py-6 text-body text-content-muted">Nenhuma sessão registrada.</p>
+<Card title="Avaliações recentes" padding="none">
+            {sessions.length === 0 ? (
+            <p className="px-5 py-6 text-body text-content-muted">Nenhuma avaliação registrada.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-body-sm">
@@ -402,7 +404,7 @@ export function PatientReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.slice(0, 10).map((s) => (
+                  {sessions.slice(0, 10).map((s: Session) => (
                     <tr
                       key={s.id}
                       className="border-b border-border-muted last:border-0"
