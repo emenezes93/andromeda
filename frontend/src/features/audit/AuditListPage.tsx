@@ -140,7 +140,7 @@ export function AuditListPage() {
       {logs.length === 0 ? (
         <Card>
           <p className="text-content-muted">
-            {hasFilters ? 'Nenhum registro para os filtros selecionados.' : 'Nenhum registro de auditoria.'}
+            {hasFilters ? 'Nenhum registro para os filtros selecionados.' : 'Nenhum registro no histórico de atividades.'}
           </p>
         </Card>
       ) : (

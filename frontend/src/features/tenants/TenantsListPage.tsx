@@ -33,7 +33,7 @@ export function TenantsListPage() {
         setTenants(res.data);
         setMeta(res.meta);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar tenants.'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar organizações.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -110,9 +110,9 @@ export function TenantsListPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-heading font-semibold text-content">Tenants</h1>
+          <h1 className="text-heading font-semibold text-content">Organizações</h1>
           <Link to="/tenants/new">
-            <Button>Novo tenant</Button>
+            <Button>Nova organização</Button>
           </Link>
         </div>
         <Card className="border-error bg-error-light">
@@ -129,23 +129,23 @@ export function TenantsListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-heading font-semibold text-content">Tenants</h1>
+          <h1 className="text-heading font-semibold text-content">Organizações</h1>
           <p className="mt-0.5 text-body-sm text-content-muted">
-            {meta.total} {meta.total === 1 ? 'tenant' : 'tenants'} no total
+            {meta.total} {meta.total === 1 ? 'organização' : 'organizações'} no total
           </p>
         </div>
         <Link to="/tenants/new">
-          <Button variant="tactile">Novo tenant</Button>
+          <Button variant="tactile">Nova organização</Button>
         </Link>
       </div>
 
       {tenants.length === 0 ? (
         <Card>
-          <p className="text-content-muted">Nenhum tenant cadastrado.</p>
+          <p className="text-content-muted">Nenhuma organização cadastrada. Crie uma para começar.</p>
           <div className="mt-4">
             <Link to="/tenants/new">
               <Button variant="outline" size="sm">
-                Criar o primeiro tenant
+                Criar a primeira organização
               </Button>
             </Link>
           </div>
@@ -232,10 +232,10 @@ export function TenantsListPage() {
 
       <ConfirmModal
         open={pendingSuspend !== null}
-        title="Suspender tenant"
+        title="Suspender organização"
         message={
           pendingSuspend
-            ? `Tem certeza que deseja suspender "${pendingSuspend.name}"? Usuários do tenant não poderão acessar até reativar.`
+            ? `Tem certeza que deseja suspender "${pendingSuspend.name}"? Usuários da organização não poderão acessar até reativar.`
             : ''
         }
         confirmLabel="Suspender"

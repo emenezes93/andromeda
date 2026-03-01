@@ -6,7 +6,7 @@ export interface AchievementMilestone {
 }
 
 const MILESTONES: AchievementMilestone[] = [
-  { count: 1, label: 'Primeira sessão', emoji: '🌱', level: 'Iniciante' },
+  { count: 1, label: 'Primeira avaliação', emoji: '🌱', level: 'Iniciante' },
   { count: 5, label: 'Em progresso', emoji: '📋', level: 'Em progresso' },
   { count: 10, label: 'Dez concluídas', emoji: '⭐', level: 'Praticante' },
   { count: 25, label: 'Vinte e cinco', emoji: '🏅', level: 'Avançado' },
@@ -60,14 +60,14 @@ export function AchievementsCard({
             <p className="text-body-sm text-content-muted">
               {currentLevel
                 ? `${currentLevel.emoji} ${currentLevel.level}`
-                : 'Complete sessões para subir de nível'}
+                : 'Complete avaliações para subir de nível'}
             </p>
           </div>
         </div>
         {completedThisWeek > 0 && (
           <div className="rounded-full bg-primary-subtle px-3 py-1.5 text-body-sm font-medium text-primary">
             Esta semana: <span className="tabular-nums">{completedThisWeek}</span>{' '}
-            {completedThisWeek === 1 ? 'sessão' : 'sessões'}
+            {completedThisWeek === 1 ? 'avaliação' : 'avaliações'}
           </div>
         )}
       </div>
@@ -81,7 +81,7 @@ export function AchievementsCard({
           <div className="mt-5 flex flex-wrap items-baseline gap-2">
             <span className="text-3xl font-bold tabular-nums text-primary">{completed}</span>
             <span className="text-body-sm text-content-muted">
-              {completed === 1 ? 'sessão concluída' : 'sessões concluídas'}
+              {completed === 1 ? 'avaliação concluída' : 'avaliações concluídas'}
             </span>
           </div>
 

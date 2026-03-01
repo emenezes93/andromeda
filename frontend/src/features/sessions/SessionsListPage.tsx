@@ -89,7 +89,7 @@ export function SessionsListPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-content-muted">
-            {meta?.total ?? 0} sessão(ões)
+            {meta?.total ?? 0} avaliação(ões)
           </p>
           <select
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
@@ -123,7 +123,7 @@ export function SessionsListPage() {
           )}
         </div>
         <Link to="/sessions/new">
-          <Button>Nova sessão</Button>
+          <Button>Nova avaliação</Button>
         </Link>
       </div>
 
@@ -131,12 +131,12 @@ export function SessionsListPage() {
         <Card>
           <p className="text-content-muted">
             {hasFilter
-              ? 'Nenhuma sessão para os filtros selecionados.'
-              : 'Nenhuma sessão ainda. Inicie uma nova.'}
+              ? 'Nenhuma avaliação para os filtros selecionados.'
+              : 'Nenhuma avaliação ainda. Que tal iniciar a primeira?'}
           </p>
           {!hasFilter && (
             <Link to="/sessions/new">
-              <Button className="mt-4">Nova sessão</Button>
+              <Button className="mt-4">Nova avaliação</Button>
             </Link>
           )}
         </Card>

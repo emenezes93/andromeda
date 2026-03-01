@@ -71,7 +71,7 @@ export function NewSessionPage() {
     createSession(templateId, { patientId: linkedPatientId })
       .then((session) => navigate(`/sessions/${session.id}/flow`))
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Erro ao criar sessão');
+        setError(err instanceof Error ? err.message : 'Erro ao criar avaliação.');
         setCreating(false);
       });
   };
@@ -86,8 +86,8 @@ export function NewSessionPage() {
 
   if (templates.length === 0) {
     return (
-      <Card title="Nova sessão">
-        <p className="text-content-muted">Nenhum template disponível. Crie um template primeiro.</p>
+      <Card title="Nova avaliação">
+        <p className="text-content-muted">Nenhum modelo de avaliação disponível. Crie um template primeiro.</p>
         <Link to="/templates/new" className="mt-4 inline-block">
           <Button>Criar template</Button>
         </Link>
@@ -96,7 +96,7 @@ export function NewSessionPage() {
   }
 
   return (
-    <Card title="Nova sessão">
+    <Card title="Nova avaliação">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="new-session-patient" className="mb-1.5 block text-sm font-medium text-content-muted">
@@ -117,7 +117,7 @@ export function NewSessionPage() {
           </select>
           {patient && (
             <p className="mt-1 text-body-sm text-content-muted">
-              Sessão será vinculada a {patient.fullName}
+              Avaliação será vinculada a {patient.fullName}
             </p>
           )}
         </div>
@@ -141,7 +141,7 @@ export function NewSessionPage() {
         {error && <p className="text-body-sm text-error">{error}</p>}
         <div className="flex gap-3">
           <Button type="submit" loading={creating} disabled={!templateId}>
-            Iniciar sessão
+            Iniciar avaliação
           </Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/sessions')}>
             Cancelar

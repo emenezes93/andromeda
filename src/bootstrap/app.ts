@@ -17,6 +17,7 @@ import { scheduledQuestionnairesRoutes } from '../modules/scheduled-questionnair
 import { trainingPlansRoutes } from '../modules/training-plans/routes.js';
 import { trainingExecutionsRoutes } from '../modules/training-executions/routes.js';
 import { progressPhotosRoutes } from '../modules/progress-photos/routes.js';
+import { dietRoutes } from '../modules/diet/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
@@ -113,6 +114,7 @@ export async function buildApp() {
   await app.register(trainingPlansRoutes);
   await app.register(trainingExecutionsRoutes);
   await app.register(progressPhotosRoutes);
+  await app.register(dietRoutes);
 
   return app;
 }

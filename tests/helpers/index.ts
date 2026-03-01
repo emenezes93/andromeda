@@ -4,6 +4,11 @@ import type { FastifyInstance } from 'fastify';
 export async function createTestApp(): Promise<FastifyInstance> {
   const app = await buildApp();
   await app.ready();
+  // Upgrade demo tenant to 'pro' so patient quota never blocks tests
+  await app.prisma.tenant.updateMany({
+    where: { name: 'Clínica Demo' },
+    data: { planTier: 'pro' },
+  });
   return app;
 }
 

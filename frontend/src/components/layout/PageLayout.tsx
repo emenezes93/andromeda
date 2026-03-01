@@ -86,6 +86,27 @@ function IconTraining() {
   );
 }
 
+function IconDiet() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
+      <path d="M12 6v6l4 2" />
+      <path d="M8 14s1 2 4 2 4-2 4-2" />
+    </svg>
+  );
+}
+
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -165,6 +186,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
     { to: '/sessions', label: t.nav.sessions, icon: IconSessions },
     { to: '/patients', label: t.nav.patients, icon: IconPatients },
     { to: '/training-plans', label: t.nav.trainingPlans, icon: IconTraining },
+    { to: '/diet-plans', label: t.nav.dietPlans, icon: IconDiet },
     { to: '/scheduled-questionnaires', label: t.nav.scheduledQuestionnaires, icon: IconSchedule },
     { to: '/audit', label: t.nav.audit, icon: IconAudit },
     { to: '/ai/usage', label: t.nav.aiUsage, icon: IconAi },

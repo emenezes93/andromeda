@@ -119,7 +119,7 @@ export function TemplateReportPage() {
           </p>
         </Card>
         <Card padding="md" className="border-l-4 border-l-primary">
-          <p className="text-body-sm font-medium text-content-muted">Sessões concluídas</p>
+          <p className="text-body-sm font-medium text-content-muted">Avaliações concluídas</p>
           <p className="mt-1 text-heading-lg font-bold text-content tabular-nums">
             {metrics.completedSessions}
           </p>
@@ -141,9 +141,9 @@ export function TemplateReportPage() {
       </div>
 
       {/* Lista de sessões */}
-      <Card title="Sessões" padding="none">
-        {sessions.length === 0 ? (
-          <p className="px-5 py-8 text-body text-content-muted">Nenhuma sessão no período.</p>
+<Card title="Avaliações" padding="none">
+          {sessions.length === 0 ? (
+          <p className="px-5 py-8 text-body text-content-muted">Nenhuma avaliação no período.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-body-sm">

@@ -101,7 +101,7 @@ export function PatientTimelinePage() {
               Exportar PDF
             </Button>
             <Link to={`/sessions/new?patientId=${id}`}>
-              <Button size="sm">Nova sessão</Button>
+              <Button size="sm">Nova avaliação</Button>
             </Link>
             <Link to={`/patients/${id}`}>
               <Button variant="secondary" size="sm">Voltar ao paciente</Button>
@@ -130,7 +130,7 @@ export function PatientTimelinePage() {
             <div className="px-5 py-10 text-center">
               <p className="text-body text-content-muted">Nenhum evento registrado ainda.</p>
               <p className="mt-1 text-body-sm text-content-subtle">
-                Sessões, evoluções e metas aparecerão aqui.
+                Avaliações, evoluções e metas aparecerão aqui.
               </p>
             </div>
           ) : (

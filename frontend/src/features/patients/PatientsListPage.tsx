@@ -96,7 +96,7 @@ export function PatientsListPage() {
     return (
       <div className="rounded-card border border-error bg-error-light p-5 shadow-card">
         <p className="font-medium text-error">{error}</p>
-        <Button className="mt-4" onClick={fetchPatients}>
+        <Button className="mt-4" onClick={() => fetchPatients()}>
           Tentar novamente
         </Button>
       </div>
@@ -206,7 +206,7 @@ export function PatientsListPage() {
                     {/* Session / evolution counters */}
                     <div className="mt-3 flex gap-3 border-t border-border pt-3">
                       <span className="inline-flex items-center gap-1 rounded-button bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
-                        {patient._count?.sessions ?? 0} sessão(ões)
+                        {patient._count?.sessions ?? 0} avaliação(ões)
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-button bg-surface-muted px-2 py-0.5 text-xs font-medium text-content-muted">
                         {patient._count?.evolutions ?? 0} evolução(ões)

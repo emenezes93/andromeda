@@ -56,7 +56,7 @@ export function TemplateDetailPage() {
           </p>
         </div>
         <Link to={`/sessions/new?templateId=${template.id}`}>
-          <Button>Nova sessão com este template</Button>
+          <Button>Nova avaliação com este modelo</Button>
         </Link>
       </div>
 

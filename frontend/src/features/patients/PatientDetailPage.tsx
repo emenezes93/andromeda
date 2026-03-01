@@ -300,9 +300,9 @@ export function PatientDetailPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'dados', label: 'Dados' },
-    { id: 'sessoes', label: `Sessões${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
+    { id: 'sessoes', label: `Avaliações${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
     { id: 'treinos', label: 'Planos de Treino' },
-    { id: 'execucoes', label: 'Execuções' },
+    { id: 'execucoes', label: 'Treinos Realizados' },
     { id: 'fotos', label: 'Fotos' },
     { id: 'metas', label: 'Metas' },
   ];
@@ -329,7 +329,10 @@ export function PatientDetailPage() {
             </Button>
           </Link>
           <Link to={`/sessions/new?patientId=${id}`}>
-            <Button size="sm">Nova sessão</Button>
+            <Button size="sm">Nova avaliação</Button>
+          </Link>
+          <Link to={`/diet-dashboard/${id}`}>
+            <Button variant="secondary" size="sm">🥗 Dieta</Button>
           </Link>
           <Link to="/patients">
             <Button variant="outline" size="sm">
@@ -388,11 +391,11 @@ export function PatientDetailPage() {
               <InfoRow label="Telefone" value={patient.phone} />
               <InfoRow label="Profissão" value={patient.profession} />
               <div className="flex flex-col gap-0.5">
-                <dt className="text-body-sm font-medium text-content-muted">Sessões / Evoluções</dt>
+                <dt className="text-body-sm font-medium text-content-muted">Avaliações / Evoluções</dt>
                 <dd className="flex items-center gap-3 text-body text-content">
                   <span>
                     <span className="font-semibold text-primary">{patient._count.sessions}</span>{' '}
-                    <span className="text-content-muted">sessões</span>
+                    <span className="text-content-muted">avaliações</span>
                   </span>
                   <span className="text-border-soft">·</span>
                   <span>
@@ -430,9 +433,9 @@ export function PatientDetailPage() {
         </div>
       )}
 
-      {/* ── Tab: Sessões ── */}
+      {/* ── Tab: Avaliações ── */}
       {activeTab === 'sessoes' && (
-        <Card title="Sessões" padding="none">
+        <Card title="Avaliações" padding="none">
           {loadingSessions ? (
             <div className="flex justify-center py-10">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -440,10 +443,10 @@ export function PatientDetailPage() {
           ) : sessions.length === 0 ? (
             <div className="px-5 py-8">
               <p className="text-body text-content-muted">
-                Nenhuma sessão registrada para este paciente.
+                Nenhuma avaliação ainda. Que tal iniciar a primeira?
               </p>
               <Link to={`/sessions/new?patientId=${id}`} className="mt-3 inline-block">
-                <Button size="sm">Criar sessão</Button>
+                <Button size="sm">Criar avaliação</Button>
               </Link>
             </div>
           ) : (
@@ -497,7 +500,7 @@ export function PatientDetailPage() {
                   to={`/sessions?patientId=${id}`}
                   className="text-body-sm font-medium text-primary hover:underline"
                 >
-                  Ver todas as sessões deste paciente →
+                  Ver todas as avaliações deste paciente →
                 </Link>
               </div>
             </>
@@ -522,7 +525,7 @@ export function PatientDetailPage() {
           ) : plans.length === 0 ? (
             <Card padding="md">
               <p className="text-body text-content-muted">
-                Nenhum plano de treino cadastrado para este paciente.
+                Ainda não há planos de treino. Crie um para começar a acompanhar a evolução.
               </p>
               <Link to={`/training-plans/new?patientId=${id}`} className="mt-3 inline-block">
                 <Button size="sm">Criar plano</Button>
@@ -537,7 +540,7 @@ export function PatientDetailPage() {
                       <th className="px-4 py-3 font-medium text-content-muted">Nome</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Início</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Término</th>
-                      <th className="px-4 py-3 font-medium text-content-muted">Execuções</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Treinos realizados</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Status</th>
                       <th className="px-4 py-3 text-right font-medium text-content-muted">Ações</th>
                     </tr>
@@ -590,19 +593,19 @@ export function PatientDetailPage() {
         </div>
       )}
 
-      {/* ── Tab: Execuções ── */}
+      {/* ── Tab: Treinos Realizados ── */}
       {activeTab === 'execucoes' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-body font-semibold text-content">Execuções de treino</h3>
+            <h3 className="text-body font-semibold text-content">Treinos realizados</h3>
             <Button size="sm" onClick={() => setShowExecForm((v) => !v)}>
-              {showExecForm ? 'Cancelar' : 'Registrar execução'}
+              {showExecForm ? 'Cancelar' : 'Registrar treino'}
             </Button>
           </div>
 
           {showExecForm && (
             <Card padding="md">
-              <h4 className="mb-4 text-body-sm font-semibold text-content">Nova execução</h4>
+              <h4 className="mb-4 text-body-sm font-semibold text-content">Novo treino realizado</h4>
               <form onSubmit={handleExecSubmit} className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-body-sm font-medium text-content-muted">
@@ -686,7 +689,7 @@ export function PatientDetailPage() {
           ) : executions.length === 0 ? (
             <Card padding="md">
               <p className="text-body text-content-muted">
-                Nenhuma execução registrada para este paciente.
+                Nenhum treino registrado ainda. Registre um treino realizado para acompanhar a evolução.
               </p>
             </Card>
           ) : (

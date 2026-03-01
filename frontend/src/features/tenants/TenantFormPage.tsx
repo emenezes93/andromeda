@@ -37,10 +37,10 @@ export function TenantFormPage() {
     setSubmitting(true);
     try {
       await createTenant({ name: trimmed, status });
-      toast.success('Tenant criado com sucesso.');
+      toast.success('Organização criada com sucesso.');
       navigate('/tenants');
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : 'Erro ao criar tenant.');
+      setApiError(err instanceof Error ? err.message : 'Erro ao criar organização.');
     } finally {
       setSubmitting(false);
     }
@@ -53,9 +53,9 @@ export function TenantFormPage() {
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
-        <h1 className="text-heading font-semibold text-content">Novo tenant</h1>
+        <h1 className="text-heading font-semibold text-content">Nova organização</h1>
         <p className="mt-1 text-body-sm text-content-muted">
-          Cadastre um novo tenant (organização/clínica) na plataforma.
+          Cadastre uma nova organização (clínica, consultório, etc.) na plataforma.
         </p>
       </div>
 
@@ -117,7 +117,7 @@ export function TenantFormPage() {
               Cancelar
             </Button>
             <Button type="submit" variant="tactile" loading={submitting}>
-              Criar tenant
+              Criar organização
             </Button>
           </div>
         </form>

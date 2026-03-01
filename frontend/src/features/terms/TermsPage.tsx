@@ -34,7 +34,7 @@ export function TermsPage() {
           <h3 className="mt-4 font-semibold text-content">Armazenamento e uso</h3>
           <p>
             As informações são armazenadas em ambiente seguro e utilizadas apenas pela
-            organização (tenant) à qual o paciente está vinculado e pelos profissionais
+            organização à qual o paciente está vinculado e pelos profissionais
             autorizados. Não realizamos comercialização de dados pessoais.
           </p>
           <h3 className="mt-4 font-semibold text-content">Seus direitos</h3>
