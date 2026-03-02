@@ -5,7 +5,7 @@ import App from './App';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ToastProvider>
+    <ToastProvider duration={6000}>
       <App />
     </ToastProvider>
   </StrictMode>

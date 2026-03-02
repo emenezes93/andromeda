@@ -31,14 +31,22 @@ body:
       description: Onde essa feature se encaixa na arquitetura?
       multiple: true
       options:
-        - src/core/ (hexagonal — auth)
-        - src/modules/anamnesis (templates/sessions/engine)
-        - src/modules/ai
-        - src/modules/patients
-        - src/modules/audit
-        - src/modules/users
-        - src/modules/tenants
-        - frontend/
+        - src/core/ (auth, users, patients, templates, sessions, insights, goals, quota)
+        - src/modules/diet/ (planos de dieta, diário alimentar, gamificação)
+        - src/modules/training-plans/ (planos de treino)
+        - src/modules/training-executions/ (treinos realizados)
+        - src/modules/scheduled-questionnaires/ (agendamentos recorrentes)
+        - src/modules/progress-photos/ (fotos de progresso)
+        - src/modules/billing/ (Stripe, assinatura)
+        - src/modules/patient-portal/ (portal do paciente)
+        - frontend/features/patients/
+        - frontend/features/sessions/ (avaliações / anamnese)
+        - frontend/features/templates/
+        - frontend/features/diet/
+        - frontend/features/training-plans/
+        - frontend/features/dashboard/
+        - frontend/features/auth/ (autenticação, 2FA)
+        - frontend/components/ui/ (design system)
         - Infra / CI
         - Novo módulo
     validations:

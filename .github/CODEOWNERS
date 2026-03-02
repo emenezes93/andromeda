@@ -1,0 +1,39 @@
+# CODEOWNERS — define quem precisa revisar mudanças por área
+# Documentação: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Formato: <padrão>  <@owner ou @org/team>
+# O owner mais específico tem precedência sobre o mais genérico.
+
+# --- Padrão: todo o repositório ---
+*                               @emenezes93
+
+# --- Infraestrutura & CI/CD ---
+.github/                        @emenezes93
+docker-compose*.yml             @emenezes93
+Dockerfile*                     @emenezes93
+sonar-project.properties        @emenezes93
+
+# --- Schema de banco de dados (crítico — requer revisão cuidadosa) ---
+prisma/                         @emenezes93
+
+# --- Backend: core hexagonal (domínio crítico) ---
+src/core/                       @emenezes93
+src/bootstrap/                  @emenezes93
+src/config/                     @emenezes93
+src/shared/                     @emenezes93
+
+# --- Backend: módulos legados ---
+src/modules/                    @emenezes93
+
+# --- Frontend ---
+frontend/src/                   @emenezes93
+
+# --- Design system (mudanças afetam toda a UI) ---
+frontend/src/components/ui/     @emenezes93
+frontend/src/styles/            @emenezes93
+frontend/tailwind.config.js     @emenezes93
+
+# --- Segurança (auth, billing, LGPD) ---
+src/core/infrastructure/services/JwtTokenService.ts  @emenezes93
+src/modules/billing/            @emenezes93
+frontend/src/features/auth/     @emenezes93

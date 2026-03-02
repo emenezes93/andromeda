@@ -187,6 +187,15 @@ export function AnamnesisFlowPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {/* Aviso de assinatura no início do fluxo (análise UX) */}
+      <div
+        className="rounded-card border border-primary/30 bg-primary-subtle/40 px-4 py-3 text-body-sm text-content"
+        role="status"
+      >
+        <strong>Assinatura ao concluir:</strong> Ao finalizar todas as perguntas, será solicitada a
+        assinatura eletrônica do responsável para validar esta avaliação.
+      </div>
+
       {/* Step UX: etapa atual + barra de progresso */}
       <div className="rounded-card border border-border bg-surface p-4 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -201,12 +210,19 @@ export function AnamnesisFlowPage() {
               Pergunta {currentStep}
             </span>
           </div>
-          <span
-            className="text-body-sm font-semibold tabular-nums text-content"
-            aria-live="polite"
-          >
-            {completionPercent}% concluído
-          </span>
+          <div className="text-right">
+            <span
+              className="text-body-sm font-semibold tabular-nums text-content"
+              aria-live="polite"
+            >
+              {completionPercent}% concluído
+            </span>
+            {completionPercent > 0 && completionPercent < 100 && (
+              <p className="text-xs text-content-muted mt-0.5">
+                Tempo est. restante: ~{Math.max(1, Math.round(((100 - completionPercent) / 100) * 15))} min
+              </p>
+            )}
+          </div>
         </div>
         <div
           className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-surface-muted"

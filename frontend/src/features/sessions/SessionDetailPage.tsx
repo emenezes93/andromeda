@@ -4,6 +4,7 @@ import { getSession, getFillLink, exportSession } from '@/api/sessions';
 import type { Session, QuestionSchema } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { useToast } from '@/components/ui/Toast';
 import { SkeletonDetail } from '@/components/ui/SkeletonCard';
@@ -98,6 +99,13 @@ export function SessionDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: 'Avaliações', to: '/sessions' },
+          { label: templateName },
+        ]}
+        className="mb-1"
+      />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">

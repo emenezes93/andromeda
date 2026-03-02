@@ -121,7 +121,6 @@ export function TrainingPlansListPage() {
               Ativos
             </button>
             <button
-              onClick={() => setActiveFilter(false)}
               onClick={() => { setActiveFilter(false); setPage(1); }}
               className={`rounded-button px-3 py-1.5 text-body-sm font-medium transition-calm ${
                 activeFilter === false

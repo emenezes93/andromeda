@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPatient, createPatient, updatePatient } from '@/api/patients';
 import type { CreatePatientBody } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useToast } from '@/components/ui/Toast';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
@@ -76,6 +77,20 @@ const textareaClass =
 
 const selectClass =
   'min-h-touch w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+function formatCpfDisplay(digits: string): string {
+  const d = digits.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+function formatPhoneDisplay(digits: string): string {
+  const d = digits.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d ? `(${d}` : '';
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -202,10 +217,49 @@ export function PatientFormPage() {
   // --------------------------------------------------------------------------
   // Form render
   // --------------------------------------------------------------------------
+  const breadcrumbItems = [
+    { label: 'Pacientes', to: '/patients' },
+    ...(isEditMode && id
+      ? [
+          { label: form.fullName.trim() || 'Paciente', to: `/patients/${id}` },
+          { label: 'Editar' },
+        ]
+      : [{ label: 'Novo paciente' }]),
+  ];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+    <div className="space-y-6">
+      <Breadcrumbs items={breadcrumbItems} />
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <Card title={isEditMode ? 'Editar paciente' : 'Novo paciente'}>
         <div className="space-y-5">
+          {/* Termo de consentimento LGPD no topo (análise UX); link em nova aba */}
+          {!isEditMode && (
+            <div className="rounded-button border border-primary/30 bg-primary-subtle/30 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.consentAccepted}
+                  onChange={(e) => setField('consentAccepted', e.target.checked)}
+                  className="mt-1 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                  aria-describedby="consent-desc"
+                />
+                <span id="consent-desc" className="text-body-sm text-content">
+                  Li e concordo com a{' '}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary underline hover:no-underline"
+                  >
+                    Política de Privacidade e Termos de Uso
+                  </a>
+                  , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Full name */}
           <Input
             label="Nome completo *"
@@ -258,15 +312,14 @@ export function PatientFormPage() {
               <Input
                 label="CPF"
                 name="cpf"
-                value={form.cpf}
+                value={formatCpfDisplay(form.cpf)}
                 onChange={(e) => {
-                  // Allow only digits, max 11
                   const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
                   setField('cpf', digits);
                 }}
-                placeholder="Somente números"
+                placeholder="000.000.000-00"
                 inputMode="numeric"
-                maxLength={11}
+                maxLength={14}
                 autoComplete="off"
               />
             </div>
@@ -276,9 +329,14 @@ export function PatientFormPage() {
                 label="Telefone"
                 name="phone"
                 type="tel"
-                value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
-                placeholder="Ex: (11) 99999-0000"
+                value={formatPhoneDisplay(form.phone)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setField('phone', digits);
+                }}
+                placeholder="(00) 00000-0000"
+                inputMode="tel"
+                maxLength={15}
                 autoComplete="tel"
               />
             </div>
@@ -360,28 +418,6 @@ export function PatientFormPage() {
               className={textareaClass}
             />
           </div>
-
-          {/* Termo de consentimento LGPD (obrigatório na criação) */}
-          {!isEditMode && (
-            <div className="rounded-button border border-border-muted bg-surface-muted/30 p-4">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.consentAccepted}
-                  onChange={(e) => setField('consentAccepted', e.target.checked)}
-                  className="mt-1 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
-                  aria-describedby="consent-desc"
-                />
-                <span id="consent-desc" className="text-body-sm text-content">
-                  Li e concordo com a{' '}
-                  <Link to="/terms" className="font-medium text-primary underline hover:no-underline">
-                    Política de Privacidade e Termos de Uso
-                  </Link>
-                  , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
-                </span>
-              </label>
-            </div>
-          )}
         </div>
       </Card>
 
@@ -407,5 +443,6 @@ export function PatientFormPage() {
         </Button>
       </div>
     </form>
+    </div>
   );
 }

@@ -359,7 +359,7 @@ export function DietPlanDetailPage() {
         confirmLabel="Remover"
         cancelLabel="Cancelar"
         variant="danger"
-        loading={pendingDelete === 'plan' ? deletePlanMutation.isPending : (pendingDelete && deleteEntryMutation.isPending)}
+        loading={pendingDelete === 'plan' ? deletePlanMutation.isPending : !!(pendingDelete && deleteEntryMutation.isPending)}
         onConfirm={() => {
           if (pendingDelete === 'plan') {
             deletePlanMutation.mutate();

@@ -113,42 +113,6 @@ interface PageLayoutProps {
   title?: string;
 }
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: IconDashboard },
-  { to: '/templates', label: 'Templates', icon: IconTemplates },
-  { to: '/sessions', label: 'Sessões', icon: IconSessions },
-  { to: '/patients', label: 'Pacientes', icon: IconPatients },
-  { to: '/training-plans', label: 'Planos de Treino', icon: IconTraining },
-  { to: '/scheduled-questionnaires', label: 'Agendamentos', icon: IconSchedule },
-  { to: '/audit', label: 'Auditoria', icon: IconAudit },
-  { to: '/ai/usage', label: 'Uso de IA', icon: IconAi },
-];
-}
-
-function IconTraining() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6.5 6.5h11" />
-      <path d="M6.5 17.5h11" />
-      <path d="M3 10v4" />
-      <path d="M21 10v4" />
-      <path d="M5 8v8" />
-      <path d="M19 8v8" />
-    </svg>
-  );
-}
-
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -202,8 +166,38 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-content-muted hover:bg-primary-subtle hover:text-content'
   }`;
 
+const REFRESH_INTERVAL_MS = 12 * 60 * 1000; // 12 min — token expires in 15 min
+
 export function PageLayout({ children, title }: PageLayoutProps) {
   const user = getStoredUser();
+
+  // Proactive token refresh so long flows (e.g. assessment) don't hit 401
+  useEffect(() => {
+    if (!user) return;
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return;
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const run = () => {
+      fetch(`${apiUrl}/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: localStorage.getItem('refreshToken') }),
+      })
+        .then((res) => {
+          if (res.ok) return res.json();
+          return null;
+        })
+        .then((data) => {
+          if (data?.token) {
+            localStorage.setItem('token', data.token);
+            if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+          }
+        })
+        .catch(() => {});
+    };
+    const id = setInterval(run, REFRESH_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [user]);
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -259,6 +253,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Navegação principal">
+        <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
+          Uso diário
+        </p>
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
@@ -270,6 +267,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             {label}
           </NavLink>
         ))}
+        <p className="mt-3 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
+          Administração
+        </p>
         {isAdminOrOwner && (
           <NavLink to="/users" className={navLinkClass}>
             <IconUsers />

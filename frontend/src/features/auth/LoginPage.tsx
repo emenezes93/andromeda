@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { login, login2fa } from '@/api/auth';
 import { setAuth } from '@/stores/authStore';
 import { isOnboardingDismissed } from '@/stores/onboardingStore';
@@ -20,7 +20,17 @@ type FormData = z.infer<typeof schema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('reason') === 'session_expired';
   const [apiError, setApiError] = useState<string | null>(null);
+  useEffect(() => {
+    if (sessionExpired) {
+      setSearchParams((p) => {
+        p.delete('reason');
+        return p;
+      }, { replace: true });
+    }
+  }, [sessionExpired, setSearchParams]);
   const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState('');
   const [twoFactorPassword, setTwoFactorPassword] = useState('');
@@ -117,6 +127,14 @@ export function LoginPage() {
           className="login-enter login-enter-stagger-1 rounded-2xl border border-border-muted bg-surface/95 p-6 shadow-soft backdrop-blur-sm"
           style={{ boxShadow: '0 2px 12px rgb(14 165 233 / 0.06)' }}
         >
+          {sessionExpired && (
+            <div
+              className="mb-4 rounded-button border border-warning bg-warning-subtle px-3 py-2.5 text-body-sm text-warning"
+              role="alert"
+            >
+              Sua sessão expirou. Faça login novamente para continuar.
+            </div>
+          )}
           <h2 className="text-heading-sm font-semibold text-content">
             {twoFactorStep ? 'Código de autenticação' : 'Entrar'}
           </h2>

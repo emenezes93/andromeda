@@ -5,6 +5,7 @@ import type { Template } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { SkeletonDetail } from '@/components/ui/SkeletonCard';
 
 export function TemplateDetailPage() {
@@ -48,6 +49,13 @@ export function TemplateDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: 'Templates', to: '/templates' },
+          { label: template.name },
+        ]}
+        className="mb-1"
+      />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-content">{template.name}</h2>
