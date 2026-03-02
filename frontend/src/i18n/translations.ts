@@ -14,6 +14,7 @@ export interface Translations {
     users: string;
     tenants: string;
     subscription: string;
+    security: string;
   };
   sidebar: {
     logout: string;
@@ -67,6 +68,7 @@ export const ptBR: Translations = {
     users: 'Usuários',
     tenants: 'Organizações',
     subscription: 'Assinatura',
+    security: 'Segurança',
   },
   sidebar: {
     logout: 'Sair',
@@ -120,6 +122,7 @@ export const enUS: Translations = {
     users: 'Users',
     tenants: 'Organizations',
     subscription: 'Subscription',
+    security: 'Security',
   },
   sidebar: {
     logout: 'Sign out',

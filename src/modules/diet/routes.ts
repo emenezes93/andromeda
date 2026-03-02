@@ -8,6 +8,7 @@ import {
   updateDietPlanSchema,
   listDietPlansQuerySchema,
   createDietEntrySchema,
+  updateDietEntrySchema,
   listDietEntriesQuerySchema,
 } from './schemas.js';
 import { auditLog } from '@shared/utils/audit.js';
@@ -468,6 +469,98 @@ export async function dietRoutes(fastify: FastifyInstance): Promise<void> {
           totalPages: Math.ceil(total / limit) || 1,
           hasMore: page * limit < total,
         },
+      });
+    }
+  );
+
+  fastify.patch(
+    '/v1/diet-entries/:id',
+    {
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+        body: {
+          type: 'object',
+          properties: {
+            entryDate: { type: 'string' },
+            mealType: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack', 'other'] },
+            foodsJson: { type: 'array' },
+            totalCalories: { type: 'number', nullable: true },
+            totalProteinG: { type: 'number', nullable: true },
+            totalCarbsG: { type: 'number', nullable: true },
+            totalFatG: { type: 'number', nullable: true },
+            waterMl: { type: 'number', nullable: true },
+            notes: { type: 'string', nullable: true },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              entryDate: { type: 'string' },
+              mealType: { type: 'string' },
+              totalCalories: { type: 'number', nullable: true },
+              notes: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      const user = requireAuth(request);
+      Guards.sessions(user.role);
+
+      const { id } = request.params as { id: string };
+      const body = updateDietEntrySchema.parse(request.body);
+
+      const existing = await fastify.prisma.dietEntry.findFirst({
+        where: { id, tenantId, deletedAt: null },
+      });
+      if (!existing) throw new NotFoundError('Entrada de dieta não encontrada');
+
+      const data: {
+        entryDate?: Date;
+        mealType?: string;
+        foodsJson?: object;
+        totalCalories?: number | null;
+        totalProteinG?: number | null;
+        totalCarbsG?: number | null;
+        totalFatG?: number | null;
+        waterMl?: number | null;
+        notes?: string | null;
+      } = {};
+      if (body.entryDate != null) {
+        const d = new Date(body.entryDate);
+        if (isNaN(d.getTime())) throw new BadRequestError('Data da entrada inválida');
+        data.entryDate = d;
+      }
+      if (body.mealType != null) data.mealType = body.mealType;
+      if (body.foodsJson != null) data.foodsJson = body.foodsJson as object;
+      if (body.totalCalories !== undefined) data.totalCalories = body.totalCalories;
+      if (body.totalProteinG !== undefined) data.totalProteinG = body.totalProteinG;
+      if (body.totalCarbsG !== undefined) data.totalCarbsG = body.totalCarbsG;
+      if (body.totalFatG !== undefined) data.totalFatG = body.totalFatG;
+      if (body.waterMl !== undefined) data.waterMl = body.waterMl;
+      if (body.notes !== undefined) data.notes = body.notes;
+
+      const entry = await fastify.prisma.dietEntry.update({
+        where: { id },
+        data,
+      });
+
+      await auditLog(fastify.prisma, tenantId, 'update', 'diet_entry', id, user.userId, {});
+
+      return reply.status(200).send({
+        id: entry.id,
+        entryDate: entry.entryDate.toISOString(),
+        mealType: entry.mealType,
+        totalCalories: entry.totalCalories,
+        totalProteinG: entry.totalProteinG,
+        totalCarbsG: entry.totalCarbsG,
+        totalFatG: entry.totalFatG,
+        waterMl: entry.waterMl,
+        notes: entry.notes,
       });
     }
   );

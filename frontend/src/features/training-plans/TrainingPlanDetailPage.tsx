@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
@@ -156,7 +157,7 @@ function AddExecutionForm({ planId, patientId, onSaved }: AddExecutionFormProps)
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!executedAt) {
-      toast.error('Informe a data de execução.');
+      toast.error('Informe a data do treino.');
       return;
     }
     setSubmitting(true);
@@ -170,14 +171,14 @@ function AddExecutionForm({ planId, patientId, onSaved }: AddExecutionFormProps)
         completed,
       };
       await createTrainingExecution(body);
-      toast.success('Execução registrada.');
+      toast.success('Treino registrado.');
       setExecutedAt(today);
       setDurationMinutes('');
       setNotes('');
       setCompleted(false);
       onSaved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar execução.');
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar o treino.');
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +188,7 @@ function AddExecutionForm({ planId, patientId, onSaved }: AddExecutionFormProps)
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
-          label="Data de execução"
+          label="Data do treino"
           type="date"
           name="executedAt"
           required
@@ -215,7 +216,7 @@ function AddExecutionForm({ planId, patientId, onSaved }: AddExecutionFormProps)
           id="exec-notes"
           name="notes"
           rows={2}
-          placeholder="Observações sobre a execução…"
+          placeholder="Como foi o treino?"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="min-h-[64px] w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -234,7 +235,7 @@ function AddExecutionForm({ planId, patientId, onSaved }: AddExecutionFormProps)
         </label>
       </div>
       <Button type="submit" loading={submitting} disabled={submitting}>
-        Registrar execução
+        Registrar treino
       </Button>
     </form>
   );
@@ -346,6 +347,10 @@ export function TrainingPlanDetailPage() {
   const [activeTab, setActiveTab] = useState<TabId>('info');
   const [showExecForm, setShowExecForm] = useState(false);
   const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<
+    { type: 'execution'; id: string } | { type: 'photo'; id: string } | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -381,25 +386,34 @@ export function TrainingPlanDetailPage() {
     if (activeTab === 'photos') loadPhotos();
   }, [activeTab, loadPhotos]);
 
-  async function handleDeleteExecution(execId: string) {
-    if (!window.confirm('Remover esta execução?')) return;
-    try {
-      await deleteTrainingExecution(execId);
-      toast.success('Execução removida.');
-      loadExecutions();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao remover execução.');
-    }
+  function handleDeleteExecution(execId: string) {
+    setPendingDelete({ type: 'execution', id: execId });
   }
 
-  async function handleDeletePhoto(photoId: string) {
-    if (!window.confirm('Remover esta foto?')) return;
+  function handleDeletePhoto(photoId: string) {
+    setPendingDelete({ type: 'photo', id: photoId });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await deleteProgressPhoto(photoId);
-      toast.success('Foto removida.');
-      loadPhotos();
+      if (pendingDelete.type === 'execution') {
+        await deleteTrainingExecution(pendingDelete.id);
+        toast.success('Treino removido.');
+        loadExecutions();
+      } else {
+        await deleteProgressPhoto(pendingDelete.id);
+        toast.success('Foto removida.');
+        loadPhotos();
+      }
+      setPendingDelete(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao remover foto.');
+      toast.error(
+        err instanceof Error ? err.message : 'Erro ao remover.'
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -468,7 +482,7 @@ export function TrainingPlanDetailPage() {
             <span>·</span>
             <span>
               <span className="font-semibold text-primary">{plan.executionsCount}</span>{' '}
-              execução(ões)
+              treino(s) realizado(s)
             </span>
           </div>
         </div>
@@ -529,12 +543,12 @@ export function TrainingPlanDetailPage() {
               size="sm"
               onClick={() => setShowExecForm((v) => !v)}
             >
-              {showExecForm ? 'Fechar' : 'Adicionar execução'}
+              {showExecForm ? 'Fechar' : 'Registrar treino'}
             </Button>
           </div>
 
           {showExecForm && (
-            <Card title="Nova execução" padding="md">
+            <Card title="Registrar treino" padding="md">
               <AddExecutionForm
                 planId={id}
                 patientId={plan.patientId}
@@ -679,6 +693,22 @@ export function TrainingPlanDetailPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title={pendingDelete?.type === 'execution' ? 'Remover treino' : 'Remover foto'}
+        message={
+          pendingDelete?.type === 'execution'
+            ? 'Remover este treino realizado?'
+            : 'Remover esta foto de progresso?'
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

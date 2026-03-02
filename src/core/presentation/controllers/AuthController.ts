@@ -9,7 +9,7 @@ import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
 import { env } from '@config/env.js';
-import { LoginUseCase } from '@application/use-cases/auth/LoginUseCase.js';
+import { LoginUseCase, type LoginRequiresTwoFactor } from '@application/use-cases/auth/LoginUseCase.js';
 import { RefreshTokenUseCase } from '@application/use-cases/auth/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '@application/use-cases/auth/LogoutUseCase.js';
 import { RegisterUseCase } from '@application/use-cases/auth/RegisterUseCase.js';
@@ -94,11 +94,17 @@ export class AuthController {
     const body = loginBodySchema.parse(request.body);
     const result = await this.loginUseCase.execute({ email: body.email, password: body.password });
 
+    if ((result as LoginRequiresTwoFactor).requiresTwoFactor) {
+      await reply.status(200).send({ requiresTwoFactor: true });
+      return;
+    }
+
+    const { token, refreshToken, user } = result;
     await reply.status(200).send({
-      token: result.token.token,
-      refreshToken: result.refreshToken.token,
-      expiresIn: result.token.expiresIn,
-      user: result.user,
+      token: token.token,
+      refreshToken: refreshToken.token,
+      expiresIn: token.expiresIn,
+      user,
     });
   }
 

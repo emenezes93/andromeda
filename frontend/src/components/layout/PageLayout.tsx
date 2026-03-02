@@ -14,6 +14,7 @@ import {
   IconUsers,
   IconTenants,
   IconSubscription,
+  IconShield,
 } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -284,6 +285,10 @@ export function PageLayout({ children, title }: PageLayoutProps) {
         <NavLink to="/subscription" className={navLinkClass}>
           <IconSubscription />
           {t.nav.subscription}
+        </NavLink>
+        <NavLink to="/settings/security" className={navLinkClass}>
+          <IconShield />
+          {t.nav.security}
         </NavLink>
       </nav>
 

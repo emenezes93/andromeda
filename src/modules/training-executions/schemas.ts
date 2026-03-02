@@ -10,6 +10,13 @@ export const createTrainingExecutionSchema = z.object({
   completed: z.boolean().optional().default(true),
 });
 
+export const updateTrainingExecutionSchema = z.object({
+  executedAt: z.string().min(1).optional(),
+  durationMinutes: z.number().int().min(0).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  completed: z.boolean().optional(),
+});
+
 export const listTrainingExecutionsQuerySchema = paginationQuerySchema.extend({
   patientId: z.string().optional(),
   trainingPlanId: z.string().optional(),
@@ -18,4 +25,5 @@ export const listTrainingExecutionsQuerySchema = paginationQuerySchema.extend({
 });
 
 export type CreateTrainingExecutionBody = z.infer<typeof createTrainingExecutionSchema>;
+export type UpdateTrainingExecutionBody = z.infer<typeof updateTrainingExecutionSchema>;
 export type ListTrainingExecutionsQuery = z.infer<typeof listTrainingExecutionsQuerySchema>;

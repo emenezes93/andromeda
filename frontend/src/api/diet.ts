@@ -6,6 +6,7 @@ import type {
   DietEntry,
   DietEntryListResponse,
   CreateDietEntryBody,
+  UpdateDietEntryBody,
   DietStats,
 } from '@/types';
 
@@ -79,6 +80,16 @@ export async function listDietEntries(
 
 export async function createDietEntry(body: CreateDietEntryBody): Promise<DietEntry> {
   return apiFetch<DietEntry>('/v1/diet-entries', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export async function updateDietEntry(
+  id: string,
+  body: UpdateDietEntryBody
+): Promise<DietEntry> {
+  return apiFetch<DietEntry>(`/v1/diet-entries/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function deleteDietEntry(id: string): Promise<void> {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createDietPlan, updateDietPlan, getDietPlan } from '@/api/diet';
 import { listPatients } from '@/api/patients';
 import type { CreateDietPlanBody } from '@/types';
@@ -99,10 +99,13 @@ export function DietPlanFormPage() {
     queryFn: () => listPatients({ limit: 100 }),
   });
 
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (body: CreateDietPlanBody) =>
       isEditing ? updateDietPlan(id!, body) : createDietPlan(body),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['diet-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['diet-plan', data.id] });
       setIsDirty(false);
       toast.success(isEditing ? 'Plano atualizado!' : 'Plano criado!');
       navigate(`/diet-plans/${data.id}`);

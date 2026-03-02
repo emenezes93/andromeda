@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { createGoal, getGoal, updateGoal } from '@/api/goals';
 import { listPatients } from '@/api/patients';
 import type { CreateGoalBody, UpdateGoalBody, GoalType, PatientWithCount } from '@/types';
@@ -52,6 +53,7 @@ export function GoalFormPage() {
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get('patientId') ?? '';
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState<FormState>(() => emptyForm(preselectedPatientId));
   const [initialForm, setInitialForm] = useState<FormState>(() => emptyForm(preselectedPatientId));
@@ -131,6 +133,9 @@ export function GoalFormPage() {
           targetDate: form.targetDate,
         };
         await updateGoal(id, body);
+        queryClient.invalidateQueries({ queryKey: ['goals'] });
+        queryClient.invalidateQueries({ queryKey: ['report-goals', form.patientId] });
+        queryClient.invalidateQueries({ queryKey: ['patient-goals', form.patientId] });
         toast.success('Meta atualizada.');
         navigate(`/patients/${form.patientId}`);
       } else {
@@ -146,6 +151,9 @@ export function GoalFormPage() {
           targetDate: form.targetDate,
         };
         await createGoal(body);
+        queryClient.invalidateQueries({ queryKey: ['goals'] });
+        queryClient.invalidateQueries({ queryKey: ['report-goals', form.patientId] });
+        queryClient.invalidateQueries({ queryKey: ['patient-goals', form.patientId] });
         toast.success('Meta criada.');
         navigate(`/patients/${form.patientId}`);
       }

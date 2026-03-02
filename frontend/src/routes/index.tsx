@@ -147,6 +147,10 @@ const TermsPage = lazy(() =>
 const AiUsagePage = lazy(() =>
   import('@/features/ai/AiUsagePage').then((m) => ({ default: m.AiUsagePage }))
 );
+// Security (2FA)
+const SecurityPage = lazy(() =>
+  import('@/features/auth/SecurityPage').then((m) => ({ default: m.SecurityPage }))
+);
 // Onboarding
 const OnboardingWizardPage = lazy(() =>
   import('@/features/onboarding/OnboardingWizardPage').then((m) => ({
@@ -253,6 +257,8 @@ const router = createBrowserRouter([
   { path: '/tenants/new', element: withLayout('Nova organização', <TenantFormPage />) },
   // Assinatura (pagamento recorrente)
   { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
+  // Segurança (2FA)
+  { path: '/settings/security', element: withLayout('Segurança', <SecurityPage />) },
   // Audit
   { path: '/audit', element: withLayout('Histórico de Atividades', <AuditListPage />) },
   // AI Usage

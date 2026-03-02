@@ -87,9 +87,9 @@ export function NewSessionPage() {
   if (templates.length === 0) {
     return (
       <Card title="Nova avaliação">
-        <p className="text-content-muted">Nenhum modelo de avaliação disponível. Crie um template primeiro.</p>
+        <p className="text-content-muted">Nenhum modelo de avaliação disponível. Crie um modelo de avaliação primeiro.</p>
         <Link to="/templates/new" className="mt-4 inline-block">
-          <Button>Criar template</Button>
+          <Button>Criar modelo</Button>
         </Link>
       </Card>
     );

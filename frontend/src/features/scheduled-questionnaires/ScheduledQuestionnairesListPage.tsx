@@ -9,6 +9,7 @@ import type { ScheduledQuestionnaireListResponse, ScheduledQuestionnaire } from 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 
 const LIMIT = 20;
@@ -56,6 +57,8 @@ export function ScheduledQuestionnairesListPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined);
+  const [pendingDelete, setPendingDelete] = useState<ScheduledQuestionnaire | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchItems = useCallback(() => {
     setLoading(true);
@@ -83,13 +86,21 @@ export function ScheduledQuestionnairesListPage() {
   }
 
   async function handleDelete(item: ScheduledQuestionnaire) {
-    if (!window.confirm(`Remover agendamento "${item.templateName}"?`)) return;
+    setPendingDelete(item);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await deleteScheduledQuestionnaire(item.id);
+      await deleteScheduledQuestionnaire(pendingDelete.id);
       toast.success('Agendamento removido.');
       fetchItems();
+      setPendingDelete(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao remover agendamento.');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -280,6 +291,18 @@ export function ScheduledQuestionnairesListPage() {
           )}
         </Card>
       )}
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="Remover agendamento"
+        message={pendingDelete ? `Remover agendamento "${pendingDelete.templateName}"?` : ''}
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

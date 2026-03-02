@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { getPatient, createPatient, updatePatient } from '@/api/patients';
 import type { CreatePatientBody } from '@/types';
 import { Button } from '@/components/ui/Button';
@@ -84,6 +85,7 @@ export function PatientFormPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const isEditMode = Boolean(id);
 
@@ -157,11 +159,14 @@ export function PatientFormPage() {
     try {
       if (isEditMode && id) {
         await updatePatient(id, body);
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
+        queryClient.invalidateQueries({ queryKey: ['patient', id] });
         setIsDirty(false);
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${id}`);
       } else {
         const created = await createPatient(body);
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
         setIsDirty(false);
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${created.id}`);

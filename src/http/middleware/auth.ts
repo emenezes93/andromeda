@@ -52,12 +52,14 @@ async function authPlugin(fastify: FastifyInstance, opts: AuthPluginOptions): Pr
         email: string;
         role: string;
         tenantId: string;
+        patientId?: string;
       };
       request.user = {
         userId: payload.userId,
         email: payload.email,
         role: payload.role as AuthUser['role'],
         tenantId: payload.tenantId,
+        ...(payload.patientId != null && { patientId: payload.patientId }),
       };
     } catch {
       throw new UnauthorizedError('Invalid or expired token');

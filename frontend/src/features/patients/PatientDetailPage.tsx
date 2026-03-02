@@ -1,15 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
+import {
+  listTrainingExecutions,
+  createTrainingExecution,
+  deleteTrainingExecution,
+} from '@/api/training-executions';
+import {
+  listProgressPhotos,
+  createProgressPhoto,
+  deleteProgressPhoto,
+} from '@/api/progress-photos';
 import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
-import type { PatientWithCount, PatientEvolution, Session, TrainingPlan, Goal } from '@/types';
+import type {
+  TrainingExecution,
+  ProgressPhoto,
+  TrainingExecutionListResponse,
+  ProgressPhotoListResponse,
+} from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,7 +93,12 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
-type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
+type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas' | 'execucoes' | 'fotos';
+
+const textareaClass =
+  'min-h-[96px] w-full resize-y rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+const selectClass =
+  'min-h-touch w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -83,22 +106,76 @@ type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas';
 
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
-
-  // ── Core data ──────────────────────────────────────────────────────────
-  const [patient, setPatient] = useState<PatientWithCount | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [lastEvolution, setLastEvolution] = useState<PatientEvolution | null>(null);
-  const [plans, setPlans] = useState<TrainingPlan[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loadingPatient, setLoadingPatient] = useState(true);
-  const [loadingSessions, setLoadingSessions] = useState(true);
-  const [loadingPlans, setLoadingPlans] = useState(false);
-  const [loadingGoals, setLoadingGoals] = useState(false);
-  const [patientError, setPatientError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>('dados');
+  const queryClient = useQueryClient();
 
   // ── Tab ───────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>('dados');
+
+  // ── Queries ───────────────────────────────────────────────────────────
+  const patientQuery = useQuery({
+    queryKey: ['patient', id],
+    queryFn: () => getPatient(id!),
+    enabled: !!id,
+  });
+  const patient = patientQuery.data ?? null;
+  const loadingPatient = patientQuery.isLoading;
+  const patientError = patientQuery.error
+    ? (patientQuery.error instanceof Error ? patientQuery.error.message : 'Erro ao carregar paciente')
+    : null;
+
+  const sessionsQuery = useQuery({
+    queryKey: ['patient-sessions', id],
+    queryFn: () =>
+      listSessions({ page: 1, limit: 20, patientId: id! }).then((res) => res.data.slice(0, 10)),
+    enabled: !!id,
+  });
+  const sessions = sessionsQuery.data ?? [];
+  const loadingSessions = sessionsQuery.isLoading;
+
+  const evolutionsQuery = useQuery({
+    queryKey: ['patient-evolutions', id],
+    queryFn: () => listEvolutions(id!).then((res) => res.data[0] ?? null),
+    enabled: !!id,
+  });
+  const lastEvolution = evolutionsQuery.data ?? null;
+
+  const plansQuery = useQuery({
+    queryKey: ['patient-plans', id],
+    queryFn: () => listTrainingPlans({ patientId: id!, limit: 50 }).then((r) => r.data),
+    enabled: !!id && activeTab === 'treinos',
+  });
+  const plans = plansQuery.data ?? [];
+  const loadingPlans = plansQuery.isLoading;
+
+  const executionsQuery = useQuery({
+    queryKey: ['patient-executions', id],
+    queryFn: () =>
+      listTrainingExecutions({ patientId: id!, limit: 50 }).then(
+        (r: TrainingExecutionListResponse) => r.data,
+      ),
+    enabled: !!id && activeTab === 'execucoes',
+  });
+  const executions = executionsQuery.data ?? [];
+  const loadingExecutions = executionsQuery.isLoading;
+
+  const photosQuery = useQuery({
+    queryKey: ['patient-photos', id],
+    queryFn: () =>
+      listProgressPhotos({ patientId: id!, limit: 50 }).then(
+        (r: ProgressPhotoListResponse) => r.data,
+      ),
+    enabled: !!id && activeTab === 'fotos',
+  });
+  const photos = photosQuery.data ?? [];
+  const loadingPhotos = photosQuery.isLoading;
+
+  const goalsQuery = useQuery({
+    queryKey: ['patient-goals', id],
+    queryFn: () => listGoals({ patientId: id!, limit: 50 }),
+    enabled: !!id && activeTab === 'metas',
+  });
+  const goals = goalsQuery.data?.data ?? [];
+  const loadingGoals = goalsQuery.isLoading;
 
   // ── Execution inline form ─────────────────────────────────────────────
   const [showExecForm, setShowExecForm] = useState(false);
@@ -120,61 +197,58 @@ export function PatientDetailPage() {
   });
   const [submittingPhoto, setSubmittingPhoto] = useState(false);
 
-  // ── Initial loads ──────────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<
+    { type: 'execution'; id: string } | { type: 'photo'; id: string } | { type: 'goal'; id: string } | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
+  // ── Submit handlers ────────────────────────────────────────────────────
+
+  async function handleExecSubmit(e: React.FormEvent) {
+    e.preventDefault();
     if (!id) return;
-    setLoadingPatient(true);
-    setPatientError(null);
-    getPatient(id)
-      .then(setPatient)
-      .catch((err) =>
-        setPatientError(err instanceof Error ? err.message : 'Erro ao carregar paciente'),
-      )
-      .finally(() => setLoadingPatient(false));
-  }, [id]);
+    setSubmittingExec(true);
+    try {
+      await createTrainingExecution({
+        patientId: id,
+        trainingPlanId: execForm.trainingPlanId || undefined,
+        executedAt: execForm.executedAt,
+        durationMinutes: execForm.durationMinutes ? Number(execForm.durationMinutes) : undefined,
+        notes: execForm.notes.trim() || undefined,
+        completed: execForm.completed,
+      });
+      setShowExecForm(false);
+      setExecForm({ trainingPlanId: '', executedAt: todayIso(), durationMinutes: '', notes: '', completed: true });
+      queryClient.invalidateQueries({ queryKey: ['patient-executions', id] });
+      queryClient.invalidateQueries({ queryKey: ['patient', id] });
+    } catch {
+      // errors surfaced via API toast in apiFetch
+    } finally {
+      setSubmittingExec(false);
+    }
+  }
 
-  useEffect(() => {
-    if (!id) return;
-    setLoadingSessions(true);
-    listSessions({ page: 1, limit: 20, patientId: id })
-      .then((res) => setSessions(res.data.slice(0, 10)))
-      .catch(() => setSessions([]))
-      .finally(() => setLoadingSessions(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-    listEvolutions(id)
-      .then((res) => setLastEvolution(res.data[0] ?? null))
-      .catch(() => setLastEvolution(null));
-  }, [id]);
-
-  const loadPlans = useCallback(() => {
-    if (!id) return;
-    setLoadingPlans(true);
-    listTrainingPlans({ patientId: id, limit: 50 })
-      .then((res) => setPlans(res.data))
-      .catch(() => setPlans([]))
-      .finally(() => setLoadingPlans(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === 'treinos') loadPlans();
-  }, [activeTab, loadPlans]);
-
-  const loadGoals = useCallback(() => {
-    if (!id) return;
-    setLoadingGoals(true);
-    listGoals({ patientId: id, limit: 50 })
-      .then((res) => setGoals(res.data))
-      .catch(() => setGoals([]))
-      .finally(() => setLoadingGoals(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === 'metas') loadGoals();
-  }, [activeTab, loadGoals]);
+  async function handlePhotoSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !photoForm.imageUrl.trim()) return;
+    setSubmittingPhoto(true);
+    try {
+      await createProgressPhoto({
+        patientId: id,
+        imageUrl: photoForm.imageUrl.trim(),
+        takenAt: photoForm.takenAt,
+        notes: photoForm.notes.trim() || undefined,
+      });
+      setShowPhotoForm(false);
+      setPhotoForm({ imageUrl: '', takenAt: todayIso(), notes: '' });
+      queryClient.invalidateQueries({ queryKey: ['patient-photos', id] });
+      queryClient.invalidateQueries({ queryKey: ['patient', id] });
+    } catch {
+      // errors surfaced via API toast in apiFetch
+    } finally {
+      setSubmittingPhoto(false);
+    }
+  }
 
   // ── Guards ──────────────────────────────────────────────────────────────
 
@@ -201,19 +275,27 @@ export function PatientDetailPage() {
     );
   }
 
+  const countSessions = (patient as { _count?: { sessions?: number } })._count?.sessions ?? 0;
   const tabs: { id: TabId; label: string }[] = [
     { id: 'dados', label: 'Dados' },
-    { id: 'sessoes', label: `Avaliações${patient._count.sessions > 0 ? ` (${patient._count.sessions})` : ''}` },
-    { id: 'treinos', label: 'Planos de Treino' },
-    { id: 'execucoes', label: 'Treinos Realizados' },
-    { id: 'fotos', label: 'Fotos' },
-    { id: 'metas', label: 'Metas' },
+    { id: 'sessoes', label: `Avaliações${countSessions > 0 ? ` (${countSessions})` : ''}` },
+    { id: 'treinos', label: `Planos de Treino${plans.length > 0 ? ` (${plans.length})` : ''}` },
+    { id: 'execucoes', label: `Treinos Realizados${executions.length > 0 ? ` (${executions.length})` : ''}` },
+    { id: 'fotos', label: `Fotos${photos.length > 0 ? ` (${photos.length})` : ''}` },
+    { id: 'metas', label: `Metas${goals.length > 0 ? ` (${goals.length})` : ''}` },
   ];
 
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: 'Pacientes', to: '/patients' },
+          { label: patient.fullName },
+        ]}
+        className="mb-1"
+      />
       {/* ── Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
@@ -281,6 +363,29 @@ export function PatientDetailPage() {
       {/* ── Tab: Dados ── */}
       {activeTab === 'dados' && (
         <div className="space-y-4">
+          {/* Vitals em destaque: queixa e objetivo primeiro */}
+          {(patient.mainComplaint || patient.mainGoal) && (
+            <div className="rounded-card border-2 border-primary/40 bg-primary-subtle/50 p-4 space-y-4">
+              <h3 className="text-body font-semibold text-content">Resumo para atendimento</h3>
+              {patient.mainComplaint && (
+                <div>
+                  <dt className="text-body-sm font-medium text-content-muted">Queixa principal</dt>
+                  <dd className="mt-0.5 text-body font-medium text-content leading-snug">
+                    {patient.mainComplaint}
+                  </dd>
+                </div>
+              )}
+              {patient.mainGoal && (
+                <div>
+                  <dt className="text-body-sm font-medium text-content-muted">Objetivo principal</dt>
+                  <dd className="mt-0.5 text-body font-medium text-content leading-snug">
+                    {patient.mainGoal}
+                  </dd>
+                </div>
+              )}
+            </div>
+          )}
+
           <Card title="Dados do paciente" padding="md">
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InfoRow label="Data de nascimento" value={formatDate(patient.birthDate)} />
@@ -292,12 +397,14 @@ export function PatientDetailPage() {
                 <dt className="text-body-sm font-medium text-content-muted">Avaliações / Evoluções</dt>
                 <dd className="flex items-center gap-3 text-body text-content">
                   <span>
-                    <span className="font-semibold text-primary">{patient._count.sessions}</span>{' '}
+                    <span className="font-semibold text-primary">{countSessions}</span>{' '}
                     <span className="text-content-muted">avaliações</span>
                   </span>
                   <span className="text-border-soft">·</span>
                   <span>
-                    <span className="font-semibold text-primary">{patient._count.evolutions}</span>{' '}
+                    <span className="font-semibold text-primary">
+                      {(patient as { _count?: { evolutions?: number } })._count?.evolutions ?? 0}
+                    </span>{' '}
                     <span className="text-content-muted">evoluções</span>
                   </span>
                 </dd>
@@ -305,10 +412,6 @@ export function PatientDetailPage() {
             </dl>
           </Card>
 
-          {patient.mainGoal && <TextCard title="Objetivo principal" text={patient.mainGoal} />}
-          {patient.mainComplaint && (
-            <TextCard title="Queixa principal" text={patient.mainComplaint} />
-          )}
           {patient.notes && <TextCard title="Observações" text={patient.notes} />}
 
           <div className="flex flex-wrap gap-3 pt-1">
@@ -600,7 +703,7 @@ export function PatientDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {executions.map((exec) => (
+                    {executions.map((exec: TrainingExecution) => (
                       <tr
                         key={exec.id}
                         className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
@@ -626,15 +729,7 @@ export function PatientDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={async () => {
-                              if (!window.confirm('Remover esta execução?')) return;
-                              try {
-                                await deleteTrainingExecution(exec.id);
-                                loadExecutions();
-                              } catch {
-                                // ignore
-                              }
-                            }}
+                            onClick={() => setPendingDelete({ type: 'execution', id: exec.id })}
                           >
                             Remover
                           </Button>
@@ -710,7 +805,7 @@ export function PatientDetailPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {photos.map((photo) => (
+              {photos.map((photo: ProgressPhoto) => (
                 <div
                   key={photo.id}
                   className="overflow-hidden rounded-card border border-border bg-surface"
@@ -735,15 +830,7 @@ export function PatientDetailPage() {
                       variant="ghost"
                       size="sm"
                       className="mt-2"
-                      onClick={async () => {
-                        if (!window.confirm('Remover esta foto?')) return;
-                        try {
-                          await deleteProgressPhoto(photo.id);
-                          loadPhotos();
-                        } catch {
-                          // ignore
-                        }
-                      }}
+                      onClick={() => setPendingDelete({ type: 'photo', id: photo.id })}
                     >
                       Remover
                     </Button>
@@ -841,7 +928,7 @@ export function PatientDetailPage() {
                                   await updateGoal(goal.id, {
                                     achievedAt: new Date().toISOString(),
                                   });
-                                  loadGoals();
+                                  queryClient.invalidateQueries({ queryKey: ['patient-goals', id] });
                                 } catch {
                                   // silently retry
                                 }
@@ -853,15 +940,7 @@ export function PatientDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={async () => {
-                              if (!window.confirm('Remover esta meta?')) return;
-                              try {
-                                await deleteGoal(goal.id);
-                                loadGoals();
-                              } catch {
-                                // silently retry
-                              }
-                            }}
+                            onClick={() => setPendingDelete({ type: 'goal', id: goal.id })}
                           >
                             Remover
                           </Button>
@@ -875,6 +954,52 @@ export function PatientDetailPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title={
+          pendingDelete?.type === 'execution'
+            ? 'Remover execução'
+            : pendingDelete?.type === 'photo'
+              ? 'Remover foto'
+              : 'Remover meta'
+        }
+        message={
+          pendingDelete?.type === 'execution'
+            ? 'Remover esta execução de treino?'
+            : pendingDelete?.type === 'photo'
+              ? 'Remover esta foto de progresso?'
+              : 'Remover esta meta?'
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setDeleting(true);
+          try {
+            if (pendingDelete.type === 'execution') {
+              await deleteTrainingExecution(pendingDelete.id);
+              queryClient.invalidateQueries({ queryKey: ['patient-executions', id] });
+              queryClient.invalidateQueries({ queryKey: ['patient', id] });
+            } else if (pendingDelete.type === 'photo') {
+              await deleteProgressPhoto(pendingDelete.id);
+              queryClient.invalidateQueries({ queryKey: ['patient-photos', id] });
+              queryClient.invalidateQueries({ queryKey: ['patient', id] });
+            } else {
+              await deleteGoal(pendingDelete.id);
+              queryClient.invalidateQueries({ queryKey: ['patient-goals', id] });
+            }
+            setPendingDelete(null);
+          } catch {
+            // errors surfaced via API
+          } finally {
+            setDeleting(false);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

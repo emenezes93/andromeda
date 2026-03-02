@@ -224,7 +224,7 @@ export function TrainingPlansListPage() {
 
                     <div className="mt-3 flex gap-3 border-t border-border pt-3">
                       <span className="inline-flex items-center gap-1 rounded-button bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
-                        {plan.executionsCount} execução(ões)
+                        {plan.executionsCount} treino(s) realizado(s)
                       </span>
                     </div>
                   </Card>

@@ -18,6 +18,7 @@ import { trainingPlansRoutes } from '../modules/training-plans/routes.js';
 import { trainingExecutionsRoutes } from '../modules/training-executions/routes.js';
 import { progressPhotosRoutes } from '../modules/progress-photos/routes.js';
 import { dietRoutes } from '../modules/diet/routes.js';
+import { twoFactorRoutes } from '../modules/auth/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
@@ -92,6 +93,7 @@ export async function buildApp() {
 
   // Auth + Users + Tenants (hexagonal architecture)
   container.authController.registerRoutes(app);
+  await app.register(twoFactorRoutes);
   container.userController.registerRoutes(app);
   container.tenantController.registerRoutes(app);
   container.patientController.registerRoutes(app);
