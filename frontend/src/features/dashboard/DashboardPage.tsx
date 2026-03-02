@@ -29,8 +29,16 @@ const PERIOD_OPTIONS = [
   { value: 90, label: '90 dias' },
 ] as const;
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
 export function DashboardPage() {
   const user = getStoredUser();
+  const { t } = useTranslation();
   const [periodDays, setPeriodDays] = useState<number>(30);
 
   const { data: sessionsData, isLoading: loadingSessions } = useQuery({
@@ -41,6 +49,21 @@ export function DashboardPage() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['dashboard-stats', periodDays],
     queryFn: () => getDashboardStats({ days: periodDays }),
+  });
+
+  const { data: patientsData, isLoading: loadingPatients } = useQuery({
+    queryKey: ['dashboard-patients'],
+    queryFn: () => listPatients({ page: 1, limit: 500 }),
+  });
+
+  const { data: goalsData, isLoading: loadingGoals } = useQuery({
+    queryKey: ['dashboard-goals'],
+    queryFn: () => listGoals({ limit: 1 }),
+  });
+
+  const { data: sessionsForAttention } = useQuery({
+    queryKey: ['dashboard-sessions-recent'],
+    queryFn: () => listSessions({ page: 1, limit: 1000 }),
   });
 
   const loading = loadingSessions || loadingStats;
@@ -80,6 +103,19 @@ export function DashboardPage() {
       return acc;
     }, 0);
   }, [byDay]);
+
+  const patientsNeedingAttention = useMemo(() => {
+    const patients = patientsData?.data ?? [];
+    const sessions = sessionsForAttention?.data ?? [];
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const patientIdsWithRecentSession = new Set(
+      sessions
+        .filter((s) => s.createdAt && new Date(s.createdAt) >= cutoff && s.patientId)
+        .map((s) => s.patientId!)
+    );
+    return patients.filter((p) => !patientIdsWithRecentSession.has(p.id));
+  }, [patientsData?.data, sessionsForAttention?.data]);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('pt-BR', {
@@ -197,6 +233,37 @@ export function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Pacientes que precisam de atenção (sem avaliação em 30+ dias) */}
+      {patientsNeedingAttention.length > 0 && (
+        <Card title="Pacientes que precisam de atenção" padding="md" className="border-l-4 border-l-warning">
+          <p className="text-body-sm text-content-muted mb-3">
+            Sem avaliação nos últimos 30 dias. Vale uma nova consulta ou lembrete.
+          </p>
+          <ul className="space-y-1.5">
+            {patientsNeedingAttention.slice(0, 10).map((p) => (
+              <li key={p.id}>
+                <Link
+                  to={`/patients/${p.id}`}
+                  className="text-body font-medium text-primary hover:underline"
+                >
+                  {p.fullName}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {patientsNeedingAttention.length > 10 && (
+            <p className="mt-2 text-body-sm text-content-muted">
+              + {patientsNeedingAttention.length - 10} outros
+            </p>
+          )}
+          <Link to="/patients" className="mt-3 inline-block">
+            <Button variant="secondary" size="sm">
+              Ver todos os pacientes
+            </Button>
+          </Link>
+        </Card>
+      )}
 
       {/* Alertas / Notificações */}
       <NotificationsWidget />

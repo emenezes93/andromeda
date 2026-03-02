@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { login } from '@/api/auth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { login, login2fa } from '@/api/auth';
 import { setAuth } from '@/stores/authStore';
 import { isOnboardingDismissed } from '@/stores/onboardingStore';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +20,22 @@ type FormData = z.infer<typeof schema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('reason') === 'session_expired';
   const [apiError, setApiError] = useState<string | null>(null);
+  useEffect(() => {
+    if (sessionExpired) {
+      setSearchParams((p) => {
+        p.delete('reason');
+        return p;
+      }, { replace: true });
+    }
+  }, [sessionExpired, setSearchParams]);
+  const [twoFactorStep, setTwoFactorStep] = useState(false);
+  const [twoFactorEmail, setTwoFactorEmail] = useState('');
+  const [twoFactorPassword, setTwoFactorPassword] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorSubmitting, setTwoFactorSubmitting] = useState(false);
 
   const {
     register,
@@ -35,10 +50,43 @@ export function LoginPage() {
     setApiError(null);
     try {
       const res = await login(data.email, data.password);
-      setAuth(res.token, res.refreshToken, res.user);
+      if ('requiresTwoFactor' in res && res.requiresTwoFactor) {
+        setTwoFactorEmail(data.email);
+        setTwoFactorPassword(data.password);
+        setTwoFactorStep(true);
+        return;
+      }
+      const authRes = res as { token: string; refreshToken: string; user: { id: string; email: string; name: string | null; role: string; tenantId: string } };
+      setAuth(authRes.token, authRes.refreshToken, authRes.user);
       navigate(isOnboardingDismissed() ? '/' : '/onboarding', { replace: true });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao fazer login');
+    }
+  };
+
+  const onTwoFactorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError(null);
+    const code = twoFactorCode.trim().replace(/\s/g, '');
+    if (!code) {
+      setApiError('Digite o código do app ou um código de recuperação.');
+      return;
+    }
+    setTwoFactorSubmitting(true);
+    try {
+      const isBackup = code.length === 8 && /^\d+$/.test(code);
+      const res = await login2fa(
+        twoFactorEmail,
+        twoFactorPassword,
+        isBackup ? undefined : code,
+        isBackup ? code : undefined
+      );
+      setAuth(res.token, res.refreshToken, res.user);
+      navigate(isOnboardingDismissed() ? '/' : '/onboarding', { replace: true });
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : 'Código inválido ou expirado.');
+    } finally {
+      setTwoFactorSubmitting(false);
     }
   };
 
@@ -79,55 +127,119 @@ export function LoginPage() {
           className="login-enter login-enter-stagger-1 rounded-2xl border border-border-muted bg-surface/95 p-6 shadow-soft backdrop-blur-sm"
           style={{ boxShadow: '0 2px 12px rgb(14 165 233 / 0.06)' }}
         >
-          <h2 className="text-heading-sm font-semibold text-content">Entrar</h2>
+          {sessionExpired && (
+            <div
+              className="mb-4 rounded-button border border-warning bg-warning-subtle px-3 py-2.5 text-body-sm text-warning"
+              role="alert"
+            >
+              Sua sessão expirou. Faça login novamente para continuar.
+            </div>
+          )}
+          <h2 className="text-heading-sm font-semibold text-content">
+            {twoFactorStep ? 'Código de autenticação' : 'Entrar'}
+          </h2>
           <p className="mt-0.5 text-body-sm text-content-muted">
-            E-mail e senha para acessar.
+            {twoFactorStep
+              ? 'Digite o código de 6 dígitos do app ou um código de recuperação de 8 dígitos.'
+              : 'E-mail e senha para acessar.'}
           </p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-            <div className="login-enter login-enter-stagger-2">
-              <Input
-                label="E-mail"
-                type="email"
-                autoComplete="email"
-                error={errors.email?.message}
-                {...register('email')}
-              />
-            </div>
-            <div className="login-enter login-enter-stagger-3">
-              <Input
-                label="Senha"
-                type="password"
-                autoComplete="current-password"
-                error={errors.password?.message}
-                {...register('password')}
-              />
-            </div>
-
-            {apiError && (
-              <div
-                className="rounded-button bg-error-light px-3 py-2.5 text-body-sm text-error transition-opacity"
-                role="alert"
-              >
-                {apiError}
+          {!twoFactorStep ? (
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+              <div className="login-enter login-enter-stagger-2">
+                <Input
+                  label="E-mail"
+                  type="email"
+                  autoComplete="email"
+                  error={errors.email?.message}
+                  {...register('email')}
+                />
               </div>
-            )}
+              <div className="login-enter login-enter-stagger-3">
+                <Input
+                  label="Senha"
+                  type="password"
+                  autoComplete="current-password"
+                  error={errors.password?.message}
+                  {...register('password')}
+                />
+              </div>
 
-            <div className="pt-1">
-              <Button
-                type="submit"
-                className="w-full transition-calm hover:scale-[1.01] active:scale-[0.99]"
-                size="lg"
-                loading={isSubmitting}
-              >
-                Entrar
-              </Button>
-            </div>
-          </form>
+              {apiError && (
+                <div
+                  className="rounded-button bg-error-light px-3 py-2.5 text-body-sm text-error transition-opacity"
+                  role="alert"
+                >
+                  {apiError}
+                </div>
+              )}
 
-          <p className="mt-4 text-center text-body-sm text-content-subtle">
-            Demo: owner@demo.com / owner123
-          </p>
+              <div className="pt-1">
+                <Button
+                  type="submit"
+                  className="w-full transition-calm hover:scale-[1.01] active:scale-[0.99]"
+                  size="lg"
+                  loading={isSubmitting}
+                >
+                  Entrar
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={onTwoFactorSubmit} className="mt-6 space-y-4">
+              <p className="text-body-sm text-content-muted">{twoFactorEmail}</p>
+              <Input
+                label="Código"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000 ou código de recuperação"
+                value={twoFactorCode}
+                onChange={(e) =>
+                  setTwoFactorCode(e.target.value.replace(/\s/g, '').slice(0, 8))
+                }
+                maxLength={8}
+              />
+
+              {apiError && (
+                <div
+                  className="rounded-button bg-error-light px-3 py-2.5 text-body-sm text-error transition-opacity"
+                  role="alert"
+                >
+                  {apiError}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  type="submit"
+                  className="w-full transition-calm hover:scale-[1.01] active:scale-[0.99]"
+                  size="lg"
+                  loading={twoFactorSubmitting}
+                >
+                  Verificar
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setTwoFactorStep(false);
+                    setTwoFactorCode('');
+                    setApiError(null);
+                  }}
+                >
+                  Voltar ao login
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {!twoFactorStep && (
+            <p className="mt-4 text-center text-body-sm text-content-subtle">
+              Demo: owner@demo.com / owner123
+            </p>
+          )}
         </div>
       </div>
     </div>

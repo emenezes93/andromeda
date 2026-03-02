@@ -6,6 +6,7 @@ import { getPatient, listPatients } from '@/api/patients';
 import type { Template, Patient } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PatientSearchSelect } from '@/components/ui/PatientSearchSelect';
 
 export function NewSessionPage() {
   const navigate = useNavigate();
@@ -87,9 +88,9 @@ export function NewSessionPage() {
   if (templates.length === 0) {
     return (
       <Card title="Nova avaliação">
-        <p className="text-content-muted">Nenhum modelo de avaliação disponível. Crie um template primeiro.</p>
+        <p className="text-content-muted">Nenhum modelo de avaliação disponível. Crie um modelo de avaliação primeiro.</p>
         <Link to="/templates/new" className="mt-4 inline-block">
-          <Button>Criar template</Button>
+          <Button>Criar modelo</Button>
         </Link>
       </Card>
     );
@@ -98,29 +99,17 @@ export function NewSessionPage() {
   return (
     <Card title="Nova avaliação">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="new-session-patient" className="mb-1.5 block text-sm font-medium text-content-muted">
-            Paciente (opcional)
-          </label>
-          <select
-            id="new-session-patient"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            value={patientId || preselectedPatientId || ''}
-            onChange={(e) => setPatientId(e.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {patients.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.fullName}
-              </option>
-            ))}
-          </select>
-          {patient && (
-            <p className="mt-1 text-body-sm text-content-muted">
-              Avaliação será vinculada a {patient.fullName}
-            </p>
-          )}
-        </div>
+        <PatientSearchSelect
+          patients={patients}
+          value={patientId || preselectedPatientId || ''}
+          onChange={(id) => setPatientId(id)}
+          placeholder="Digite ao menos 2 letras para buscar..."
+        />
+        {patient && (
+          <p className="text-body-sm text-content-muted">
+            Avaliação será vinculada a {patient.fullName}
+          </p>
+        )}
         <div>
           <label htmlFor="new-session-template" className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
           <select

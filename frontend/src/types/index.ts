@@ -13,6 +13,19 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface LoginRequiresTwoFactor {
+  requiresTwoFactor: true;
+}
+
+export interface TwoFactorStatusResponse {
+  enabled: boolean;
+}
+
+export interface TwoFactorSetupStartResponse {
+  qrCodeUrl: string;
+  backupCodes: string[];
+}
+
 export interface AuthState {
   token: string | null;
   refreshToken: string | null;
@@ -305,6 +318,13 @@ export interface CreateTrainingExecutionBody {
   completed?: boolean;
 }
 
+export interface UpdateTrainingExecutionBody {
+  executedAt?: string;
+  durationMinutes?: number | null;
+  notes?: string | null;
+  completed?: boolean;
+}
+
 // Progress Photos
 export interface ProgressPhoto {
   id: string;
@@ -491,6 +511,18 @@ export interface CreateDietEntryBody {
   totalFatG?: number;
   waterMl?: number;
   notes?: string;
+}
+
+export interface UpdateDietEntryBody {
+  entryDate?: string;
+  mealType?: MealType;
+  foodsJson?: DietFood[];
+  totalCalories?: number | null;
+  totalProteinG?: number | null;
+  totalCarbsG?: number | null;
+  totalFatG?: number | null;
+  waterMl?: number | null;
+  notes?: string | null;
 }
 
 export interface DietBodyMetric {

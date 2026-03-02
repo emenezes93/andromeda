@@ -11,7 +11,8 @@ export class User {
     public readonly createdAt: Date,
     public readonly deletedAt: Date | null = null,
     public readonly loginAttempts: number = 0,
-    public readonly lockedUntil: Date | null = null
+    public readonly lockedUntil: Date | null = null,
+    public readonly twoFactorEnabled: boolean = false
   ) {}
 
   static create(email: string, passwordHash: string, name: string | null = null): User {

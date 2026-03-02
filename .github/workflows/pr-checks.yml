@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Fast feedback: lint + type check + unit tests (~2min, no DB required)
+  # Fast feedback: lint + type check + unit tests (~2 min, no DB required)
   fast-checks:
     name: Lint, Types & Unit Tests
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
 
   # Frontend checks (runs in parallel)
   frontend-checks:
-    name: Frontend Lint & Types
+    name: Frontend Lint, Types & Build
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     defaults:
@@ -67,6 +67,37 @@ jobs:
       - name: Build
         run: npm run build
 
+  # Dependency vulnerability review — only runs when package files change
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, Unlicense, Python-2.0
+          comment-summary-in-pr: always
+
+  # Secrets scanning — detect accidentally committed secrets
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog-actions-scan@master
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
   # PR title follows Conventional Commits
   pr-title:
     name: PR Title Convention
@@ -89,3 +120,46 @@ jobs:
             chore
             revert
           requireScope: false
+
+  # Migration safety check — detects unapplied Prisma migrations
+  migration-check:
+    name: Prisma Migration Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: anamnese_migrate_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/anamnese_migrate_check
+      JWT_SECRET: test-secret-key-min-32-chars-for-ci-pipeline
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+      - name: Check for schema drift
+        run: |
+          npx prisma migrate status
+          if npx prisma migrate status 2>&1 | grep -q "Following migration(s) have not yet been applied"; then
+            echo "❌ There are unapplied migrations. Run 'npm run prisma:migrate:dev' to create them." >&2
+            exit 1
+          fi
+          echo "✅ All migrations applied and schema is in sync."

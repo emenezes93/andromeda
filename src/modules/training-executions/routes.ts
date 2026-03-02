@@ -2,9 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
-import { NotFoundError } from '@shared/errors/index.js';
+import { NotFoundError, BadRequestError } from '@shared/errors/index.js';
 import {
   createTrainingExecutionSchema,
+  updateTrainingExecutionSchema,
   listTrainingExecutionsQuerySchema,
 } from './schemas.js';
 import { auditLog } from '@shared/utils/audit.js';
@@ -198,6 +199,85 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
         patientName: execution.patient.fullName,
         trainingPlanId: execution.trainingPlanId,
         planName: execution.plan?.name ?? null,
+        executedAt: execution.executedAt.toISOString(),
+        durationMinutes: execution.durationMinutes,
+        notes: execution.notes,
+        completed: execution.completed,
+      });
+    }
+  );
+
+  fastify.patch(
+    '/v1/training-executions/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            executedAt: { type: 'string' },
+            durationMinutes: { type: 'number', nullable: true },
+            notes: { type: 'string', nullable: true },
+            completed: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              executedAt: { type: 'string' },
+              durationMinutes: { type: 'number', nullable: true },
+              notes: { type: 'string', nullable: true },
+              completed: { type: 'boolean' },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      const user = requireAuth(request);
+      Guards.sessions(user.role);
+
+      const { id } = request.params as { id: string };
+      const body = updateTrainingExecutionSchema.parse(request.body);
+
+      const existing = await fastify.prisma.trainingExecution.findFirst({
+        where: { id, tenantId },
+      });
+      if (!existing) throw new NotFoundError('Execução de treino não encontrada');
+
+      const data: {
+        executedAt?: Date;
+        durationMinutes?: number | null;
+        notes?: string | null;
+        completed?: boolean;
+      } = {};
+      if (body.executedAt != null) {
+        const d = new Date(body.executedAt);
+        if (isNaN(d.getTime())) throw new BadRequestError('Data de execução inválida');
+        data.executedAt = d;
+      }
+      if (body.durationMinutes !== undefined) data.durationMinutes = body.durationMinutes;
+      if (body.notes !== undefined) data.notes = body.notes;
+      if (body.completed !== undefined) data.completed = body.completed;
+
+      const execution = await fastify.prisma.trainingExecution.update({
+        where: { id },
+        data,
+      });
+
+      await auditLog(fastify.prisma, tenantId, 'update', 'training_execution', id, user.userId, {
+        ...data,
+      });
+
+      return reply.status(200).send({
+        id: execution.id,
         executedAt: execution.executedAt.toISOString(),
         durationMinutes: execution.durationMinutes,
         notes: execution.notes,

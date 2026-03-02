@@ -3,6 +3,7 @@ import type {
   TrainingExecution,
   TrainingExecutionListResponse,
   CreateTrainingExecutionBody,
+  UpdateTrainingExecutionBody,
 } from '@/types';
 
 export interface ListTrainingExecutionsParams {
@@ -29,6 +30,16 @@ export async function createTrainingExecution(
 ): Promise<TrainingExecution> {
   return apiFetch<TrainingExecution>('/v1/training-executions', {
     method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateTrainingExecution(
+  id: string,
+  body: UpdateTrainingExecutionBody
+): Promise<TrainingExecution> {
+  return apiFetch<TrainingExecution>(`/v1/training-executions/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(body),
   });
 }

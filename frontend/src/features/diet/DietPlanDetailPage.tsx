@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import type { DietFood, MealType } from '@/types';
 
@@ -49,6 +50,7 @@ export function DietPlanDetailPage() {
   const toast = useToast();
 
   const [showAddEntry, setShowAddEntry] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<'plan' | { entryId: string } | null>(null);
   const [entryForm, setEntryForm] = useState<AddEntryState>({
     entryDate: today(),
     mealType: 'lunch',
@@ -168,9 +170,7 @@ export function DietPlanDetailPage() {
           </Link>
           <Button
             variant="outline"
-            onClick={() => {
-              if (confirm('Remover este plano de dieta?')) deletePlanMutation.mutate();
-            }}
+            onClick={() => setPendingDelete('plan')}
           >
             Remover
           </Button>
@@ -330,9 +330,7 @@ export function DietPlanDetailPage() {
                               )}
                             </div>
                             <button
-                              onClick={() => {
-                                if (confirm('Remover esta entrada?')) deleteEntryMutation.mutate(entry.id);
-                              }}
+                              onClick={() => setPendingDelete({ entryId: entry.id })}
                               className="rounded p-1 text-content-muted hover:bg-error-light hover:text-error"
                             >
                               ✕
@@ -347,6 +345,32 @@ export function DietPlanDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title={pendingDelete === 'plan' ? 'Remover plano de dieta' : 'Remover entrada'}
+        message={
+          pendingDelete === 'plan'
+            ? 'Remover este plano de dieta? Esta ação não pode ser desfeita.'
+            : pendingDelete
+              ? 'Remover esta entrada do diário alimentar?'
+              : ''
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={pendingDelete === 'plan' ? deletePlanMutation.isPending : !!(pendingDelete && deleteEntryMutation.isPending)}
+        onConfirm={() => {
+          if (pendingDelete === 'plan') {
+            deletePlanMutation.mutate();
+            setPendingDelete(null);
+          } else if (pendingDelete && 'entryId' in pendingDelete) {
+            deleteEntryMutation.mutate(pendingDelete.entryId);
+            setPendingDelete(null);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

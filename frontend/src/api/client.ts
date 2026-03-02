@@ -49,7 +49,9 @@ export async function apiFetch<T>(
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('tenantId');
-    window.location.href = '/login';
+    const notify = getApiErrorHandler();
+    if (notify) notify('Sua sessão expirou. Faça login novamente para continuar.', 'error');
+    window.location.href = '/login?reason=session_expired';
     throw new Error('Sessão expirada');
   }
 

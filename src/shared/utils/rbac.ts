@@ -6,6 +6,7 @@ const hierarchy: Record<Role, number> = {
   admin: 3,
   practitioner: 2,
   viewer: 1,
+  patient: 0,
 };
 
 export function hasMinimumRole(userRole: Role, required: Role): boolean {

@@ -2,7 +2,7 @@
  * Shared types and request context
  */
 
-export type Role = 'owner' | 'admin' | 'practitioner' | 'viewer';
+export type Role = 'owner' | 'admin' | 'practitioner' | 'viewer' | 'patient';
 
 export interface TenantContext {
   tenantId: string;
@@ -13,6 +13,8 @@ export interface AuthUser {
   email: string;
   role: Role;
   tenantId: string;
+  /** Present when role is 'patient' (patient-portal JWT) */
+  patientId?: string;
 }
 
 export interface RequestContext {

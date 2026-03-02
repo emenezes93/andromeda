@@ -50,6 +50,18 @@ export const createDietEntrySchema = z.object({
   notes: z.string().optional(),
 });
 
+export const updateDietEntrySchema = z.object({
+  entryDate: z.string().min(1).optional(),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'other']).optional(),
+  foodsJson: z.array(dietFoodSchema).min(1).optional(),
+  totalCalories: z.number().int().min(0).nullable().optional(),
+  totalProteinG: z.number().min(0).nullable().optional(),
+  totalCarbsG: z.number().min(0).nullable().optional(),
+  totalFatG: z.number().min(0).nullable().optional(),
+  waterMl: z.number().int().min(0).nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 export const listDietEntriesQuerySchema = z.object({
   patientId: z.string().optional(),
   dietPlanId: z.string().optional(),
@@ -64,4 +76,5 @@ export type CreateDietPlanBody = z.infer<typeof createDietPlanSchema>;
 export type UpdateDietPlanBody = z.infer<typeof updateDietPlanSchema>;
 export type ListDietPlansQuery = z.infer<typeof listDietPlansQuerySchema>;
 export type CreateDietEntryBody = z.infer<typeof createDietEntrySchema>;
+export type UpdateDietEntryBody = z.infer<typeof updateDietEntrySchema>;
 export type ListDietEntriesQuery = z.infer<typeof listDietEntriesQuerySchema>;

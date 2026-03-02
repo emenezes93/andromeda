@@ -26,6 +26,10 @@ export interface LoginResponse {
   };
 }
 
+export interface LoginRequiresTwoFactor {
+  requiresTwoFactor: true;
+}
+
 /**
  * Use Case: Login
  * Business logic for user authentication
@@ -41,7 +45,7 @@ export class LoginUseCase {
     private readonly auditService: IAuditService
   ) {}
 
-  async execute(request: LoginRequest): Promise<LoginResponse> {
+  async execute(request: LoginRequest): Promise<LoginResponse | LoginRequiresTwoFactor> {
     // Find user
     const user = await this.userRepository.findByEmail(request.email);
     if (!user || user.isDeleted()) {
@@ -59,6 +63,11 @@ export class LoginUseCase {
     if (!passwordMatch) {
       await this.userRepository.recordFailedLogin(user.id);
       throw new UnauthorizedError('Invalid email or password');
+    }
+
+    // Require 2FA code when enabled
+    if (user.twoFactorEnabled) {
+      return { requiresTwoFactor: true };
     }
 
     await this.userRepository.recordSuccessfulLogin(user.id);

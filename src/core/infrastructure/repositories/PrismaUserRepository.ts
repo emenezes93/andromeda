@@ -146,6 +146,7 @@ export class PrismaUserRepository implements IUserRepository {
     deletedAt: Date | null;
     loginAttempts?: number;
     lockedUntil?: Date | null;
+    twoFactorEnabled?: boolean;
   }): User {
     return new User(
       prismaUser.id,
@@ -155,7 +156,8 @@ export class PrismaUserRepository implements IUserRepository {
       prismaUser.createdAt,
       prismaUser.deletedAt,
       prismaUser.loginAttempts ?? 0,
-      prismaUser.lockedUntil ?? null
+      prismaUser.lockedUntil ?? null,
+      prismaUser.twoFactorEnabled ?? false
     );
   }
 }
