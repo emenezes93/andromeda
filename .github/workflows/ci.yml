@@ -62,6 +62,8 @@ jobs:
         run: npm run prisma:seed
       - name: Run tests with coverage
         run: npm run test:coverage
+      - name: Smoke tests
+        run: npm run test:smoke
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()

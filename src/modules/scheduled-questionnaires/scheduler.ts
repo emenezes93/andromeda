@@ -2,6 +2,7 @@
  * Utilitários para calcular próximas execuções de agendamentos
  */
 import type { PrismaClient } from '@prisma/client';
+import { createPatientNotification } from '../patient-notifications/service.js';
 
 export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
 
@@ -120,10 +121,68 @@ export async function processScheduledQuestionnaires(
 
   for (const schedule of scheduled) {
     try {
+      const templateName = schedule.template?.name ?? 'Questionário';
+
+      const emitNotificationAndAlert = async (
+        sessionId: string,
+        patientId: string,
+        patientName: string | null
+      ) => {
+        const existingNotif = await prisma.patientNotification.findFirst({
+          where: {
+            tenantId: schedule.tenantId,
+            patientId,
+            type: 'questionnaire_session_created',
+            metadata: { path: ['sessionId'], equals: sessionId },
+          },
+        });
+        if (!existingNotif) {
+          await createPatientNotification(prisma, {
+            tenantId: schedule.tenantId,
+            patientId,
+            type: 'questionnaire_session_created',
+            metadata: {
+              sessionId,
+              questionnaireId: schedule.templateId,
+              questionnaireName: templateName,
+              dueAt: schedule.nextRunAt?.toISOString() ?? null,
+              createdAt: now.toISOString(),
+            },
+          });
+        }
+        const existingAlert = await prisma.alert.findFirst({
+          where: {
+            tenantId: schedule.tenantId,
+            patientId,
+            type: 'reassessment_scheduled',
+            metadata: { path: ['sessionId'], equals: sessionId },
+          },
+        });
+        if (!existingAlert) {
+          await prisma.alert.create({
+            data: {
+              tenantId: schedule.tenantId,
+              patientId,
+              type: 'reassessment_scheduled',
+              severity: 'info',
+              message: `Reavaliação "${templateName}" criada${patientName ? ` para ${patientName}` : ''}. Aguardando preenchimento.`,
+              metadata: {
+                patientId,
+                patientName,
+                sessionId,
+                questionnaireName: templateName,
+                questionnaireId: schedule.templateId,
+                dueAt: schedule.nextRunAt?.toISOString() ?? null,
+              },
+            },
+          });
+        }
+      };
+
       // Se patientId está definido, criar sessão apenas para esse paciente
       // Caso contrário, criar para todos os pacientes do tenant
       if (schedule.patientId) {
-        await prisma.anamnesisSession.create({
+        const session = await prisma.anamnesisSession.create({
           data: {
             tenantId: schedule.tenantId,
             templateId: schedule.templateId,
@@ -132,24 +191,32 @@ export async function processScheduledQuestionnaires(
           },
         });
         created++;
+        const patient = await prisma.patient.findUnique({
+          where: { id: schedule.patientId },
+          select: { fullName: true },
+        });
+        await emitNotificationAndAlert(
+          session.id,
+          schedule.patientId,
+          patient?.fullName ?? null
+        );
       } else {
-        // Criar para todos os pacientes ativos do tenant usando createMany (evita N+1)
         const patients = await prisma.patient.findMany({
           where: { tenantId: schedule.tenantId, deletedAt: null },
-          select: { id: true },
+          select: { id: true, fullName: true },
         });
 
-        if (patients.length > 0) {
-          const result = await prisma.anamnesisSession.createMany({
-            data: patients.map((patient) => ({
+        for (const patient of patients) {
+          const session = await prisma.anamnesisSession.create({
+            data: {
               tenantId: schedule.tenantId,
               templateId: schedule.templateId,
               patientId: patient.id,
               status: 'in_progress',
-            })),
-            skipDuplicates: true,
+            },
           });
-          created += result.count;
+          created++;
+          await emitNotificationAndAlert(session.id, patient.id, patient.fullName);
         }
       }
 

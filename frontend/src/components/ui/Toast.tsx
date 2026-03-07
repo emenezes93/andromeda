@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { Transition } from '@headlessui/react';
 import { setApiErrorHandler } from '@/api/globalErrorHandler';
 
 // ---------------------------------------------------------------------------
@@ -14,14 +15,23 @@ import { setApiErrorHandler } from '@/api/globalErrorHandler';
 
 export type ToastVariant = 'success' | 'error' | 'info' | 'warning';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface Toast {
   id: string;
   message: string;
   variant: ToastVariant;
+  /** Quando definido, exibe botão de ação (ex.: "Desfazer") e estende a duração. */
+  action?: ToastAction;
 }
 
 export interface ToastContextValue {
   addToast: (message: string, variant?: ToastVariant) => void;
+  /** Toast de sucesso com botão opcional (ex.: Desfazer). Duração maior quando action existe. */
+  successWithAction: (message: string, action: ToastAction) => void;
   success: (message: string) => void;
   error: (message: string) => void;
   info: (message: string) => void;
@@ -92,50 +102,68 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   const config = VARIANT_CONFIG[toast.variant];
 
   return (
-    <div
-      role="alert"
-      aria-live="assertive"
-      aria-label={config.label}
-      style={{
-        minWidth: '280px',
-        maxWidth: '400px',
-        transition: 'opacity 300ms ease, transform 300ms ease',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateX(0)' : 'translateX(100%)',
-      }}
-      className={[
-        'flex items-start gap-3',
-        'bg-surface shadow-soft rounded-card',
-        'border-l-4',
-        config.borderClass,
-        'px-4 py-3',
-      ].join(' ')}
+    <Transition
+      show={visible}
+      enter="transform transition ease-out duration-300"
+      enterFrom="opacity-0 translate-x-full"
+      enterTo="opacity-100 translate-x-0"
+      leave="transform transition ease-in duration-200"
+      leaveFrom="opacity-100 translate-x-0"
+      leaveTo="opacity-0 translate-x-full"
     >
-      {/* Icon */}
-      <span
-        className={['mt-0.5 text-base font-bold select-none', config.iconClass].join(' ')}
-        aria-hidden="true"
+      <div
+        role="alert"
+        aria-live="assertive"
+        aria-label={config.label}
+        className={[
+          'flex items-start gap-3',
+          'bg-surface shadow-soft rounded-card',
+          'border-l-4',
+          config.borderClass,
+          'px-4 py-3',
+          'min-w-[280px] max-w-[400px]',
+        ].join(' ')}
       >
-        {config.icon}
-      </span>
-
-      {/* Message */}
-      <p className="flex-1 text-sm text-content leading-snug break-words">
-        {toast.message}
-      </p>
-
-      {/* Close button */}
-      <button
-        type="button"
-        onClick={() => onDismiss(toast.id)}
-        className="ml-1 -mr-1 -mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        aria-label="Dismiss notification"
-      >
-        <span aria-hidden="true" className="text-lg leading-none">
-          ×
+        {/* Icon */}
+        <span
+          className={['mt-0.5 text-base font-bold select-none', config.iconClass].join(' ')}
+          aria-hidden="true"
+        >
+          {config.icon}
         </span>
-      </button>
-    </div>
+
+        {/* Message */}
+        <p className="flex-1 text-sm text-content leading-snug break-words">
+          {toast.message}
+        </p>
+
+        {/* Action button (e.g. Desfazer) */}
+        {toast.action && (
+          <button
+            type="button"
+            onClick={() => {
+              toast.action?.onClick();
+              onDismiss(toast.id);
+            }}
+            className="shrink-0 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {toast.action.label}
+          </button>
+        )}
+
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={() => onDismiss(toast.id)}
+          className="ml-1 -mr-1 -mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Dismiss notification"
+        >
+          <span aria-hidden="true" className="text-lg leading-none">
+            ×
+          </span>
+        </button>
+      </div>
+    </Transition>
   );
 }
 
@@ -182,15 +210,25 @@ export function ToastProvider({ children, duration = 4000 }: ToastProviderProps)
   }, []);
 
   const addToast = useCallback(
-    (message: string, variant: ToastVariant = 'info') => {
+    (message: string, variant: ToastVariant = 'info', options?: { action?: ToastAction }) => {
       const id = Date.now().toString();
-      const newToast: Toast = { id, message, variant };
+      const newToast: Toast = { id, message, variant, action: options?.action };
 
       setToasts((prev) => [...prev, newToast]);
 
+      const dismissDelay = options?.action ? duration * 2 : duration;
       setTimeout(() => {
         dismiss(id);
-      }, duration);
+      }, dismissDelay);
+    },
+    [dismiss, duration],
+  );
+
+  const successWithAction = useCallback(
+    (message: string, action: ToastAction) => {
+      const id = Date.now().toString();
+      setToasts((prev) => [...prev, { id, message, variant: 'success', action }]);
+      setTimeout(() => dismiss(id), duration * 2);
     },
     [dismiss, duration],
   );
@@ -212,7 +250,14 @@ export function ToastProvider({ children, duration = 4000 }: ToastProviderProps)
     [addToast],
   );
 
-  const value: ToastContextValue = { addToast, success, error, info, warning };
+  const value: ToastContextValue = {
+    addToast,
+    successWithAction,
+    success,
+    error,
+    info,
+    warning,
+  };
 
   useEffect(() => {
     setApiErrorHandler((message) => addToast(message, 'error'));

@@ -1,4 +1,4 @@
-# Andromeda — Anamnese Inteligente PaaS
+# Andromeda — Fit Insight
 
 [![CI](https://github.com/emenezes93/andromeda/actions/workflows/ci.yml/badge.svg)](https://github.com/emenezes93/andromeda/actions/workflows/ci.yml)
 [![PR Checks](https://github.com/emenezes93/andromeda/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/emenezes93/andromeda/actions/workflows/pr-checks.yml)

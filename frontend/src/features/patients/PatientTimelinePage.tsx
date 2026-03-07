@@ -111,18 +111,14 @@ export function PatientTimelinePage() {
 
         {/* Print-only header */}
         <div className="print-header">
-          <h1 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
-            Prontuário completo
-          </h1>
+          <h1>Prontuário completo</h1>
           {patient && (
-            <p style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>
+            <p>
               Paciente: <strong>{patient.fullName}</strong>
             </p>
           )}
-          <p style={{ fontSize: '12px', color: '#888' }}>
-            Exportado em {printedAt}
-          </p>
-          <hr style={{ margin: '12px 0', borderColor: '#ddd' }} />
+          <p className="print-meta">Exportado em {printedAt}</p>
+          <hr />
         </div>
 
         <Card padding="none">

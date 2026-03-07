@@ -1,14 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getTrainingPlan } from '@/api/training-plans';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Dialog, DialogTitle, TransitionChild } from '@headlessui/react';
+import { getTrainingPlan, duplicateTrainingPlan } from '@/api/training-plans';
+import { listPatients } from '@/api/patients';
 import {
   listTrainingExecutions,
   createTrainingExecution,
+  updateTrainingExecution,
   deleteTrainingExecution,
 } from '@/api/training-executions';
 import {
   listProgressPhotos,
   createProgressPhoto,
+  createProgressPhotoUpload,
   deleteProgressPhoto,
 } from '@/api/progress-photos';
 import type {
@@ -18,11 +23,15 @@ import type {
   CreateTrainingExecutionBody,
   CreateProgressPhotoBody,
 } from '@/types';
+import { track } from '@/lib/analytics';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { FileUpload } from '@/components/ui/FileUpload';
+import { ProgressPhotoImage } from '@/components/ui/ProgressPhotoImage';
+import { PatientSearchSelect } from '@/components/ui/PatientSearchSelect';
 import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
@@ -134,6 +143,88 @@ function formatDateTime(value: string): string {
 }
 
 type TabId = 'info' | 'executions' | 'photos';
+
+// ---------------------------------------------------------------------------
+// Execution row with editable coachNotes
+// ---------------------------------------------------------------------------
+
+function ExecutionRow({
+  exec,
+  onDelete,
+  onCoachNotesSaved,
+}: {
+  exec: TrainingExecution;
+  onDelete: () => void;
+  onCoachNotesSaved: () => void;
+}) {
+  const toast = useToast();
+  const [coachNotes, setCoachNotes] = useState(exec.coachNotes ?? '');
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const handleSaveCoachNotes = async () => {
+    if (!dirty) return;
+    setSaving(true);
+    try {
+      await updateTrainingExecution(exec.id, { coachNotes: coachNotes.trim() || null });
+      setDirty(false);
+      onCoachNotesSaved();
+      toast.success('Notas do personal salvas.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <tr className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted">
+      <td className="whitespace-nowrap px-4 py-3 text-content-muted">
+        {formatDateTime(exec.executedAt)}
+      </td>
+      <td className="px-4 py-3 text-content">
+        {exec.durationMinutes != null ? `${exec.durationMinutes} min` : '—'}
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant={exec.completed ? 'success' : 'default'}>
+          {exec.completed ? 'Sim' : 'Não'}
+        </Badge>
+      </td>
+      <td className="max-w-[200px] truncate px-4 py-3 text-content-muted">
+        {exec.notes ?? '—'}
+      </td>
+      <td className="max-w-[220px] px-4 py-2">
+        <textarea
+          className="min-h-[60px] w-full rounded-input border border-border bg-surface px-2 py-1.5 text-body-sm text-content placeholder-content-subtle focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+          placeholder="Observações do personal..."
+          value={coachNotes}
+          onChange={(e) => {
+            setCoachNotes(e.target.value);
+            setDirty(true);
+          }}
+          rows={2}
+        />
+        {dirty && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-1"
+            onClick={handleSaveCoachNotes}
+            disabled={saving}
+          >
+            {saving ? 'Salvando...' : 'Salvar'}
+          </Button>
+        )}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Button variant="ghost" size="sm" onClick={onDelete}>
+          Remover
+        </Button>
+      </td>
+    </tr>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Executions tab inline form
@@ -256,12 +347,15 @@ function AddPhotoForm({ patientId, onSaved }: AddPhotoFormProps) {
   const [imageUrl, setImageUrl] = useState('');
   const [takenAt, setTakenAt] = useState(today);
   const [notes, setNotes] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!imageUrl.trim()) {
-      toast.error('Informe a URL da imagem.');
+    const hasFile = !!photoFile;
+    const hasUrl = !!imageUrl.trim();
+    if (!hasFile && !hasUrl) {
+      toast.error('Envie uma imagem ou informe a URL.');
       return;
     }
     if (!takenAt) {
@@ -270,17 +364,27 @@ function AddPhotoForm({ patientId, onSaved }: AddPhotoFormProps) {
     }
     setSubmitting(true);
     try {
-      const body: CreateProgressPhotoBody = {
-        patientId,
-        imageUrl: imageUrl.trim(),
-        takenAt: new Date(takenAt).toISOString(),
-        notes: notes.trim() || undefined,
-      };
-      await createProgressPhoto(body);
+      if (hasFile && photoFile) {
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        formData.append('patientId', patientId);
+        formData.append('takenAt', new Date(takenAt).toISOString());
+        if (notes.trim()) formData.append('notes', notes.trim());
+        await createProgressPhotoUpload(formData);
+      } else {
+        const body: CreateProgressPhotoBody = {
+          patientId,
+          imageUrl: imageUrl.trim(),
+          takenAt: new Date(takenAt).toISOString(),
+          notes: notes.trim() || undefined,
+        };
+        await createProgressPhoto(body);
+      }
       toast.success('Foto adicionada.');
       setImageUrl('');
       setTakenAt(today);
       setNotes('');
+      setPhotoFile(null);
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao salvar foto.');
@@ -291,10 +395,14 @@ function AddPhotoForm({ patientId, onSaved }: AddPhotoFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <FileUpload
+        label="Enviar imagem (ou use a URL abaixo)"
+        file={photoFile}
+        onFileSelect={setPhotoFile}
+      />
       <Input
-        label="URL da imagem"
+        label="URL da imagem (opcional)"
         name="imageUrl"
-        required
         placeholder="https://…"
         value={imageUrl}
         onChange={(e) => setImageUrl(e.target.value)}
@@ -324,7 +432,11 @@ function AddPhotoForm({ patientId, onSaved }: AddPhotoFormProps) {
           className="min-h-[64px] w-full rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
-      <Button type="submit" loading={submitting} disabled={submitting}>
+      <Button
+        type="submit"
+        loading={submitting}
+        disabled={submitting || (!photoFile && !imageUrl.trim())}
+      >
         Adicionar foto
       </Button>
     </form>
@@ -351,6 +463,11 @@ export function TrainingPlanDetailPage() {
     { type: 'execution'; id: string } | { type: 'photo'; id: string } | null
   >(null);
   const [deleting, setDeleting] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicatePatientId, setDuplicatePatientId] = useState('');
+  const [duplicateName, setDuplicateName] = useState('');
+  const [duplicateSubmitting, setDuplicateSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!id) return;
@@ -385,6 +502,33 @@ export function TrainingPlanDetailPage() {
   useEffect(() => {
     if (activeTab === 'photos') loadPhotos();
   }, [activeTab, loadPhotos]);
+
+  const { data: patientsData } = useQuery({
+    queryKey: ['patients', 'list'],
+    queryFn: () => listPatients({ limit: 500 }),
+    enabled: duplicateOpen,
+  });
+  const patients = patientsData?.data ?? [];
+
+  async function handleDuplicateSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !duplicatePatientId.trim()) return;
+    setDuplicateSubmitting(true);
+    try {
+      const created = await duplicateTrainingPlan(id, {
+        patientId: duplicatePatientId,
+        name: duplicateName.trim() || undefined,
+      });
+      toast.success('Plano duplicado.');
+      track({ name: 'plan_duplicated', sourceId: id, targetPatientId: duplicatePatientId });
+      setDuplicateOpen(false);
+      navigate(`/training-plans/${created.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao duplicar.');
+    } finally {
+      setDuplicateSubmitting(false);
+    }
+  }
 
   function handleDeleteExecution(execId: string) {
     setPendingDelete({ type: 'execution', id: execId });
@@ -450,7 +594,7 @@ export function TrainingPlanDetailPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-heading font-semibold text-content">{plan.name}</h2>
+            <h1 className="text-heading font-semibold text-content">{plan.name}</h1>
             <Badge variant={plan.active ? 'success' : 'default'}>
               {plan.active ? 'Ativo' : 'Inativo'}
             </Badge>
@@ -484,9 +628,28 @@ export function TrainingPlanDetailPage() {
               <span className="font-semibold text-primary">{plan.executionsCount}</span>{' '}
               treino(s) realizado(s)
             </span>
+            {plan.adherencePercent != null && (
+              <>
+                <span>·</span>
+                <span>
+                  Aderência 7d: <span className="font-semibold text-primary">{plan.adherencePercent}%</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setDuplicateName(`${plan.name} (cópia)`);
+              setDuplicatePatientId('');
+              setDuplicateOpen(true);
+            }}
+          >
+            Duplicar
+          </Button>
           <Link to={`/training-plans/${id}/edit`}>
             <Button variant="secondary" size="sm">
               Editar
@@ -579,6 +742,7 @@ export function TrainingPlanDetailPage() {
                       <th className="px-4 py-3 font-medium text-content-muted">Duração</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Concluído</th>
                       <th className="px-4 py-3 font-medium text-content-muted">Notas</th>
+                      <th className="px-4 py-3 font-medium text-content-muted">Notas do personal</th>
                       <th className="px-4 py-3 text-right font-medium text-content-muted">
                         Ações
                       </th>
@@ -586,34 +750,12 @@ export function TrainingPlanDetailPage() {
                   </thead>
                   <tbody>
                     {executions.map((exec) => (
-                      <tr
+                      <ExecutionRow
                         key={exec.id}
-                        className="border-b border-border-muted transition-calm last:border-0 hover:bg-surface-muted"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-content-muted">
-                          {formatDateTime(exec.executedAt)}
-                        </td>
-                        <td className="px-4 py-3 text-content">
-                          {exec.durationMinutes != null ? `${exec.durationMinutes} min` : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant={exec.completed ? 'success' : 'default'}>
-                            {exec.completed ? 'Sim' : 'Não'}
-                          </Badge>
-                        </td>
-                        <td className="max-w-[200px] truncate px-4 py-3 text-content-muted">
-                          {exec.notes ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExecution(exec.id)}
-                          >
-                            Remover
-                          </Button>
-                        </td>
-                      </tr>
+                        exec={exec}
+                        onDelete={() => handleDeleteExecution(exec.id)}
+                        onCoachNotesSaved={loadExecutions}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -663,11 +805,10 @@ export function TrainingPlanDetailPage() {
               {photos.map((photo) => (
                 <li key={photo.id} className="relative">
                   <Card padding="none" className="overflow-hidden">
-                    <img
-                      src={photo.imageUrl}
+                    <ProgressPhotoImage
+                      imageUrl={photo.imageUrl}
                       alt={photo.notes ?? 'Foto de progresso'}
                       className="h-48 w-full object-cover"
-                      loading="lazy"
                     />
                     <div className="p-3">
                       <p className="text-body-sm font-medium text-content">
@@ -709,6 +850,75 @@ export function TrainingPlanDetailPage() {
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
+
+      {/* Duplicar plano */}
+      <Dialog
+        open={duplicateOpen}
+        onClose={() => !duplicateSubmitting && setDuplicateOpen(false)}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        as="div"
+      >
+        <TransitionChild
+          enter="ease-out duration-200"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-150"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/50" aria-hidden />
+        </TransitionChild>
+        <TransitionChild
+          enter="ease-out duration-200"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="ease-in duration-150"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          <div className="fixed flex w-full max-w-md flex-col rounded-card border border-border bg-surface p-6 shadow-lg">
+          <DialogTitle className="text-heading-sm font-semibold text-content">
+            Duplicar plano
+          </DialogTitle>
+          <p className="mt-1 text-body-sm text-content-muted">
+            Crie uma cópia deste plano para outro paciente. A estrutura e os exercícios serão mantidos.
+          </p>
+          <form onSubmit={handleDuplicateSubmit} className="mt-4 space-y-4">
+            <PatientSearchSelect
+              patients={patients}
+              value={duplicatePatientId}
+              onChange={setDuplicatePatientId}
+              label="Paciente"
+              placeholder="Buscar paciente..."
+            />
+            <Input
+              label="Nome do plano"
+              value={duplicateName}
+              onChange={(e) => setDuplicateName(e.target.value)}
+              placeholder="Ex.: Plano (cópia)"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDuplicateOpen(false)}
+                disabled={duplicateSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                loading={duplicateSubmitting}
+                disabled={!duplicatePatientId.trim()}
+              >
+                Duplicar
+              </Button>
+            </div>
+          </form>
+          </div>
+        </TransitionChild>
+      </Dialog>
     </div>
   );
 }

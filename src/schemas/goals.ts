@@ -3,6 +3,7 @@ import { paginationQuerySchema } from '@shared/utils/pagination.js';
 
 export const createGoalSchema = z.object({
   patientId: z.string().min(1),
+  basedOnSessionId: z.string().min(1).optional().nullable(),
   type: z.enum(['weight_loss', 'muscle_gain', 'performance', 'health', 'other']),
   title: z.string().min(1).max(255),
   description: z.string().optional(),

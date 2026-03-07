@@ -51,6 +51,7 @@ export class PrismaGoalRepository implements IGoalRepository {
       data: {
         tenantId: data.tenantId,
         patientId: data.patientId,
+        basedOnSessionId: data.basedOnSessionId ?? null,
         type: data.type,
         title: data.title,
         description: data.description ?? null,
@@ -110,6 +111,7 @@ export class PrismaGoalRepository implements IGoalRepository {
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
+    basedOnSessionId?: string | null;
   }): Goal {
     return new Goal(
       r.id,
@@ -126,7 +128,8 @@ export class PrismaGoalRepository implements IGoalRepository {
       r.achievedAt,
       r.createdAt,
       r.updatedAt,
-      r.deletedAt
+      r.deletedAt,
+      r.basedOnSessionId ?? null
     );
   }
 }

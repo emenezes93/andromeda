@@ -12,6 +12,18 @@ interface LottieAnimationProps {
   style?: React.CSSProperties;
 }
 
+function usePrefersReducedMotion(): boolean {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const handler = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return prefersReducedMotion;
+}
+
 export function LottieAnimation({
   animationData: dataProp,
   src,
@@ -22,6 +34,7 @@ export function LottieAnimation({
 }: LottieAnimationProps) {
   const [animationData, setAnimationData] = useState<LottieAnimationData | null>(dataProp ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (dataProp) {
@@ -76,8 +89,8 @@ export function LottieAnimation({
   return (
     <Lottie
       animationData={animationData}
-      loop={loop}
-      autoplay={autoplay}
+      loop={prefersReducedMotion ? false : loop}
+      autoplay={prefersReducedMotion ? false : autoplay}
       className={className}
       style={style}
     />

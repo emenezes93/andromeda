@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 type Template = { id: string; name: string };
@@ -87,7 +88,9 @@ export function ScheduledQuestionnaireFormPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-  useUnsavedChanges(isDirty && !submitting);
+  const { showConfirmModal, confirmLeave, cancelLeave, message } = useUnsavedChanges(
+    isDirty && !submitting
+  );
 
   // Load templates and patients
   useEffect(() => {
@@ -198,6 +201,7 @@ export function ScheduledQuestionnaireFormPage() {
     `w-full rounded-input border bg-surface px-3 py-2.5 text-body text-content focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 ${hasError ? 'border-error' : 'border-border'}`;
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-heading font-semibold text-content">
@@ -374,5 +378,16 @@ export function ScheduledQuestionnaireFormPage() {
         </form>
       </Card>
     </div>
+    <ConfirmModal
+      open={showConfirmModal}
+      title="Alterações não salvas"
+      message={message}
+      confirmLabel="Sair"
+      cancelLabel="Ficar"
+      variant="danger"
+      onConfirm={confirmLeave}
+      onCancel={cancelLeave}
+    />
+    </>
   );
 }

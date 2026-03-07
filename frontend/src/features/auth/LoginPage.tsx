@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { login, login2fa } from '@/api/auth';
+import { identifyUser } from '@/lib/analytics';
 import { setAuth } from '@/stores/authStore';
 import { isOnboardingDismissed } from '@/stores/onboardingStore';
 import { Button } from '@/components/ui/Button';
@@ -58,6 +59,7 @@ export function LoginPage() {
       }
       const authRes = res as { token: string; refreshToken: string; user: { id: string; email: string; name: string | null; role: string; tenantId: string } };
       setAuth(authRes.token, authRes.refreshToken, authRes.user);
+      identifyUser(authRes.user.id, { email: authRes.user.email, role: authRes.user.role, tenantId: authRes.user.tenantId });
       navigate(isOnboardingDismissed() ? '/' : '/onboarding', { replace: true });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao fazer login');
@@ -82,6 +84,7 @@ export function LoginPage() {
         isBackup ? code : undefined
       );
       setAuth(res.token, res.refreshToken, res.user);
+      identifyUser(res.user.id, { email: res.user.email, role: res.user.role, tenantId: res.user.tenantId });
       navigate(isOnboardingDismissed() ? '/' : '/onboarding', { replace: true });
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Código inválido ou expirado.');
@@ -110,12 +113,14 @@ export function LoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Identidade: logo com pulse suave + título */}
         <div className="login-enter mb-8 flex flex-col items-center gap-4">
-          <IconPulse
-            className="login-logo-pulse size-14 motion-reduce:animate-none"
-            aria-hidden
-          />
+          <span className="text-white" aria-hidden>
+            <IconPulse
+              className="login-logo-pulse size-14 motion-reduce:animate-none"
+              aria-hidden
+            />
+          </span>
           <div className="text-center">
-            <h1 className="text-display font-bold text-content">Anamnese Inteligente</h1>
+            <h1 className="text-display font-bold text-content">Fit Insight</h1>
             <p className="mt-1 text-body text-content-muted">
               Questionários adaptativos e insights em saúde
             </p>
@@ -123,10 +128,7 @@ export function LoginPage() {
         </div>
 
         {/* Card do formulário: entrada com leve atraso */}
-        <div
-          className="login-enter login-enter-stagger-1 rounded-2xl border border-border-muted bg-surface/95 p-6 shadow-soft backdrop-blur-sm"
-          style={{ boxShadow: '0 2px 12px rgb(14 165 233 / 0.06)' }}
-        >
+        <div className="login-enter login-enter-stagger-1 rounded-2xl border border-border-muted bg-surface/95 p-6 shadow-soft backdrop-blur-sm">
           {sessionExpired && (
             <div
               className="mb-4 rounded-button border border-warning bg-warning-subtle px-3 py-2.5 text-body-sm text-warning"
@@ -237,6 +239,14 @@ export function LoginPage() {
 
           {!twoFactorStep && (
             <p className="mt-4 text-center text-body-sm text-content-subtle">
+              Não tem conta?{' '}
+              <Link to="/signup" className="font-medium text-primary hover:underline">
+                Criar conta grátis
+              </Link>
+            </p>
+          )}
+          {!twoFactorStep && (
+            <p className="mt-1 text-center text-body-sm text-content-subtle">
               Demo: owner@demo.com / owner123
             </p>
           )}

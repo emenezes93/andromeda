@@ -25,7 +25,7 @@ interface LineChartProps {
 export function LineChart({
   data,
   dataKey = 'value',
-  color = '#0ea5e9',
+  color = 'var(--color-primary)',
   yAxisLabel,
   xAxisLabel,
 }: LineChartProps) {

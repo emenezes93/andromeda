@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { pdf } from '@react-pdf/renderer';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listGoals } from '@/api/goals';
@@ -8,6 +10,8 @@ import { listTrainingExecutions } from '@/api/training-executions';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { track } from '@/lib/analytics';
+import { PatientReportPdf } from './PatientReportPdf';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -53,6 +57,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 export function PatientReportPage() {
   const { id } = useParams<{ id: string }>();
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const { data: patient, isLoading: loadingPatient } = useQuery({
     queryKey: ['report-patient', id],
@@ -125,6 +130,33 @@ export function PatientReportPage() {
 
   const printedAt = formatDateTime(now.toISOString());
 
+  const handleExportPdf = async () => {
+    if (!patient) return;
+    setExportingPdf(true);
+    try {
+      const tenantName = localStorage.getItem('tenantName') ?? 'Clínica';
+      const blob = await pdf(
+        <PatientReportPdf
+          patient={patient}
+          goals={goals}
+          sessions={sessions}
+          evolutions={evolutions ?? []}
+          executions={executionsLast30}
+          tenantName={tenantName}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-${patient.fullName.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      track({ name: 'report_exported', format: 'pdf', patientId: patient.id });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <>
       {/* Print-only styles */}
@@ -153,8 +185,24 @@ export function PatientReportPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              loading={exportingPdf}
+            >
               Exportar PDF
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (patient) track({ name: 'report_exported', format: 'print', patientId: patient.id });
+                window.print();
+              }}
+            >
+              Imprimir
             </Button>
             <Link to={`/patients/${id}/timeline`}>
               <Button variant="secondary" size="sm">
@@ -171,16 +219,14 @@ export function PatientReportPage() {
 
         {/* Print-only header */}
         <div className="print-header">
-          <h1 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
-            Relatório do paciente
-          </h1>
+          <h1>Relatório do paciente</h1>
           {patient && (
-            <p style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>
+            <p>
               Paciente: <strong>{patient.fullName}</strong>
             </p>
           )}
-          <p style={{ fontSize: '12px', color: '#888' }}>Gerado em {printedAt}</p>
-          <hr style={{ margin: '12px 0', borderColor: '#ddd' }} />
+          <p className="print-meta">Gerado em {printedAt}</p>
+          <hr />
         </div>
 
         {/* Patient summary card */}

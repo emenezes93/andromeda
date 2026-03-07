@@ -8,12 +8,18 @@ export interface UpdateTenantRequest {
   actorTenantId: string;
   name?: string;
   status?: 'active' | 'suspended';
+  emailAlertsEnabled?: boolean;
+  logoUrl?: string | null;
+  brandColor?: string | null;
 }
 
 export interface UpdateTenantResponse {
   id: string;
   name: string;
   status: string;
+  emailAlertsEnabled: boolean;
+  logoUrl: string | null;
+  brandColor: string | null;
   createdAt: Date;
 }
 
@@ -33,6 +39,9 @@ export class UpdateTenantUseCase {
     const updated = await this.tenantRepository.update(request.tenantId, {
       name: request.name,
       status: request.status,
+      emailAlertsEnabled: request.emailAlertsEnabled,
+      logoUrl: request.logoUrl,
+      brandColor: request.brandColor,
     });
 
     await this.auditService.log(
@@ -41,13 +50,22 @@ export class UpdateTenantUseCase {
       'tenant',
       updated.id,
       request.actorUserId,
-      { name: updated.name, status: updated.status }
+      {
+        name: updated.name,
+        status: updated.status,
+        emailAlertsEnabled: updated.emailAlertsEnabled,
+        logoUrl: updated.logoUrl,
+        brandColor: updated.brandColor,
+      }
     );
 
     return {
       id: updated.id,
       name: updated.name,
       status: updated.status,
+      emailAlertsEnabled: updated.emailAlertsEnabled,
+      logoUrl: updated.logoUrl,
+      brandColor: updated.brandColor,
       createdAt: updated.createdAt,
     };
   }

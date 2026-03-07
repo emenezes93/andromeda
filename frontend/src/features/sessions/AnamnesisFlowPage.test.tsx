@@ -41,6 +41,6 @@ describe('AnamnesisFlowPage', () => {
     // Wait for async content to load
     await screen.findByText(/test question/i, {}, { timeout: 2000 }).catch(() => null);
     const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toHaveLength(0);
   });
 });

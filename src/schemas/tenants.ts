@@ -8,6 +8,7 @@ export const createTenantSchema = z.object({
 export const updateTenantSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   status: z.enum(['active', 'suspended']).optional(),
+  emailAlertsEnabled: z.boolean().optional(),
 });
 
 export type CreateTenantBody = z.infer<typeof createTenantSchema>;

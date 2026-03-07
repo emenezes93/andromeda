@@ -34,7 +34,17 @@ const envSchema = z
     STRIPE_PRICE_ID: z.string().optional(),
     STRIPE_PRICE_ID_SEMIANNUAL: z.string().optional(),
     STRIPE_PRICE_ID_ANNUAL: z.string().optional(),
-    FRONTEND_URL: z.string().url().optional().or(z.literal('')),
+    FRONTEND_URL: z.string().url().optional().or(z.literal('')).default(''),
+    // P1.1 — Progress photo upload (local disk)
+    UPLOAD_STORAGE_PATH: z.string().default('./uploads'),
+    UPLOAD_MAX_SIZE_BYTES: z.coerce.number().int().min(1024).max(50 * 1024 * 1024).default(10 * 1024 * 1024), // 10MB default
+    // Email (alertas diários) – optional
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_SECURE: z.coerce.boolean().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().email().optional().or(z.literal('')),
   })
   .refine((data) => data.AI_MODE !== 'llm' || (!!data.AI_PROVIDER && !!data.AI_API_KEY), {
     message: 'AI_PROVIDER and AI_API_KEY are required when AI_MODE=llm',

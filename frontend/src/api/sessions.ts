@@ -105,13 +105,13 @@ export async function exportSession(
     const html = await res.text();
     const blob = new Blob([html], { type: 'text/html' });
     const downloadUrl = URL.createObjectURL(blob);
+    window.open(downloadUrl, '_blank');
     const a = document.createElement('a');
     a.href = downloadUrl;
     a.download = `anamnese-${sessionId}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
-    window.open(downloadUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   }
 }

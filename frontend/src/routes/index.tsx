@@ -7,6 +7,9 @@ import { ProtectedRoute } from './ProtectedRoute';
 const LoginPage = lazy(() =>
   import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
 );
+const SignupPage = lazy(() =>
+  import('@/features/auth/SignupPage').then((m) => ({ default: m.SignupPage }))
+);
 // Dashboard
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage }))
@@ -68,6 +71,9 @@ const PatientTimelinePage = lazy(() =>
     default: m.PatientTimelinePage,
   }))
 );
+const PatientHubPage = lazy(() =>
+  import('@/features/patients/PatientHubPage').then((m) => ({ default: m.PatientHubPage }))
+);
 const PatientReportPage = lazy(() =>
   import('@/features/patients/PatientReportPage').then((m) => ({
     default: m.PatientReportPage,
@@ -117,6 +123,12 @@ const TrainingPlanDetailPage = lazy(() =>
     default: m.TrainingPlanDetailPage,
   }))
 );
+// Exercises
+const ExercisesListPage = lazy(() =>
+  import('@/features/exercises/ExercisesListPage').then((m) => ({
+    default: m.ExercisesListPage,
+  }))
+);
 // Users
 const UsersListPage = lazy(() =>
   import('@/features/users/UsersListPage').then((m) => ({ default: m.UsersListPage }))
@@ -151,11 +163,25 @@ const AiUsagePage = lazy(() =>
 const SecurityPage = lazy(() =>
   import('@/features/auth/SecurityPage').then((m) => ({ default: m.SecurityPage }))
 );
+const NotificationsSettingsPage = lazy(() =>
+  import('@/features/settings/NotificationsSettingsPage').then((m) => ({
+    default: m.NotificationsSettingsPage,
+  }))
+);
+const OrganizationSettingsPage = lazy(() =>
+  import('@/features/settings/OrganizationSettingsPage').then((m) => ({
+    default: m.OrganizationSettingsPage,
+  }))
+);
 // Onboarding
 const OnboardingWizardPage = lazy(() =>
   import('@/features/onboarding/OnboardingWizardPage').then((m) => ({
     default: m.OnboardingWizardPage,
   }))
+);
+// Central de ajuda (Fase 3)
+const HelpCenterPage = lazy(() =>
+  import('@/features/help/HelpCenterPage').then((m) => ({ default: m.HelpCenterPage }))
 );
 
 function FullPageSpinner() {
@@ -184,6 +210,14 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/signup',
+    element: (
+      <Suspense fallback={<FullPageSpinner />}>
+        <SignupPage />
+      </Suspense>
+    ),
+  },
+  {
     path: '/fill/:token',
     element: (
       <Suspense fallback={<FullPageSpinner />}>
@@ -191,8 +225,9 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
-  // Dashboard
+  // Dashboard (redirect legacy bookmark)
   { path: '/', element: withLayout(undefined, <DashboardPage />) },
+  { path: '/dashboard', element: <Navigate to="/" replace /> },
   // Templates (specific before dynamic)
   { path: '/templates', element: withLayout('Templates', <TemplatesListPage />) },
   { path: '/templates/new', element: withLayout('Novo template', <TemplateFormPage />) },
@@ -211,6 +246,7 @@ const router = createBrowserRouter([
   { path: '/patients/:id/edit', element: withLayout('Editar paciente', <PatientFormPage />) },
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
   { path: '/patients/:id/timeline', element: withLayout('Histórico do Paciente', <PatientTimelinePage />) },
+  { path: '/patients/:id/hub', element: withLayout('Hub do Paciente', <PatientHubPage />) },
   { path: '/patients/:id/report', element: withLayout('Relatório', <PatientReportPage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
   // Goals
@@ -236,6 +272,7 @@ const router = createBrowserRouter([
   { path: '/diet-plans/:id', element: withLayout(undefined, <DietPlanDetailPage />) },
   { path: '/diet-dashboard/:patientId', element: withLayout('Dashboard Dieta', <DietDashboardPage />) },
   // Training Plans
+  { path: '/exercises', element: withLayout('Biblioteca de exercícios', <ExercisesListPage />) },
   { path: '/training-plans', element: withLayout('Planos de Treino', <TrainingPlansListPage />) },
   {
     path: '/training-plans/new',
@@ -259,12 +296,24 @@ const router = createBrowserRouter([
   { path: '/subscription', element: withLayout('Assinatura', <SubscriptionPage />) },
   // Segurança (2FA)
   { path: '/settings/security', element: withLayout('Segurança', <SecurityPage />) },
+  // Organização (logo, cor da marca)
+  {
+    path: '/settings/organization',
+    element: withLayout('Organização', <OrganizationSettingsPage />),
+  },
+  // Notificações (alertas por email)
+  {
+    path: '/settings/notifications',
+    element: withLayout('Notificações', <NotificationsSettingsPage />),
+  },
   // Audit
   { path: '/audit', element: withLayout('Histórico de Atividades', <AuditListPage />) },
   // AI Usage
   { path: '/ai/usage', element: withLayout('Uso de IA', <AiUsagePage />) },
   // Termos e política de privacidade
   { path: '/terms', element: withLayout('Termos e política', <TermsPage />) },
+  // Central de ajuda (Fase 3) — sem title no layout; página usa H1 "Central de ajuda"
+  { path: '/help', element: withLayout(undefined, <HelpCenterPage />) },
   // Onboarding (no layout, no auth wrapper - just Suspense)
   {
     path: '/onboarding',

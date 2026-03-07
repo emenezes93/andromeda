@@ -3,6 +3,7 @@ import type { Goal } from '@domain/entities/Goal.js';
 export interface GoalCreateData {
   tenantId: string;
   patientId: string;
+  basedOnSessionId?: string | null;
   type: string;
   title: string;
   description?: string | null;

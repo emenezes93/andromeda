@@ -19,6 +19,12 @@ export const listTrainingPlansQuerySchema = paginationQuerySchema.extend({
   name: z.string().optional(),
 });
 
+export const duplicateTrainingPlanSchema = z.object({
+  patientId: z.string().min(1),
+  name: z.string().max(255).optional(),
+});
+
 export type CreateTrainingPlanBody = z.infer<typeof createTrainingPlanSchema>;
 export type UpdateTrainingPlanBody = z.infer<typeof updateTrainingPlanSchema>;
 export type ListTrainingPlansQuery = z.infer<typeof listTrainingPlansQuerySchema>;
+export type DuplicateTrainingPlanBody = z.infer<typeof duplicateTrainingPlanSchema>;

@@ -34,6 +34,6 @@ describe('LoginPage', () => {
   it('should have no accessibility violations', async () => {
     const { container } = renderLogin();
     const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toHaveLength(0);
   });
 });

@@ -14,6 +14,7 @@ export const updateTrainingExecutionSchema = z.object({
   executedAt: z.string().min(1).optional(),
   durationMinutes: z.number().int().min(0).nullable().optional(),
   notes: z.string().nullable().optional(),
+  coachNotes: z.string().nullable().optional(),
   completed: z.boolean().optional(),
 });
 

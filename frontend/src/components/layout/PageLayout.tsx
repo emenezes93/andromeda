@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Dialog, DialogPanel, TransitionChild } from '@headlessui/react';
 import { clearAuth, getStoredUser } from '@/stores/authStore';
+import { getSubscription } from '@/api/billing';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import {
@@ -15,148 +18,21 @@ import {
   IconTenants,
   IconSubscription,
   IconShield,
+  IconBell,
+  IconDiet,
+  IconMenu,
+  IconX,
+  IconChevronDown,
+  IconHelp,
 } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AlertsBell } from '@/components/ui/AlertsBell';
 import { useTranslation } from '@/hooks/useTranslation';
-
-function IconAi() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-    </svg>
-  );
-}
-
-function IconSchedule() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-      <circle cx="12" cy="16" r="2" />
-    </svg>
-  );
-}
-
-function IconTraining() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6.5 6.5h11" />
-      <path d="M6.5 17.5h11" />
-      <path d="M3 10v4" />
-      <path d="M21 10v4" />
-      <path d="M5 8v8" />
-      <path d="M19 8v8" />
-    </svg>
-  );
-}
-
-function IconDiet() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
-      <path d="M12 6v6l4 2" />
-      <path d="M8 14s1 2 4 2 4-2 4-2" />
-    </svg>
-  );
-}
+import { track } from '@/lib/analytics';
 
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
-}
-
-interface PageLayoutProps {
-  children: React.ReactNode;
-  title?: string;
-}
-
-function IconMenu() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <line x1="4" y1="12" x2="20" y2="12" />
-      <line x1="4" y1="18" x2="20" y2="18" />
-    </svg>
-  );
-}
-
-function IconX() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
 }
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -201,11 +77,66 @@ export function PageLayout({ children, title }: PageLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [planosExpanded, setPlanosExpanded] = useState(true);
+  const [relatoriosExpanded, setRelatoriosExpanded] = useState(true);
+  const [navBannerDismissed, setNavBannerDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('navRedesignBannerDismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('trialBannerDismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const { data: subscription } = useQuery({
+    queryKey: ['billing-subscription'],
+    queryFn: getSubscription,
+  });
   const { t, locale, setLocale } = useTranslation();
+
+  const trialActive =
+    subscription?.trialEndsAt &&
+    new Date(subscription.trialEndsAt) > new Date() &&
+    subscription.status !== 'active' &&
+    subscription.status !== 'trialing';
+  const trialDaysLeft =
+    trialActive && subscription?.trialEndsAt
+      ? Math.ceil(
+          (new Date(subscription.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        )
+      : 0;
+  const showTrialBanner = trialActive && trialDaysLeft <= 7 && !trialBannerDismissed;
+
+  const dismissTrialBanner = () => {
+    setTrialBannerDismissed(true);
+    try {
+      sessionStorage.setItem('trialBannerDismissed', 'true');
+    } catch {}
+  };
 
   // Fecha sidebar ao navegar em mobile
   useEffect(() => {
     setSidebarOpen(false);
+  }, [location.pathname]);
+
+  // R2: evento page_viewed para métricas de encontrabilidade
+  useEffect(() => {
+    track({ name: 'page_viewed', route: location.pathname, context: title });
+  }, [location.pathname, title]);
+
+  // Expande Planos / Relatórios quando a rota está dentro deles
+  useEffect(() => {
+    if (location.pathname.startsWith('/diet-plans') || location.pathname.startsWith('/training-plans') || location.pathname.startsWith('/exercises') || location.pathname.startsWith('/scheduled-questionnaires')) {
+      setPlanosExpanded(true);
+    }
+    if (location.pathname.startsWith('/audit') || location.pathname.startsWith('/ai/usage')) {
+      setRelatoriosExpanded(true);
+    }
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -216,17 +147,15 @@ export function PageLayout({ children, title }: PageLayoutProps) {
   const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
   const isOwner = user?.role === 'owner';
 
-  const navItems = [
-    { to: '/', label: t.nav.dashboard, icon: IconDashboard },
-    { to: '/templates', label: t.nav.templates, icon: IconTemplates },
-    { to: '/sessions', label: t.nav.sessions, icon: IconSessions },
-    { to: '/patients', label: t.nav.patients, icon: IconPatients },
-    { to: '/training-plans', label: t.nav.trainingPlans, icon: IconTraining },
-    { to: '/diet-plans', label: t.nav.dietPlans, icon: IconDiet },
-    { to: '/scheduled-questionnaires', label: t.nav.scheduledQuestionnaires, icon: IconSchedule },
-    { to: '/audit', label: t.nav.audit, icon: IconAudit },
-    { to: '/ai/usage', label: t.nav.aiUsage, icon: IconAi },
-  ];
+  const dismissNavBanner = () => {
+    setNavBannerDismissed(true);
+    try {
+      localStorage.setItem('navRedesignBannerDismissed', 'true');
+    } catch {}
+  };
+
+  const isInPlanos = location.pathname.startsWith('/diet-plans') || location.pathname.startsWith('/training-plans') || location.pathname.startsWith('/exercises') || location.pathname.startsWith('/scheduled-questionnaires');
+  const isInRelatorios = location.pathname.startsWith('/audit') || location.pathname.startsWith('/ai/usage');
 
   const roleLabel = (role: string) => {
     const labels: Record<string, string> = {
@@ -238,75 +167,146 @@ export function PageLayout({ children, title }: PageLayoutProps) {
     return labels[role] ?? role;
   };
 
-  const sidebarContent = (
+  const onNavClick = (item: string, origin: 'sidebar' | 'mobile') => () =>
+    track({ name: 'nav_item_clicked', item, origin });
+
+  const renderSidebarContent = (origin: 'sidebar' | 'mobile') => (
     <>
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 border-b border-border-muted px-4">
         <Link
           to="/"
+          onClick={onNavClick('/', origin)}
           className="flex items-center gap-2 rounded-button transition-calm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <IconPulse />
-          <span className="text-heading-sm font-semibold text-primary">Anamnese PaaS</span>
+          <span className="text-white">
+            <IconPulse className="size-8 shrink-0" />
+          </span>
+          <span className="text-heading-sm font-semibold text-primary">Fit Insight</span>
         </Link>
       </div>
 
-      {/* Nav */}
+      {/* Nav — Fase 2: 6 itens orientados a tarefas + tooltips + submenus Planos e Relatórios */}
       <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Navegação principal">
         <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
           Uso diário
         </p>
-        {navItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={navLinkClass}
+        <NavLink to="/" end className={navLinkClass} title={t.nav.tooltipInicio} onClick={onNavClick('/', origin)}>
+          <IconDashboard />
+          {t.nav.taskInicio}
+        </NavLink>
+        <NavLink to="/patients" className={navLinkClass} title={t.nav.tooltipPacientes} onClick={onNavClick('/patients', origin)}>
+          <IconPatients />
+          {t.nav.taskPacientes}
+        </NavLink>
+        <NavLink to="/sessions" className={navLinkClass} title={t.nav.tooltipAvaliacoes} onClick={onNavClick('/sessions', origin)}>
+          <IconSessions />
+          {t.nav.taskAvaliacoes}
+        </NavLink>
+        <NavLink to="/templates" className={navLinkClass} title={t.nav.tooltipQuestionarios} onClick={onNavClick('/templates', origin)}>
+          <IconTemplates />
+          {t.nav.taskQuestionarios}
+        </NavLink>
+        <div>
+          <button
+            type="button"
+            onClick={() => setPlanosExpanded((e) => !e)}
+            className={`min-h-touch w-full flex items-center justify-between gap-2 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              isInPlanos ? 'bg-primary-subtle text-primary' : 'text-content-muted hover:bg-primary-subtle hover:text-content'
+            }`}
+            title={t.nav.tooltipPlanos}
+            aria-expanded={planosExpanded}
+            aria-controls="nav-planos"
+            aria-label={planosExpanded ? 'Recolher Planos' : 'Expandir Planos: Dieta, Treino, Agendamentos'}
           >
-            <Icon />
-            {label}
-          </NavLink>
-        ))}
+            <span className="flex items-center gap-3">
+              <IconDiet />
+              {t.nav.taskPlanos}
+            </span>
+            <IconChevronDown className={`size-4 transition-transform ${planosExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          <div id="nav-planos" className="ml-6 mt-0.5 flex flex-col gap-0.5" hidden={!planosExpanded}>
+            <NavLink to="/diet-plans" className={navLinkClass} onClick={onNavClick('/diet-plans', origin)}>{t.nav.planosDieta}</NavLink>
+            <NavLink to="/training-plans" className={navLinkClass} onClick={onNavClick('/training-plans', origin)}>{t.nav.planosTreino}</NavLink>
+            <NavLink to="/exercises" className={navLinkClass} onClick={onNavClick('/exercises', origin)}>{t.nav.planosExercicios}</NavLink>
+            <NavLink to="/scheduled-questionnaires" className={navLinkClass} onClick={onNavClick('/scheduled-questionnaires', origin)}>{t.nav.planosAgendamentos}</NavLink>
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => setRelatoriosExpanded((e) => !e)}
+            className={`min-h-touch w-full flex items-center justify-between gap-2 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              isInRelatorios ? 'bg-primary-subtle text-primary' : 'text-content-muted hover:bg-primary-subtle hover:text-content'
+            }`}
+            title={t.nav.tooltipRelatorios}
+            aria-expanded={relatoriosExpanded}
+            aria-controls="nav-relatorios"
+            aria-label={relatoriosExpanded ? 'Recolher Relatórios' : 'Expandir Relatórios: Histórico de atividades, Uso de IA'}
+          >
+            <span className="flex items-center gap-3">
+              <IconAudit />
+              {t.nav.taskRelatorios}
+            </span>
+            <IconChevronDown className={`size-4 transition-transform ${relatoriosExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          <div id="nav-relatorios" className="ml-6 mt-0.5 flex flex-col gap-0.5" hidden={!relatoriosExpanded}>
+            <NavLink to="/audit" className={navLinkClass} onClick={onNavClick('/audit', origin)}>{t.nav.relatoriosHistorico}</NavLink>
+            <NavLink to="/ai/usage" className={navLinkClass} onClick={onNavClick('/ai/usage', origin)}>{t.nav.relatoriosUsoIa}</NavLink>
+          </div>
+        </div>
+        <NavLink to="/help" className={navLinkClass} title="Central de ajuda e FAQ" onClick={onNavClick('/help', origin)}>
+          <IconHelp />
+          {t.nav.help}
+        </NavLink>
         <p className="mt-3 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
           Administração
         </p>
         {isAdminOrOwner && (
-          <NavLink to="/users" className={navLinkClass}>
+          <NavLink to="/users" className={navLinkClass} onClick={onNavClick('/users', origin)}>
             <IconUsers />
             {t.nav.users}
           </NavLink>
         )}
         {isOwner && (
-          <NavLink to="/tenants" className={navLinkClass}>
+          <NavLink to="/tenants" className={navLinkClass} onClick={onNavClick('/tenants', origin)}>
             <IconTenants />
             {t.nav.tenants}
           </NavLink>
         )}
-        <NavLink to="/subscription" className={navLinkClass}>
+        <NavLink to="/subscription" className={navLinkClass} onClick={onNavClick('/subscription', origin)}>
           <IconSubscription />
           {t.nav.subscription}
         </NavLink>
-        <NavLink to="/settings/security" className={navLinkClass}>
+        <NavLink to="/settings/security" className={navLinkClass} onClick={onNavClick('/settings/security', origin)}>
           <IconShield />
           {t.nav.security}
         </NavLink>
+        <NavLink to="/settings/notifications" className={navLinkClass} onClick={onNavClick('/settings/notifications', origin)}>
+          <IconBell />
+          {t.nav.notifications}
+        </NavLink>
       </nav>
 
-      {/* User / Logout */}
+      {/* User / Logout — mesmo bloco para sidebar e mobile */}
       <div className="border-t border-border-muted p-3">
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-          <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setLocale(locale === 'pt-BR' ? 'en-US' : 'pt-BR')}
-              className="rounded-button px-1.5 py-0.5 text-xs font-semibold text-content-muted hover:bg-surface-muted hover:text-content transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label="Alternar idioma"
-              title={locale === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
-            >
-              {locale === 'pt-BR' ? 'EN' : 'PT'}
-            </button>
-            <ThemeToggle />
-          </div>
+            <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center">
+                <AlertsBell />
+              </div>
+              <button
+                type="button"
+                onClick={() => setLocale(locale === 'pt-BR' ? 'en-US' : 'pt-BR')}
+                className="flex h-9 min-w-9 items-center justify-center rounded-button text-xs font-semibold text-content-muted hover:bg-surface-muted hover:text-content transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Alternar idioma"
+                title={locale === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
+              >
+                {locale === 'pt-BR' ? 'EN' : 'PT'}
+              </button>
+              <ThemeToggle />
+            </div>
         </div>
         <p className="truncate px-2 py-1 text-body-sm text-content-subtle" title={user?.email}>
           {user?.email}
@@ -327,33 +327,52 @@ export function PageLayout({ children, title }: PageLayoutProps) {
     <div className="flex min-h-screen bg-surface-calm">
       {/* ── DESKTOP SIDEBAR ── */}
       <aside className="hidden lg:flex w-sidebar flex-col border-r border-border bg-surface shadow-card flex-shrink-0">
-        {sidebarContent}
+        {renderSidebarContent('sidebar')}
       </aside>
 
       {/* ── MOBILE OVERLAY SIDEBAR ── */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-content/40 lg:hidden"
-          aria-hidden="true"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-sidebar flex-col border-r border-border bg-surface shadow-card transition-transform duration-normal ease-calm lg:hidden ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        aria-label="Sidebar mobile"
+      <Dialog
+        open={sidebarOpen}
+        as="div"
+        className="lg:hidden"
+        onClose={(open) => setSidebarOpen(open)}
       >
-        {/* Close button inside mobile sidebar */}
-        <button
-          className="absolute right-3 top-3.5 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          onClick={() => setSidebarOpen(false)}
-          aria-label={t.sidebar.closeMenu}
+        <TransitionChild
+          enter="ease-out duration-200"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-150"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
         >
-          <IconX />
-        </button>
-        {sidebarContent}
-      </aside>
+          <div
+            className="fixed inset-0 z-40 bg-content/40"
+            aria-hidden="true"
+          />
+        </TransitionChild>
+        <TransitionChild
+          enter="ease-out duration-200"
+          enterFrom="-translate-x-full opacity-0"
+          enterTo="translate-x-0 opacity-100"
+          leave="ease-in duration-150"
+          leaveFrom="translate-x-0 opacity-100"
+          leaveTo="-translate-x-full opacity-0"
+        >
+          <DialogPanel
+            className="fixed inset-y-0 left-0 z-50 flex w-sidebar flex-col border-r border-border bg-surface shadow-card"
+            aria-label="Sidebar mobile"
+          >
+            <button
+              className="absolute right-3 top-3.5 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setSidebarOpen(false)}
+              aria-label={t.sidebar.closeMenu}
+            >
+              <IconX />
+            </button>
+            {renderSidebarContent('mobile')}
+          </DialogPanel>
+        </TransitionChild>
+      </Dialog>
 
       {/* ── MAIN ── */}
       <div className="flex flex-1 flex-col min-w-0">
@@ -369,14 +388,76 @@ export function PageLayout({ children, title }: PageLayoutProps) {
               <IconMenu />
             </button>
             <Link to="/" className="flex items-center gap-2">
-              <IconPulse />
-              <span className="text-heading-sm font-semibold text-primary">Anamnese PaaS</span>
+              <span className="text-white">
+                <IconPulse className="size-8 shrink-0" />
+              </span>
+              <span className="text-heading-sm font-semibold text-primary">Fit Insight</span>
             </Link>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <AlertsBell />
+            <ThemeToggle />
+          </div>
         </header>
 
-        <main className="flex-1 overflow-auto flex flex-col">
+        <main className="flex-1 overflow-auto flex flex-col" id="main-content">
+          <a href="#main-content" className="skip-link">
+            Pular para o conteúdo principal
+          </a>
+          {showTrialBanner && (
+            <div
+              role="region"
+              aria-label="Período de teste"
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-warning bg-warning-subtle px-4 py-3 sm:px-6"
+            >
+              <p className="text-body-sm text-warning">
+                Seu teste grátis termina em {trialDaysLeft} dias. Assine para não perder acesso.
+              </p>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/subscription"
+                  className="rounded-button border border-warning bg-warning px-3 py-1.5 text-body-sm font-medium text-content hover:bg-warning/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"
+                >
+                  Ver planos
+                </Link>
+                <button
+                  type="button"
+                  onClick={dismissTrialBanner}
+                  className="rounded-button p-1.5 text-warning hover:bg-warning/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"
+                  aria-label="Fechar aviso"
+                >
+                  <IconX className="size-5" />
+                </button>
+              </div>
+            </div>
+          )}
+          {!navBannerDismissed && (
+            <div
+              role="region"
+              aria-label="Aviso sobre o menu"
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-border-muted bg-primary-subtle/50 px-4 py-3 sm:px-6"
+            >
+              <p className="text-body-sm text-content">
+                {t.navBanner.title}
+              </p>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/onboarding"
+                  className="rounded-button px-3 py-1.5 text-body-sm font-medium text-primary hover:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {t.navBanner.cta}
+                </Link>
+                <button
+                  type="button"
+                  onClick={dismissNavBanner}
+                  className="rounded-button px-2 py-1.5 text-body-sm text-content-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={t.navBanner.dismiss}
+                >
+                  {t.navBanner.dismiss}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="mx-auto flex-1 w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
             {title && (
               <h1 className="mb-6 text-heading font-semibold text-content sm:text-heading-lg">
@@ -387,6 +468,12 @@ export function PageLayout({ children, title }: PageLayoutProps) {
           </div>
           <footer className="border-t border-border bg-surface-muted/30 py-3">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 text-body-sm text-content-muted">
+              <Link
+                to="/help"
+                className="hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-button"
+              >
+                Ajuda
+              </Link>
               <Link
                 to="/terms"
                 className="hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-button"

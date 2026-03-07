@@ -13,7 +13,7 @@ import type { DietPlan } from '@/types';
 function DietPlanCard({ plan }: { plan: DietPlan }) {
   return (
     <Link to={`/diet-plans/${plan.id}`} className="block group">
-      <Card padding="md" className="h-full border border-border transition-calm hover:border-primary/40 hover:shadow-md">
+      <Card padding="md" className="h-full border border-border transition-calm hover:border-primary/40 hover:shadow-card-hover">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="truncate font-semibold text-content group-hover:text-primary transition-calm">

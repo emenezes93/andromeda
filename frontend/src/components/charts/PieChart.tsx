@@ -21,14 +21,14 @@ interface PieChartProps {
 }
 
 const DEFAULT_COLORS = [
-  '#0ea5e9',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#84cc16',
+  'var(--color-primary)',
+  'var(--color-success)',
+  'var(--color-warning)',
+  'var(--color-error)',
+  'var(--color-info)',
+  'var(--color-success-light)',
+  'var(--color-warning-light)',
+  'var(--color-error-light)',
 ];
 
 export function PieChart({
@@ -56,7 +56,7 @@ export function PieChart({
             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             outerRadius={outerRadius}
             innerRadius={innerRadius}
-            fill="#8884d8"
+            fill="var(--color-border)"
             dataKey="value"
             isAnimationActive
             animationDuration={800}

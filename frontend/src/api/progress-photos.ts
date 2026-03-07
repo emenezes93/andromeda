@@ -11,6 +11,30 @@ export interface ListProgressPhotosParams {
   patientId?: string;
 }
 
+/** P1.1 — Upload real de arquivo (multipart). Retorna a foto criada com imageUrl relativo (/v1/progress-photos/:id/file). */
+export async function createProgressPhotoUpload(
+  formData: FormData
+): Promise<ProgressPhoto> {
+  const API_URL = import.meta.env.VITE_API_URL || '';
+  const token = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  const headers: HeadersInit = {};
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  if (tenantId) (headers as Record<string, string>)['x-tenant-id'] = tenantId;
+  const res = await fetch(`${API_URL}/v1/progress-photos/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = (err as { message?: string })?.message ?? (err as { error?: string })?.error ?? `Upload falhou: ${res.status}`;
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  return data as ProgressPhoto;
+}
+
 export async function listProgressPhotos(
   params?: ListProgressPhotosParams
 ): Promise<ProgressPhotoListResponse> {

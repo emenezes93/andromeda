@@ -117,17 +117,24 @@ export class UserController {
     const tenantId = requireTenant(request);
     const user = requireAuth(request);
     Guards.tenants(user.role);
-    const query = request.query as { page?: number; limit?: number; active?: string };
+    const query = request.query as {
+      page?: number;
+      limit?: number;
+      active?: string;
+      role?: string;
+    };
     const { page, limit } = paginationQuerySchema.parse({
       page: query.page,
       limit: query.limit,
     });
     const active = query.active === undefined ? undefined : query.active === 'true';
+    const role = query.role && query.role.trim() ? query.role.trim() : undefined;
     const result = await this.listUsersUseCase.execute({
       tenantId,
       page,
       limit,
       active,
+      role,
     });
     await reply.status(200).send(result);
   }

@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listSessions } from '@/api/sessions';
 import { listTemplates } from '@/api/templates';
+import { track } from '@/lib/analytics';
 import type { Session, Template } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { SkeletonTable } from '@/components/ui/SkeletonCard';
+import { Pagination } from '@/components/ui/Pagination';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todas' },
@@ -15,19 +18,26 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Concluídas' },
 ];
 
+const LIST_PAGE_SIZE = 25;
+
 export function SessionsListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const patientIdFromUrl = searchParams.get('patientId') ?? '';
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [templateFilter, setTemplateFilter] = useState('');
-  const limit = 10;
+  const limit = LIST_PAGE_SIZE;
 
   const { data: templatesData } = useQuery({
     queryKey: ['templates-select'],
     queryFn: () => listTemplates({ page: 1, limit: 100 }),
   });
   const templates: Template[] = templatesData?.data ?? [];
+
+  const loadStartTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    loadStartTimeRef.current = performance.now();
+  }, [page, statusFilter, templateFilter, patientIdFromUrl]);
 
   const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['sessions', page, statusFilter, templateFilter, patientIdFromUrl],
@@ -44,6 +54,22 @@ export function SessionsListPage() {
   const sessions: Session[] = data?.data ?? [];
   const hasFilter = statusFilter !== '' || templateFilter !== '' || patientIdFromUrl !== '';
   const error = queryError instanceof Error ? queryError.message : null;
+
+  useEffect(() => {
+    if (!data || loadStartTimeRef.current == null) return;
+    const ms = Math.round(performance.now() - loadStartTimeRef.current);
+    const size = data.data?.length ?? 0;
+    track({ name: 'list_loaded', listType: 'sessions', ms, size, page });
+    loadStartTimeRef.current = null;
+  }, [data, page]);
+
+  const getActiveFilterCount = (status: string, template: string) =>
+    [status, template, patientIdFromUrl].filter(Boolean).length;
+
+  const trackFilterApplied = (filterType: string, newStatus?: string, newTemplate?: string) => {
+    const count = getActiveFilterCount(newStatus ?? statusFilter, newTemplate ?? templateFilter);
+    track({ name: 'filter_applied', listType: 'sessions', filterType, count });
+  };
 
   if (loading && !data) {
     return (
@@ -94,7 +120,12 @@ export function SessionsListPage() {
           <select
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              const v = e.target.value;
+              setStatusFilter(v);
+              setPage(1);
+              trackFilterApplied('status', v, templateFilter);
+            }}
             aria-label="Filtrar por status"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -106,7 +137,12 @@ export function SessionsListPage() {
           <select
             className="rounded-button border border-border bg-surface px-3 py-2 text-body-sm text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
             value={templateFilter}
-            onChange={(e) => { setTemplateFilter(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              const v = e.target.value;
+              setTemplateFilter(v);
+              setPage(1);
+              trackFilterApplied('template', statusFilter, v);
+            }}
             aria-label="Filtrar por template"
           >
             <option value="">Todos os templates</option>
@@ -127,26 +163,36 @@ export function SessionsListPage() {
         </Link>
       </div>
 
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {meta
+          ? `Página ${page} de ${meta.totalPages}. ${meta.total} avaliação(ões).`
+          : loading
+            ? 'Carregando lista de avaliações.'
+            : ''}
+      </div>
+
       {sessions.length === 0 ? (
-        <Card>
-          <p className="text-content-muted">
-            {hasFilter
+        <EmptyState
+          title={
+            hasFilter
               ? 'Nenhuma avaliação para os filtros selecionados.'
-              : 'Nenhuma avaliação ainda. Que tal iniciar a primeira?'}
-          </p>
-          {!hasFilter && (
-            <Link to="/sessions/new">
-              <Button className="mt-4">Nova avaliação</Button>
-            </Link>
-          )}
-        </Card>
+              : 'Nenhuma avaliação ainda. Que tal iniciar a primeira?'
+          }
+          action={
+            !hasFilter ? (
+              <Link to="/sessions/new">
+                <Button>Nova avaliação</Button>
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sessions.map((s) => (
               <li key={s.id}>
                 <Link to={`/sessions/${s.id}`}>
-                  <Card className="h-full transition-shadow hover:shadow-md">
+                  <Card className="h-full transition-shadow hover:shadow-card-hover">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold text-content">
                         {s.template?.name ?? 'Template'}
@@ -168,27 +214,13 @@ export function SessionsListPage() {
             ))}
           </ul>
 
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-content-muted">
-                Página {page} de {meta.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                disabled={page >= meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={meta?.totalPages ?? 1}
+            onPageChange={setPage}
+            loading={loading}
+            label="lista de avaliações"
+          />
         </>
       )}
     </div>

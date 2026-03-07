@@ -19,6 +19,13 @@ export const registerBodySchema = z.object({
   name: z.string().optional(),
 });
 
+export const signupBodySchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
+  tenantName: z.string().min(2, 'Nome da clínica/empresa deve ter no mínimo 2 caracteres').max(100),
+});
+
 export const refreshBodySchema = z.object({
   refreshToken: z.string().min(1),
 });
@@ -55,3 +62,4 @@ export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>;
 export type LoginWithTwoFactorBody = z.infer<typeof loginWithTwoFactorBodySchema>;
 export type SetupTwoFactorBody = z.infer<typeof setupTwoFactorBodySchema>;
 export type DisableTwoFactorBody = z.infer<typeof disableTwoFactorBodySchema>;
+export type SignupBody = z.infer<typeof signupBodySchema>;

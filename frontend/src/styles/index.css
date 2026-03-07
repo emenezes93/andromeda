@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens – single source of truth */
+/* Design tokens – single source of truth (WCAG AA target: contrast ≥4.5:1 text, ≥3:1 large) */
 :root {
   /* Colors – primary (soft blue health identity) */
   --color-primary: #0ea5e9;
@@ -20,7 +20,7 @@
   --color-border-muted: #f1f5f9;
   --color-border-soft: #cbd5e1;
 
-  /* Content (high contrast a11y) */
+  /* Content – WCAG AA: #0f172a on #fff ≈ 16:1, #475569 on #fff ≈ 5.7:1 */
   --color-content: #0f172a;
   --color-content-muted: #475569;
   --color-content-subtle: #56687a;
@@ -94,6 +94,8 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    /* Base 16px meets WCAG AAA; minimum 14px for AA in dense UIs */
+    font-size: 16px;
     transition: background-color 200ms ease, color 200ms ease;
   }
   body {
@@ -105,7 +107,13 @@
     -webkit-font-smoothing: antialiased;
     transition: background-color 200ms ease, color 200ms ease;
   }
+  /* Focus visible – 2px ring for keyboard/screen reader users (WCAG 2.4.7) */
   :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  /* Utility for consistent focus ring when outline is reset */
+  .focus-ring:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
@@ -265,6 +273,30 @@
   box-shadow: 0 2px 8px rgb(14 165 233 / 0.2);
 }
 
+/* Print: header uses design tokens so dark mode and consistency are preserved */
+@media print {
+  .print-header h1 {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: var(--color-content);
+  }
+  .print-header p {
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: var(--color-content-muted);
+  }
+  .print-header p.print-meta {
+    font-size: 12px;
+    color: var(--color-content-subtle);
+  }
+  .print-header hr {
+    margin: 12px 0;
+    border: 0;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
 @layer utilities {
   .transition-calm {
     transition-property: color, background-color, border-color, box-shadow;
@@ -283,5 +315,36 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+  }
+
+  /* Skip to main content - visible on focus for keyboard/screen reader users */
+  .skip-link {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  .skip-link:focus {
+    position: fixed;
+    top: 0.5rem;
+    left: 1rem;
+    z-index: 60;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-button);
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 }

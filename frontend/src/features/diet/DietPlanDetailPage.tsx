@@ -181,11 +181,11 @@ export function DietPlanDetailPage() {
       <Card padding="md">
         <h2 className="mb-3 text-body font-semibold text-content">Metas Diárias</h2>
         <div className="flex flex-wrap gap-3">
-          <MacroChip label="Calorias" value={plan.caloriesKcal} unit="kcal" color="border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300" />
-          <MacroChip label="Proteínas" value={plan.proteinG} unit="g" color="border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" />
-          <MacroChip label="Carboidratos" value={plan.carbsG} unit="g" color="border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300" />
-          <MacroChip label="Gorduras" value={plan.fatG} unit="g" color="border-yellow-200 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300" />
-          <MacroChip label="Água" value={plan.waterMl} unit="ml" color="border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300" />
+          <MacroChip label="Calorias" value={plan.caloriesKcal} unit="kcal" color="border-primary/30 bg-primary-subtle text-primary" />
+          <MacroChip label="Proteínas" value={plan.proteinG} unit="g" color="border-success/30 bg-success-light text-success" />
+          <MacroChip label="Carboidratos" value={plan.carbsG} unit="g" color="border-warning/30 bg-warning-light text-warning" />
+          <MacroChip label="Gorduras" value={plan.fatG} unit="g" color="border-warning/30 bg-warning-light text-warning" />
+          <MacroChip label="Água" value={plan.waterMl} unit="ml" color="border-info/30 bg-info-light text-info" />
         </div>
 
         {plan.restrictions.length > 0 && (

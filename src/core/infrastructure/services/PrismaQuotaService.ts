@@ -3,12 +3,19 @@ import { getLimits } from '@config/planLimits.js';
 import type { IQuotaService, QuotaCheckResult, UsageSummary } from '@ports/services/IQuotaService.js';
 import { ForbiddenError } from '@shared/errors/index.js';
 
+function effectivePlanTier(tenant: { planTier: string | null; trialEndsAt: Date | null } | null): string {
+  if (!tenant) return 'free';
+  const now = new Date();
+  if (tenant.trialEndsAt && tenant.trialEndsAt > now) return 'trial';
+  return tenant.planTier ?? 'free';
+}
+
 export class PrismaQuotaService implements IQuotaService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async checkPatientQuota(tenantId: string): Promise<QuotaCheckResult> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    const limits = getLimits(tenant?.planTier ?? 'free');
+    const limits = getLimits(effectivePlanTier(tenant));
     if (limits.maxPatients === null) return { allowed: true, current: 0, max: null };
     const current = await this.prisma.patient.count({
       where: { tenantId, deletedAt: null },
@@ -26,7 +33,7 @@ export class PrismaQuotaService implements IQuotaService {
 
   async checkSessionQuota(tenantId: string): Promise<QuotaCheckResult> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    const limits = getLimits(tenant?.planTier ?? 'free');
+    const limits = getLimits(effectivePlanTier(tenant));
     if (limits.maxSessionsPerMonth === null) return { allowed: true, current: 0, max: null };
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -46,7 +53,7 @@ export class PrismaQuotaService implements IQuotaService {
 
   async checkAiInsightQuota(tenantId: string): Promise<QuotaCheckResult> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    const limits = getLimits(tenant?.planTier ?? 'free');
+    const limits = getLimits(effectivePlanTier(tenant));
     return {
       allowed: limits.aiInsightsEnabled,
       current: 0,
@@ -59,7 +66,7 @@ export class PrismaQuotaService implements IQuotaService {
 
   async getUsageSummary(tenantId: string): Promise<UsageSummary> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    const planTier = tenant?.planTier ?? 'free';
+    const planTier = effectivePlanTier(tenant);
     const limits = getLimits(planTier);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

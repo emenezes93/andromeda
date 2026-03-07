@@ -21,7 +21,7 @@ export function TermsPage() {
       <Card title="Política de Privacidade">
         <div className="prose prose-sm max-w-none text-content-muted">
           <p>
-            A plataforma Anamnese Inteligente PaaS trata os dados pessoais e de saúde em
+            A plataforma Fit Insight trata os dados pessoais e de saúde em
             conformidade com a Lei Geral de Proteção de Dados (LGPD – Lei 13.709/2018).
           </p>
           <h3 className="mt-4 font-semibold text-content">Finalidade</h3>

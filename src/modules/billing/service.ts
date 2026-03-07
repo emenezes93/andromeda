@@ -148,6 +148,8 @@ export async function getSubscription(
   currentPeriodEnd: string | null;
   planId: PlanId | null;
   planLabel: string;
+  trialEndsAt: string | null;
+  cancelAtPeriodEnd: boolean;
 } | null> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId, deletedAt: null },
@@ -155,12 +157,14 @@ export async function getSubscription(
       subscriptionStatus: true,
       currentPeriodEnd: true,
       stripeSubscriptionId: true,
+      trialEndsAt: true,
     },
   });
   if (!tenant) return null;
 
   let planLabel = 'Plano mensal';
   let planId: PlanId | null = 'monthly';
+  let cancelAtPeriodEnd = false;
   if (tenant.stripeSubscriptionId) {
     const stripe = getStripe();
     if (stripe) {
@@ -168,6 +172,12 @@ export async function getSubscription(
       if (planLabel.includes('anual')) planId = 'annual';
       else if (planLabel.includes('semestral')) planId = 'semiannual';
       else planId = 'monthly';
+      try {
+        const sub = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId);
+        cancelAtPeriodEnd = !!sub.cancel_at_period_end;
+      } catch {
+        // keep false
+      }
     }
   } else {
     planId = null;
@@ -178,6 +188,8 @@ export async function getSubscription(
     currentPeriodEnd: tenant.currentPeriodEnd?.toISOString() ?? null,
     planId,
     planLabel,
+    trialEndsAt: tenant.trialEndsAt?.toISOString() ?? null,
+    cancelAtPeriodEnd,
   };
 }
 
@@ -294,4 +306,120 @@ export async function handleInvoicePaid(
       data: { subscriptionStatus: 'active' },
     });
   }
+}
+
+export interface InvoiceItem {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  status: string;
+  pdfUrl: string | null;
+  hostedInvoiceUrl: string | null;
+}
+
+export async function getInvoices(
+  prisma: PrismaClient,
+  tenantId: string
+): Promise<InvoiceItem[] | { error: string }> {
+  const stripe = getStripe();
+  if (!stripe) return { error: 'Billing is not configured' };
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId, deletedAt: null },
+    select: { stripeCustomerId: true },
+  });
+  if (!tenant?.stripeCustomerId) return [];
+
+  const invoices = await stripe.invoices.list({
+    customer: tenant.stripeCustomerId,
+    limit: 10,
+  });
+
+  return invoices.data.map((inv) => ({
+    id: inv.id,
+    date: inv.created ? new Date(inv.created * 1000).toISOString() : '',
+    amount: inv.amount_paid ?? inv.amount_due ?? 0,
+    currency: (inv.currency ?? 'brl').toUpperCase(),
+    status: inv.status ?? 'draft',
+    pdfUrl: inv.invoice_pdf ?? null,
+    hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+  }));
+}
+
+export async function changePlan(
+  prisma: PrismaClient,
+  tenantId: string,
+  planId: PlanId
+): Promise<{ status: string; currentPeriodEnd: string; planLabel: string } | { error: string }> {
+  const stripe = getStripe();
+  const priceId = getPriceIdForPlan(planId);
+  if (!stripe || !priceId) return { error: 'Billing or plan not available' };
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId, deletedAt: null },
+    select: { stripeSubscriptionId: true },
+  });
+  if (!tenant?.stripeSubscriptionId) return { error: 'No active subscription' };
+
+  const subscription = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId, {
+    expand: ['items.data.price'],
+  });
+  const itemId = subscription.items?.data?.[0]?.id;
+  if (!itemId) return { error: 'Subscription has no items' };
+
+  await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
+    items: [{ id: itemId, price: priceId }],
+    proration_behavior: 'create_prorations',
+  });
+
+  const updated = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId);
+  const periodEnd = (updated as { current_period_end?: number }).current_period_end;
+  const planLabel = planId === 'annual' ? 'Plano anual' : planId === 'semiannual' ? 'Plano semestral' : 'Plano mensal';
+  return {
+    status: updated.status,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : '',
+    planLabel,
+  };
+}
+
+export async function cancelSubscription(
+  prisma: PrismaClient,
+  tenantId: string
+): Promise<{ cancelAt: string } | { error: string }> {
+  const stripe = getStripe();
+  if (!stripe) return { error: 'Billing is not configured' };
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId, deletedAt: null },
+    select: { stripeSubscriptionId: true },
+  });
+  if (!tenant?.stripeSubscriptionId) return { error: 'No active subscription' };
+
+  const sub = await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+  const cancelAt = (sub as { current_period_end?: number }).current_period_end;
+  return {
+    cancelAt: cancelAt ? new Date(cancelAt * 1000).toISOString() : '',
+  };
+}
+
+export async function reactivateSubscription(
+  prisma: PrismaClient,
+  tenantId: string
+): Promise<{ status: string } | { error: string }> {
+  const stripe = getStripe();
+  if (!stripe) return { error: 'Billing is not configured' };
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId, deletedAt: null },
+    select: { stripeSubscriptionId: true },
+  });
+  if (!tenant?.stripeSubscriptionId) return { error: 'No subscription found' };
+
+  const sub = await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
+    cancel_at_period_end: false,
+  });
+  return { status: sub.status };
 }

@@ -13,6 +13,7 @@ import {
 } from './schemas.js';
 import { auditLog } from '@shared/utils/audit.js';
 import { skipFor } from '@shared/utils/pagination.js';
+import { createPatientNotification } from '../patient-notifications/service.js';
 
 // XP + nível baseados nas ações do paciente
 function computeLevel(xp: number): { level: string; levelLabel: string; nextLevelXp: number } {
@@ -92,6 +93,18 @@ export async function dietRoutes(fastify: FastifyInstance): Promise<void> {
       await auditLog(fastify.prisma, tenantId, 'create', 'diet_plan', plan.id, user.userId, {
         patientId: body.patientId,
         name: body.name,
+      });
+
+      await createPatientNotification(fastify.prisma, {
+        tenantId,
+        patientId: body.patientId,
+        type: 'diet_plan_assigned',
+        metadata: {
+          planId: plan.id,
+          assignedByProfessionalId: user.userId,
+          assignedAt: plan.startDate.toISOString(),
+          title: plan.name,
+        },
       });
 
       return reply.status(201).send({
@@ -267,6 +280,21 @@ export async function dietRoutes(fastify: FastifyInstance): Promise<void> {
       await auditLog(fastify.prisma, tenantId, 'update', 'diet_plan', id, user.userId, {
         changes: Object.keys(updateData),
       });
+
+      if (Object.keys(updateData).length > 0) {
+        await createPatientNotification(fastify.prisma, {
+          tenantId,
+          patientId: existing.patientId,
+          type: 'diet_plan_assigned',
+          metadata: {
+            planId: plan.id,
+            assignedByProfessionalId: user.userId,
+            assignedAt: new Date().toISOString(),
+            title: plan.name,
+            updated: true,
+          },
+        });
+      }
 
       return reply.status(200).send({
         id: plan.id,

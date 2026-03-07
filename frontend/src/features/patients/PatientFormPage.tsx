@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPatient, createPatient, updatePatient } from '@/api/patients';
@@ -8,31 +11,31 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { track } from '@/lib/analytics';
 
 const CONSENT_VERSION = '1.0';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type GenderValue = 'M' | 'F' | 'Other' | 'Prefer not to say' | '';
 
-interface FormState {
-  fullName: string;
-  birthDate: string;
-  gender: GenderValue;
-  cpf: string;
-  email: string;
-  phone: string;
-  profession: string;
-  mainGoal: string;
-  mainComplaint: string;
-  notes: string;
-  consentAccepted: boolean;
-}
+const patientSchema = z.object({
+  fullName: z.string().min(1, 'Nome completo é obrigatório'),
+  birthDate: z.string(),
+  gender: z.string(),
+  cpf: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  profession: z.string(),
+  mainGoal: z.string(),
+  mainComplaint: z.string(),
+  notes: z.string(),
+  consentAccepted: z.boolean(),
+});
 
-const EMPTY_FORM: FormState = {
+type PatientFormData = z.infer<typeof patientSchema>;
+
+const defaultValues: PatientFormData = {
   fullName: '',
   birthDate: '',
   gender: '',
@@ -46,10 +49,7 @@ const EMPTY_FORM: FormState = {
   consentAccepted: false,
 };
 
-// ---------------------------------------------------------------------------
-// Helper: build CreatePatientBody from FormState (null-coerce empty strings)
-// ---------------------------------------------------------------------------
-function buildBody(form: FormState, isEditMode: boolean): CreatePatientBody {
+function buildBody(form: PatientFormData, isEditMode: boolean): CreatePatientBody {
   const base = {
     fullName: form.fullName.trim(),
     birthDate: form.birthDate || null,
@@ -69,9 +69,6 @@ function buildBody(form: FormState, isEditMode: boolean): CreatePatientBody {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Shared textarea style (matches Input component look)
-// ---------------------------------------------------------------------------
 const textareaClass =
   'min-h-[96px] w-full resize-y rounded-input border border-border bg-surface px-3 py-2.5 text-body text-content placeholder-content-subtle transition-calm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
@@ -92,39 +89,37 @@ function formatPhoneDisplay(digits: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function PatientFormPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-
   const isEditMode = Boolean(id);
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [isDirty, setIsDirty] = useState(false);
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    setError,
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<PatientFormData>({
+    resolver: zodResolver(patientSchema),
+    defaultValues,
+  });
+
+  const { showConfirmModal, confirmLeave, cancelLeave, message } = useUnsavedChanges(isDirty);
   const [loadingData, setLoadingData] = useState(isEditMode);
-  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useUnsavedChanges(isDirty);
-
-  // --------------------------------------------------------------------------
-  // Load existing patient in edit mode
-  // --------------------------------------------------------------------------
   useEffect(() => {
     if (!isEditMode || !id) return;
-
     setLoadingData(true);
     setFetchError(null);
-
     getPatient(id)
       .then((patient) => {
-        setForm({
+        reset({
           fullName: patient.fullName ?? '',
           birthDate: patient.birthDate ? patient.birthDate.slice(0, 10) : '',
           gender: (patient.gender as GenderValue) ?? '',
@@ -142,59 +137,43 @@ export function PatientFormPage() {
         setFetchError(err instanceof Error ? err.message : 'Erro ao carregar paciente');
       })
       .finally(() => setLoadingData(false));
-  }, [id, isEditMode]);
+  }, [id, isEditMode, reset]);
 
-  // --------------------------------------------------------------------------
-  // Field updater
-  // --------------------------------------------------------------------------
-  function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setIsDirty(true);
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  // --------------------------------------------------------------------------
-  // Submit
-  // --------------------------------------------------------------------------
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitError(null);
-
-    if (!form.fullName.trim()) {
-      setSubmitError('Nome completo é obrigatório.');
+  const onSubmit = async (data: PatientFormData) => {
+    if (!isEditMode && !data.consentAccepted) {
+      setError('consentAccepted', {
+        message:
+          'É necessário aceitar a Política de Privacidade e Termos de Uso para cadastrar o paciente.',
+      });
       return;
     }
-    if (!isEditMode && !form.consentAccepted) {
-      setSubmitError('É necessário aceitar a Política de Privacidade e Termos de Uso para cadastrar o paciente.');
-      return;
-    }
-
-    const body = buildBody(form, isEditMode);
-    setLoadingSubmit(true);
-
+    const body = buildBody(data, isEditMode);
     try {
       if (isEditMode && id) {
         await updatePatient(id, body);
         queryClient.invalidateQueries({ queryKey: ['patients'] });
         queryClient.invalidateQueries({ queryKey: ['patient', id] });
-        setIsDirty(false);
+        track({ name: 'form_submit_success', formId: 'patient', action: 'update' });
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${id}`);
       } else {
         const created = await createPatient(body);
         queryClient.invalidateQueries({ queryKey: ['patients'] });
-        setIsDirty(false);
+        track({ name: 'form_submit_success', formId: 'patient', action: 'create' });
+        track({ name: 'patient_created', patientId: created.id });
         toast.success('Paciente salvo com sucesso.');
         navigate(`/patients/${created.id}`);
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Erro ao salvar paciente');
-      setLoadingSubmit(false);
+      track({ name: 'form_submit_error', formId: 'patient', action: isEditMode ? 'update' : 'create' });
+      setError('root', {
+        message: err instanceof Error ? err.message : 'Erro ao salvar paciente',
+      });
     }
-  }
+  };
 
-  // --------------------------------------------------------------------------
-  // Loading / fetch error states
-  // --------------------------------------------------------------------------
+  const fullName = watch('fullName');
+
   if (loadingData) {
     return (
       <div className="flex justify-center py-12">
@@ -214,235 +193,260 @@ export function PatientFormPage() {
     );
   }
 
-  // --------------------------------------------------------------------------
-  // Form render
-  // --------------------------------------------------------------------------
   const breadcrumbItems = [
     { label: 'Pacientes', to: '/patients' },
     ...(isEditMode && id
       ? [
-          { label: form.fullName.trim() || 'Paciente', to: `/patients/${id}` },
+          { label: fullName.trim() || 'Paciente', to: `/patients/${id}` },
           { label: 'Editar' },
         ]
       : [{ label: 'Novo paciente' }]),
   ];
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs items={breadcrumbItems} />
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-      <Card title={isEditMode ? 'Editar paciente' : 'Novo paciente'}>
-        <div className="space-y-5">
-          {/* Termo de consentimento LGPD no topo (análise UX); link em nova aba */}
-          {!isEditMode && (
-            <div className="rounded-button border border-primary/30 bg-primary-subtle/30 p-4">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.consentAccepted}
-                  onChange={(e) => setField('consentAccepted', e.target.checked)}
-                  className="mt-1 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
-                  aria-describedby="consent-desc"
-                />
-                <span id="consent-desc" className="text-body-sm text-content">
-                  Li e concordo com a{' '}
-                  <a
-                    href="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-primary underline hover:no-underline"
+    <>
+      <div className="space-y-6">
+        <Breadcrumbs items={breadcrumbItems} />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+          <Card title="Dados do paciente">
+            <div className="space-y-8">
+              {!isEditMode && (
+                <section aria-labelledby="patient-form-consent-heading">
+                  <h3 id="patient-form-consent-heading" className="text-heading-sm font-semibold text-content mb-3">
+                    Consentimento (LGPD)
+                  </h3>
+                  <div className="rounded-button border border-primary/30 bg-primary-subtle/30 p-4">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        {...register('consentAccepted')}
+                        className="mt-1 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                        aria-describedby="consent-desc"
+                      />
+                      <span id="consent-desc" className="text-body-sm text-content">
+                        Li e concordo com a{' '}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-primary underline hover:no-underline"
+                        >
+                          Política de Privacidade e Termos de Uso
+                        </a>
+                        , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
+                      </span>
+                    </label>
+                    {errors.consentAccepted && (
+                      <p className="mt-1.5 text-body-sm text-error" role="alert">
+                        {errors.consentAccepted.message}
+                      </p>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              <section aria-labelledby="patient-form-pessoais-heading">
+                <h3 id="patient-form-pessoais-heading" className="text-heading-sm font-semibold text-content mb-4">
+                  Dados pessoais
+                </h3>
+                <div className="space-y-5">
+              <Input
+                label="Nome completo *"
+                {...register('fullName')}
+                placeholder="Ex: Ana Paula Souza"
+                autoComplete="name"
+                error={errors.fullName?.message}
+              />
+
+              <div className="flex flex-col gap-5 sm:flex-row">
+                <div className="flex-1">
+                  <Input
+                    label="Data de nascimento"
+                    type="date"
+                    {...register('birthDate')}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label
+                    htmlFor="gender"
+                    className="mb-1.5 block text-body-sm font-medium text-content-muted"
                   >
-                    Política de Privacidade e Termos de Uso
-                  </a>
-                  , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
-                </span>
-              </label>
+                    Gênero
+                  </label>
+                  <select
+                    id="gender"
+                    {...register('gender')}
+                    className={`${selectClass} ${errors.gender ? 'border-error' : ''}`}
+                  >
+                    <option value="">Selecione…</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="Other">Outro</option>
+                    <option value="Prefer not to say">Prefere não informar</option>
+                  </select>
+                  {errors.gender && (
+                    <p className="mt-1.5 text-body-sm text-error">{errors.gender.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-5 sm:flex-row">
+                <div className="flex-1">
+                  <Controller
+                    name="cpf"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        label="CPF"
+                        value={formatCpfDisplay(field.value)}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                          field.onChange(digits);
+                        }}
+                        placeholder="000.000.000-00"
+                        inputMode="numeric"
+                        maxLength={14}
+                        autoComplete="off"
+                        error={errors.cpf?.message}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        label="Telefone"
+                        type="tel"
+                        value={formatPhoneDisplay(field.value)}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                          field.onChange(digits);
+                        }}
+                        placeholder="(00) 00000-0000"
+                        inputMode="tel"
+                        maxLength={15}
+                        autoComplete="tel"
+                        error={errors.phone?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              <Input
+                label="E-mail"
+                type="email"
+                {...register('email')}
+                placeholder="paciente@email.com"
+                autoComplete="email"
+                error={errors.email?.message}
+              />
+
+              <Input
+                label="Profissão"
+                {...register('profession')}
+                placeholder="Ex: Professora"
+                error={errors.profession?.message}
+              />
+                </div>
+              </section>
+
+              <section aria-labelledby="patient-form-objetivo-heading">
+                <h3 id="patient-form-objetivo-heading" className="text-heading-sm font-semibold text-content mb-4">
+                  Objetivo e queixa
+                </h3>
+                <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="mainGoal"
+                  className="mb-1.5 block text-body-sm font-medium text-content-muted"
+                >
+                  Objetivo principal
+                </label>
+                <textarea
+                  id="mainGoal"
+                  {...register('mainGoal')}
+                  placeholder="Ex: Perda de peso, melhora do condicionamento físico…"
+                  rows={3}
+                  className={textareaClass}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="mainComplaint"
+                  className="mb-1.5 block text-body-sm font-medium text-content-muted"
+                >
+                  Queixa principal
+                </label>
+                <textarea
+                  id="mainComplaint"
+                  {...register('mainComplaint')}
+                  placeholder="Ex: Dores lombares, cansaço frequente…"
+                  rows={3}
+                  className={textareaClass}
+                />
+              </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="patient-form-observacoes-heading">
+                <h3 id="patient-form-observacoes-heading" className="text-heading-sm font-semibold text-content mb-4">
+                  Observações
+                </h3>
+              <div>
+                <label
+                  htmlFor="notes"
+                  className="mb-1.5 block text-body-sm font-medium text-content-muted"
+                >
+                  Observações
+                </label>
+                <textarea
+                  id="notes"
+                  {...register('notes')}
+                  placeholder="Informações adicionais relevantes…"
+                  rows={4}
+                  className={textareaClass}
+                />
+              </div>
+              </section>
+            </div>
+          </Card>
+
+          {errors.root && (
+            <div className="rounded-card border border-error bg-error-light px-4 py-3" role="alert">
+              <p className="text-sm font-medium text-error">{errors.root.message}</p>
             </div>
           )}
 
-          {/* Full name */}
-          <Input
-            label="Nome completo *"
-            name="fullName"
-            value={form.fullName}
-            onChange={(e) => setField('fullName', e.target.value)}
-            placeholder="Ex: Ana Paula Souza"
-            required
-            autoComplete="name"
-          />
-
-          {/* Birth date + Gender row */}
-          <div className="flex flex-col gap-5 sm:flex-row">
-            <div className="flex-1">
-              <Input
-                label="Data de nascimento"
-                name="birthDate"
-                type="date"
-                value={form.birthDate}
-                onChange={(e) => setField('birthDate', e.target.value)}
-              />
-            </div>
-
-            <div className="flex-1">
-              <label
-                htmlFor="gender"
-                className="mb-1.5 block text-body-sm font-medium text-content-muted"
-              >
-                Gênero
-              </label>
-              <select
-                id="gender"
-                name="gender"
-                value={form.gender}
-                onChange={(e) => setField('gender', e.target.value as GenderValue)}
-                className={selectClass}
-              >
-                <option value="">Selecione…</option>
-                <option value="M">Masculino</option>
-                <option value="F">Feminino</option>
-                <option value="Other">Outro</option>
-                <option value="Prefer not to say">Prefere não informar</option>
-              </select>
-            </div>
-          </div>
-
-          {/* CPF + Phone row */}
-          <div className="flex flex-col gap-5 sm:flex-row">
-            <div className="flex-1">
-              <Input
-                label="CPF"
-                name="cpf"
-                value={formatCpfDisplay(form.cpf)}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                  setField('cpf', digits);
-                }}
-                placeholder="000.000.000-00"
-                inputMode="numeric"
-                maxLength={14}
-                autoComplete="off"
-              />
-            </div>
-
-            <div className="flex-1">
-              <Input
-                label="Telefone"
-                name="phone"
-                type="tel"
-                value={formatPhoneDisplay(form.phone)}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                  setField('phone', digits);
-                }}
-                placeholder="(00) 00000-0000"
-                inputMode="tel"
-                maxLength={15}
-                autoComplete="tel"
-              />
-            </div>
-          </div>
-
-          {/* Email */}
-          <Input
-            label="E-mail"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={(e) => setField('email', e.target.value)}
-            placeholder="paciente@email.com"
-            autoComplete="email"
-          />
-
-          {/* Profession */}
-          <Input
-            label="Profissão"
-            name="profession"
-            value={form.profession}
-            onChange={(e) => setField('profession', e.target.value)}
-            placeholder="Ex: Professora"
-          />
-
-          {/* Main goal */}
-          <div>
-            <label
-              htmlFor="mainGoal"
-              className="mb-1.5 block text-body-sm font-medium text-content-muted"
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" loading={isSubmitting}>
+              {isEditMode ? 'Salvar alterações' : 'Criar paciente'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isSubmitting}
+              onClick={() => navigate(-1)}
             >
-              Objetivo principal
-            </label>
-            <textarea
-              id="mainGoal"
-              name="mainGoal"
-              value={form.mainGoal}
-              onChange={(e) => setField('mainGoal', e.target.value)}
-              placeholder="Ex: Perda de peso, melhora do condicionamento físico…"
-              rows={3}
-              className={textareaClass}
-            />
+              Cancelar
+            </Button>
           </div>
-
-          {/* Main complaint */}
-          <div>
-            <label
-              htmlFor="mainComplaint"
-              className="mb-1.5 block text-body-sm font-medium text-content-muted"
-            >
-              Queixa principal
-            </label>
-            <textarea
-              id="mainComplaint"
-              name="mainComplaint"
-              value={form.mainComplaint}
-              onChange={(e) => setField('mainComplaint', e.target.value)}
-              placeholder="Ex: Dores lombares, cansaço frequente…"
-              rows={3}
-              className={textareaClass}
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label
-              htmlFor="notes"
-              className="mb-1.5 block text-body-sm font-medium text-content-muted"
-            >
-              Observações
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={form.notes}
-              onChange={(e) => setField('notes', e.target.value)}
-              placeholder="Informações adicionais relevantes…"
-              rows={4}
-              className={textareaClass}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Submit error */}
-      {submitError && (
-        <div className="rounded-card border border-error bg-error-light px-4 py-3" role="alert">
-          <p className="text-sm font-medium text-error">{submitError}</p>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" loading={loadingSubmit}>
-          {isEditMode ? 'Salvar alterações' : 'Criar paciente'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={loadingSubmit}
-          onClick={() => navigate(-1)}
-        >
-          Cancelar
-        </Button>
+        </form>
       </div>
-    </form>
-    </div>
+      <ConfirmModal
+        open={showConfirmModal}
+        title="Alterações não salvas"
+        message={message}
+        confirmLabel="Sair"
+        cancelLabel="Ficar"
+        variant="danger"
+        onConfirm={confirmLeave}
+        onCancel={cancelLeave}
+      />
+    </>
   );
 }

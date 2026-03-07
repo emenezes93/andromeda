@@ -4,6 +4,7 @@ import { getInsights, generateInsights } from '@/api/ai';
 import { getSession, exportSession } from '@/api/sessions';
 import type { AiInsight, Session } from '@/types';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { RisksBarChart, type RiskItem, RadarChart, type RadarDataPoint } from '@/components/charts';
@@ -60,6 +61,7 @@ const riskLevelConfig: Record<
 export function SessionInsightsPage() {
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
+  const { t } = useTranslation();
   const [insight, setInsight] = useState<AiInsight | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -209,7 +211,7 @@ export function SessionInsightsPage() {
             loading={exporting === 'json'}
             disabled={!!exporting}
           >
-            Export JSON
+            {t.exportSession?.json ?? 'Exportar JSON'}
           </Button>
           <Button
             variant="outline"
@@ -218,7 +220,7 @@ export function SessionInsightsPage() {
             loading={exporting === 'pdf'}
             disabled={!!exporting}
           >
-            Export PDF
+            {t.exportSession?.report ?? 'Exportar relatório (HTML)'}
           </Button>
           <Link to={`/sessions/${id}`}>
             <Button variant="secondary">Voltar à sessão</Button>
@@ -361,6 +363,37 @@ export function SessionInsightsPage() {
               <li key={i}>{rec}</li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {session?.patientId && (
+        <Card title="Ações rápidas" padding="md">
+          <p className="mb-3 text-body-sm text-content-muted">
+            A partir deste insight, você pode criar uma meta, ajustar o plano de treino ou agendar uma reavaliação.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/goals/new?patientId=${session.patientId}&sessionId=${id}`}
+            >
+              <Button variant="secondary" size="sm">
+                Criar meta
+              </Button>
+            </Link>
+            <Link
+              to={`/training-plans/new?patientId=${session.patientId}`}
+            >
+              <Button variant="secondary" size="sm">
+                Ajustar plano treino
+              </Button>
+            </Link>
+            <Link
+              to={`/scheduled-questionnaires/new?patientId=${session.patientId}${session.templateId ? `&templateId=${session.templateId}` : ''}`}
+            >
+              <Button variant="secondary" size="sm">
+                Agendar reavaliação
+              </Button>
+            </Link>
+          </div>
         </Card>
       )}
 

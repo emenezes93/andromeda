@@ -28,22 +28,66 @@ export class PrismaTenantRepository implements ITenantRepository {
     return { data: rows.map((t) => this.toDomain(t)), total };
   }
 
-  async create(data: { name: string; status?: string }): Promise<Tenant> {
+  async create(data: { name: string; status?: string; trialEndsAt?: Date }): Promise<Tenant> {
     const created = await this.prisma.tenant.create({
       data: {
         name: data.name,
         status: data.status ?? 'active',
+        ...(data.trialEndsAt && { trialEndsAt: data.trialEndsAt }),
       },
     });
     return this.toDomain(created);
   }
 
-  async update(id: string, data: { name?: string; status?: string }): Promise<Tenant> {
+  async createWithOwner(data: {
+    name: string;
+    trialEndsAt: Date;
+    ownerEmail: string;
+    ownerPasswordHash: string;
+    ownerName: string | null;
+  }): Promise<{ tenantId: string; userId: string; ownerEmail: string; ownerName: string | null }> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: data.name,
+          status: 'active',
+          planTier: 'free',
+          trialEndsAt: data.trialEndsAt,
+        },
+      });
+      const user = await tx.user.create({
+        data: {
+          email: data.ownerEmail,
+          passwordHash: data.ownerPasswordHash,
+          name: data.ownerName,
+        },
+      });
+      await tx.membership.create({
+        data: { userId: user.id, tenantId: tenant.id, role: 'owner', active: true },
+      });
+      return { tenantId: tenant.id, userId: user.id, ownerEmail: data.ownerEmail, ownerName: data.ownerName };
+    });
+    return result;
+  }
+
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      status?: string;
+      emailAlertsEnabled?: boolean;
+      logoUrl?: string | null;
+      brandColor?: string | null;
+    }
+  ): Promise<Tenant> {
     const updated = await this.prisma.tenant.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.status !== undefined && { status: data.status }),
+        ...(data.emailAlertsEnabled !== undefined && { emailAlertsEnabled: data.emailAlertsEnabled }),
+        ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
+        ...(data.brandColor !== undefined && { brandColor: data.brandColor }),
       },
     });
     return this.toDomain(updated);
@@ -85,6 +129,9 @@ export class PrismaTenantRepository implements ITenantRepository {
     createdAt: Date;
     deletedAt: Date | null;
     planTier?: string;
+    emailAlertsEnabled?: boolean;
+    logoUrl?: string | null;
+    brandColor?: string | null;
   }): Tenant {
     return new Tenant(
       prismaTenant.id,
@@ -92,7 +139,10 @@ export class PrismaTenantRepository implements ITenantRepository {
       prismaTenant.status as Tenant['status'],
       prismaTenant.createdAt,
       prismaTenant.deletedAt,
-      prismaTenant.planTier ?? 'free'
+      prismaTenant.planTier ?? 'free',
+      prismaTenant.emailAlertsEnabled ?? false,
+      prismaTenant.logoUrl ?? null,
+      prismaTenant.brandColor ?? null
     );
   }
 }

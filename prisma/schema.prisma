@@ -23,11 +23,15 @@ model Tenant {
   stripeSubscriptionId String?   @map("stripe_subscription_id")
   subscriptionStatus   String?   @map("subscription_status") // active | past_due | canceled | trialing
   currentPeriodEnd     DateTime? @map("current_period_end")
-  planTier  String  @default("free")  @map("plan_tier")
+  planTier   String   @default("free") @map("plan_tier")
+  trialEndsAt DateTime? @map("trial_ends_at")
   // AI Cost Alerts
   aiCostLimitUsd       Float?    @map("ai_cost_limit_usd")
   aiCostAlertThreshold Float?    @map("ai_cost_alert_threshold") // percentage (0-100) of limit
   aiCostAlertSentAt    DateTime? @map("ai_cost_alert_sent_at")
+  emailAlertsEnabled   Boolean   @default(false) @map("email_alerts_enabled")
+  logoUrl              String?   @map("logo_url")
+  brandColor           String?   @default("#6366f1") @map("brand_color")
 
   memberships Membership[]
   anamnesisTemplates AnamnesisTemplate[]
@@ -48,8 +52,27 @@ model Tenant {
   progressPhotos     ProgressPhoto[]
   dietPlans          DietPlan[]
   dietEntries        DietEntry[]
+  alerts             Alert[]
+  patientNotifications PatientNotification[]
+  exercises         Exercise[]
 
   @@map("tenants")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  muscleGroup String   @map("muscle_group") // chest, back, shoulders, arms, legs, core, cardio, other
+  equipment   String?  // barbell, dumbbell, cable, machine, bodyweight, band, other
+  videoUrl    String?  @map("video_url")
+  isGlobal    Boolean  @default(false) @map("is_global")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId])
+  @@index([tenantId, muscleGroup])
+  @@map("exercises")
 }
 
 model User {
@@ -138,6 +161,7 @@ model AnamnesisSession {
   answers  AnamnesisAnswer[]
   aiInsights AiInsight[]
   aiUsageMetrics AiUsageMetric[]
+  goalsBasedOnSession PatientGoal[] @relation("GoalBasedOnSession")
 
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
@@ -178,10 +202,11 @@ model Patient {
   progressPhotos    ProgressPhoto[]
   dietPlans         DietPlan[]
   dietEntries       DietEntry[]
+  alerts            Alert[]
+  patientNotifications PatientNotification[]
 
   @@unique([tenantId, cpf])
-  // Partial unique index: enforced at DB level only when email IS NOT NULL (see migration).
-  // Allows multiple patients without email in the same tenant.
+  // DB has partial unique (WHERE email IS NOT NULL) via 20260220000002. If Prisma generates a migration for this, use the idempotent pattern - see prisma/migrations/README_patients_email_unique.md
   @@unique([tenantId, email])
   @@index([tenantId])
   @@index([tenantId, fullName])
@@ -382,29 +407,32 @@ model ScheduledQuestionnaire {
 
 // Metas e objetivos do paciente
 model PatientGoal {
-  id          String    @id @default(cuid())
-  tenantId    String    @map("tenant_id")
-  patientId   String    @map("patient_id")
-  type        String    // weight_loss | muscle_gain | performance | health | other
-  title       String
-  description String?   @db.Text
-  currentValue Float?   @map("current_value")
-  targetValue Float     @map("target_value")
-  unit        String    // kg | cm | % | bpm | custom
-  startDate   DateTime  @map("start_date") @db.Date
-  targetDate  DateTime  @map("target_date") @db.Date
-  achievedAt  DateTime? @map("achieved_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id                String    @id @default(cuid())
+  tenantId          String    @map("tenant_id")
+  patientId         String    @map("patient_id")
+  basedOnSessionId  String?   @map("based_on_session_id")
+  type              String    // weight_loss | muscle_gain | performance | health | other
+  title             String
+  description       String?   @db.Text
+  currentValue      Float?    @map("current_value")
+  targetValue       Float     @map("target_value")
+  unit              String    // kg | cm | % | bpm | custom
+  startDate         DateTime  @map("start_date") @db.Date
+  targetDate        DateTime  @map("target_date") @db.Date
+  achievedAt        DateTime? @map("achieved_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  basedOnSession AnamnesisSession? @relation("GoalBasedOnSession", fields: [basedOnSessionId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([patientId])
   @@index([tenantId, patientId, deletedAt])
   @@index([targetDate])
+  @@index([basedOnSessionId])
   @@map("patient_goals")
 }
 
@@ -442,6 +470,7 @@ model TrainingExecution {
   executedAt      DateTime  @map("executed_at")
   durationMinutes Int?      @map("duration_minutes")
   notes           String?   @db.Text
+  coachNotes      String?   @map("coach_notes") @db.Text
   completed       Boolean   @default(true)
   createdAt       DateTime  @default(now()) @map("created_at")
   deletedAt       DateTime? @map("deleted_at")
@@ -457,16 +486,60 @@ model TrainingExecution {
   @@map("training_executions")
 }
 
-// Fotos de progresso
-model ProgressPhoto {
+// Notificações para o paciente (portal do aluno) — sem push/websocket
+model PatientNotification {
   id        String    @id @default(cuid())
   tenantId  String    @map("tenant_id")
   patientId String    @map("patient_id")
-  imageUrl  String    @map("image_url")
-  takenAt   DateTime  @map("taken_at") @db.Date
-  notes     String?   @db.Text
+  type      String    // plan_assigned | training_plan_assigned | diet_plan_assigned | questionnaire_session_created
+  metadata  Json?     // planId, sessionId, assignedByProfessionalId, etc.
+  readAt    DateTime? @map("read_at")
+  archivedAt DateTime? @map("archived_at")
   createdAt DateTime  @default(now()) @map("created_at")
-  deletedAt DateTime? @map("deleted_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([patientId, readAt])
+  @@index([tenantId, patientId, type, createdAt(sort: Desc)])
+  @@map("patient_notifications")
+}
+
+// Alertas (motor de alertas - Sprint 3) — para o personal
+model Alert {
+  id        String    @id @default(cuid())
+  tenantId  String    @map("tenant_id")
+  patientId String    @map("patient_id")
+  type      String    // inactive | adherence_drop | streak_broken | goal_due_soon | goal_achieved | dropout_risk | no_recent_assessment | reassessment_scheduled
+  severity  String    // high | medium | low | info
+  message   String    @db.Text
+  metadata  Json?     // optional payload (e.g. goalId, sessionId)
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([tenantId, readAt])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("alerts")
+}
+
+// Fotos de progresso
+model ProgressPhoto {
+  id            String    @id @default(cuid())
+  tenantId      String    @map("tenant_id")
+  patientId     String    @map("patient_id")
+  imageUrl      String    @map("image_url")   // URL externa ou path interno: /v1/progress-photos/:id/file
+  fileExtension String?   @map("file_extension") // .jpg, .png, .webp quando upload real (P1.1)
+  takenAt       DateTime  @map("taken_at") @db.Date
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)

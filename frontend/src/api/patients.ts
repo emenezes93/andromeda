@@ -5,6 +5,7 @@ import type {
   PatientWithCount,
   PatientListResponse,
   PatientTimelineResponse,
+  PatientHubSummaryResponse,
   CreatePatientBody,
   CreateEvolutionBody,
   PaginationMeta,
@@ -14,6 +15,10 @@ export interface ListPatientsParams {
   page?: number;
   limit?: number;
   search?: string;
+  mainGoal?: string;
+  hasActivePlan?: boolean;
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 export async function listPatients(params?: ListPatientsParams): Promise<PatientListResponse> {
@@ -21,6 +26,10 @@ export async function listPatients(params?: ListPatientsParams): Promise<Patient
   if (params?.page != null) search.set('page', String(params.page));
   if (params?.limit != null) search.set('limit', String(params.limit));
   if (params?.search != null) search.set('search', params.search);
+  if (params?.mainGoal != null) search.set('mainGoal', params.mainGoal);
+  if (params?.hasActivePlan != null) search.set('hasActivePlan', String(params.hasActivePlan));
+  if (params?.createdAfter != null) search.set('createdAfter', params.createdAfter);
+  if (params?.createdBefore != null) search.set('createdBefore', params.createdBefore);
   const qs = search.toString();
   return apiFetch<PatientListResponse>(`/v1/patients${qs ? `?${qs}` : ''}`);
 }
@@ -69,6 +78,10 @@ export async function getPatientTimeline(
   return apiFetch<PatientTimelineResponse>(`/v1/patients/${patientId}/timeline${qs}`);
 }
 
+export async function getPatientHubSummary(patientId: string): Promise<PatientHubSummaryResponse> {
+  return apiFetch<PatientHubSummaryResponse>(`/v1/patients/${patientId}/hub-summary`);
+}
+
 export async function exportPatientsCSV(search?: string): Promise<void> {
   const url = `/v1/patients/export/csv${search ? `?search=${encodeURIComponent(search)}` : ''}`;
   const token = localStorage.getItem('token');
@@ -95,4 +108,25 @@ export async function exportPatientsCSV(search?: string): Promise<void> {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(downloadUrl);
+}
+
+export interface ImportPatientsResult {
+  imported: number;
+  failed: number;
+  total: number;
+  results: Array<{
+    row: number;
+    status: 'ok' | 'error';
+    error?: string;
+    patientId?: string;
+  }>;
+}
+
+export async function importPatientsCSV(
+  rows: Array<Record<string, string>>
+): Promise<ImportPatientsResult> {
+  return apiFetch<ImportPatientsResult>('/v1/patients/import', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+  });
 }

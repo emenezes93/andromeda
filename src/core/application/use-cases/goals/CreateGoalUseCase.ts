@@ -6,6 +6,7 @@ import { NotFoundError, BadRequestError } from '@shared/errors/index.js';
 export interface CreateGoalRequest {
   tenantId: string;
   patientId: string;
+  basedOnSessionId?: string | null;
   type: string;
   title: string;
   description?: string | null;
@@ -40,6 +41,7 @@ export class CreateGoalUseCase {
     const goal = await this.goalRepository.create({
       tenantId: request.tenantId,
       patientId: request.patientId,
+      basedOnSessionId: request.basedOnSessionId ?? null,
       type: request.type,
       title: request.title,
       description: request.description ?? null,

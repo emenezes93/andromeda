@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPatient, listEvolutions } from '@/api/patients';
+import { getPatient, listEvolutions, createEvolution } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
 import {
@@ -12,9 +13,11 @@ import {
 import {
   listProgressPhotos,
   createProgressPhoto,
+  createProgressPhotoUpload,
   deleteProgressPhoto,
 } from '@/api/progress-photos';
 import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
+import { track } from '@/lib/analytics';
 import type {
   TrainingExecution,
   ProgressPhoto,
@@ -28,6 +31,10 @@ import { Input } from '@/components/ui/Input';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { FileUpload } from '@/components/ui/FileUpload';
+import { ProgressPhotoImage } from '@/components/ui/ProgressPhotoImage';
+import { IconChevronDown } from '@/components/icons';
+import { useToast } from '@/components/ui/Toast';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,6 +113,7 @@ const selectClass =
 
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   // ── Tab ───────────────────────────────────────────────────────────────
@@ -138,6 +146,18 @@ export function PatientDetailPage() {
     enabled: !!id,
   });
   const lastEvolution = evolutionsQuery.data ?? null;
+
+  const evolutionsListQuery = useQuery({
+    queryKey: ['patient-evolutions-list', id],
+    queryFn: () => listEvolutions(id!).then((res) => res.data),
+    enabled: !!id,
+  });
+  const evolutionsList = evolutionsListQuery.data ?? [];
+  const last5Weights = [...evolutionsList]
+    .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+    .slice(0, 5)
+    .map((e) => e.weightKg)
+    .filter((w): w is number => w != null);
 
   const plansQuery = useQuery({
     queryKey: ['patient-plans', id],
@@ -195,6 +215,7 @@ export function PatientDetailPage() {
     takenAt: todayIso(),
     notes: '',
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [submittingPhoto, setSubmittingPhoto] = useState(false);
 
   const [pendingDelete, setPendingDelete] = useState<
@@ -202,7 +223,49 @@ export function PatientDetailPage() {
   >(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [evolutionCardOpen, setEvolutionCardOpen] = useState(true);
+  const [quickEvo, setQuickEvo] = useState({
+    weightKg: '',
+    bodyFatPercent: '',
+    waistCm: '',
+    hipCm: '',
+  });
+  const [submittingEvo, setSubmittingEvo] = useState(false);
+
   // ── Submit handlers ────────────────────────────────────────────────────
+
+  async function handleQuickEvoSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id) return;
+    const weight = quickEvo.weightKg.trim() ? parseFloat(quickEvo.weightKg) : null;
+    const bodyFat = quickEvo.bodyFatPercent.trim() ? parseFloat(quickEvo.bodyFatPercent) : null;
+    const waist = quickEvo.waistCm.trim() ? parseFloat(quickEvo.waistCm) : null;
+    const hip = quickEvo.hipCm.trim() ? parseFloat(quickEvo.hipCm) : null;
+    if (weight == null && bodyFat == null && waist == null && hip == null) {
+      toast.error('Preencha ao menos um campo.');
+      return;
+    }
+    setSubmittingEvo(true);
+    try {
+      await createEvolution(id, {
+        recordedAt: new Date().toISOString().split('T')[0],
+        weightKg: weight ?? undefined,
+        bodyFatPercent: bodyFat ?? undefined,
+        waistCm: waist ?? undefined,
+        hipCm: hip ?? undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ['patient-evolutions', id] });
+      queryClient.invalidateQueries({ queryKey: ['patient-evolutions-list', id] });
+      queryClient.invalidateQueries({ queryKey: ['patient', id] });
+      toast.success('Evolução registrada.');
+      track({ name: 'evolution_recorded', patientId: id });
+      setQuickEvo({ weightKg: '', bodyFatPercent: '', waistCm: '', hipCm: '' });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar.');
+    } finally {
+      setSubmittingEvo(false);
+    }
+  }
 
   async function handleExecSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -230,21 +293,34 @@ export function PatientDetailPage() {
 
   async function handlePhotoSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!id || !photoForm.imageUrl.trim()) return;
+    if (!id) return;
+    const hasFile = !!photoFile;
+    const hasUrl = !!photoForm.imageUrl.trim();
+    if (!hasFile && !hasUrl) return;
     setSubmittingPhoto(true);
     try {
-      await createProgressPhoto({
-        patientId: id,
-        imageUrl: photoForm.imageUrl.trim(),
-        takenAt: photoForm.takenAt,
-        notes: photoForm.notes.trim() || undefined,
-      });
+      if (hasFile && photoFile) {
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        formData.append('patientId', id);
+        formData.append('takenAt', photoForm.takenAt);
+        if (photoForm.notes.trim()) formData.append('notes', photoForm.notes.trim());
+        await createProgressPhotoUpload(formData);
+      } else {
+        await createProgressPhoto({
+          patientId: id,
+          imageUrl: photoForm.imageUrl.trim(),
+          takenAt: photoForm.takenAt,
+          notes: photoForm.notes.trim() || undefined,
+        });
+      }
       setShowPhotoForm(false);
       setPhotoForm({ imageUrl: '', takenAt: todayIso(), notes: '' });
+      setPhotoFile(null);
       queryClient.invalidateQueries({ queryKey: ['patient-photos', id] });
       queryClient.invalidateQueries({ queryKey: ['patient', id] });
     } catch {
-      // errors surfaced via API toast in apiFetch
+      // errors surfaced via API toast / createProgressPhotoUpload throws
     } finally {
       setSubmittingPhoto(false);
     }
@@ -296,29 +372,78 @@ export function PatientDetailPage() {
         ]}
         className="mb-1"
       />
-      {/* ── Header ── */}
+      {/* ── Header: nome + CTA principal + menu Mais ações ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-heading font-semibold text-content">{patient.fullName}</h2>
+          <h1 className="text-heading font-semibold text-content">{patient.fullName}</h1>
           <Badge variant={genderVariant(patient.gender)}>{genderLabel(patient.gender)}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link to={`/patients/${id}/edit`}>
-            <Button variant="secondary" size="sm">
-              Editar
-            </Button>
-          </Link>
           <Link to={`/sessions/new?patientId=${id}`}>
             <Button size="sm">Nova avaliação</Button>
           </Link>
-          <Link to={`/diet-dashboard/${id}`}>
-            <Button variant="secondary" size="sm">🥗 Dieta</Button>
-          </Link>
-          <Link to="/patients">
-            <Button variant="outline" size="sm">
-              Voltar
-            </Button>
-          </Link>
+          <Menu as="div" className="relative">
+            <MenuButton
+              as={Button}
+              variant="outline"
+              size="sm"
+              className="inline-flex items-center gap-1"
+            >
+              Mais ações
+              <IconChevronDown className="size-4" />
+            </MenuButton>
+            <Transition
+              enter="transition ease-out duration-100"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <MenuItems className="absolute right-0 z-10 mt-1 min-w-[10rem] origin-top-right rounded-card border border-border bg-surface py-1 shadow-card focus:outline-none">
+                <MenuItem>
+                  {({ focus }) => (
+                    <Link
+                      to={`/patients/${id}/edit`}
+                      className={`block px-4 py-2 text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
+                    >
+                      Editar dados
+                    </Link>
+                  )}
+                </MenuItem>
+                <MenuItem>
+                  {({ focus }) => (
+                    <Link
+                      to={`/patients/${id}/hub`}
+                      className={`block px-4 py-2 text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
+                    >
+                      Hub do paciente
+                    </Link>
+                  )}
+                </MenuItem>
+                <MenuItem>
+                  {({ focus }) => (
+                    <Link
+                      to={`/diet-dashboard/${id}`}
+                      className={`block px-4 py-2 text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
+                    >
+                      🥗 Dieta
+                    </Link>
+                  )}
+                </MenuItem>
+                <MenuItem>
+                  {({ focus }) => (
+                    <Link
+                      to="/patients"
+                      className={`block px-4 py-2 text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
+                    >
+                      Voltar à lista
+                    </Link>
+                  )}
+                </MenuItem>
+              </MenuItems>
+            </Transition>
+          </Menu>
         </div>
       </div>
 
@@ -413,6 +538,67 @@ export function PatientDetailPage() {
           </Card>
 
           {patient.notes && <TextCard title="Observações" text={patient.notes} />}
+
+          {/* Registro rápido de evolução */}
+          <Card padding="none">
+            <button
+              type="button"
+              onClick={() => setEvolutionCardOpen((o) => !o)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-calm hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+              aria-expanded={evolutionCardOpen}
+            >
+              <span className="text-body font-semibold text-content">Registro rápido de evolução</span>
+              <span className="text-content-muted" aria-hidden>
+                {evolutionCardOpen ? '▼' : '▶'}
+              </span>
+            </button>
+            {evolutionCardOpen && (
+              <div className="border-t border-border-muted px-4 pb-4 pt-3">
+                {last5Weights.length > 0 && (
+                  <p className="mb-3 text-body-sm text-content-muted">
+                    Últimos pesos: <span className="font-medium text-content">{last5Weights.join(' → ')} kg</span>
+                  </p>
+                )}
+                <form onSubmit={handleQuickEvoSubmit} className="flex flex-wrap items-end gap-3">
+                  <Input
+                    label="Peso (kg)"
+                    type="number"
+                    step="0.1"
+                    value={quickEvo.weightKg}
+                    onChange={(e) => setQuickEvo((p) => ({ ...p, weightKg: e.target.value }))}
+                    className="w-24"
+                  />
+                  <Input
+                    label="BF (%)"
+                    type="number"
+                    step="0.1"
+                    value={quickEvo.bodyFatPercent}
+                    onChange={(e) => setQuickEvo((p) => ({ ...p, bodyFatPercent: e.target.value }))}
+                    className="w-24"
+                  />
+                  <Input
+                    label="Cintura (cm)"
+                    type="number"
+                    step="0.1"
+                    value={quickEvo.waistCm}
+                    onChange={(e) => setQuickEvo((p) => ({ ...p, waistCm: e.target.value }))}
+                    className="w-24"
+                  />
+                  <Input
+                    label="Quadril (cm)"
+                    type="number"
+                    step="0.1"
+                    value={quickEvo.hipCm}
+                    onChange={(e) => setQuickEvo((p) => ({ ...p, hipCm: e.target.value }))}
+                    className="w-24"
+                  />
+                  <Button type="submit" size="sm" loading={submittingEvo} disabled={submittingEvo}>
+                    Salvar
+                  </Button>
+                </form>
+              </div>
+            )}
+          </Card>
 
           <div className="flex flex-wrap gap-3 pt-1">
             <Link to={`/patients/${id}/timeline`}>
@@ -758,10 +944,14 @@ export function PatientDetailPage() {
             <Card padding="md">
               <h4 className="mb-4 text-body-sm font-semibold text-content">Nova foto</h4>
               <form onSubmit={handlePhotoSubmit} className="space-y-4">
+                <FileUpload
+                  label="Enviar imagem (ou use a URL abaixo)"
+                  file={photoFile}
+                  onFileSelect={setPhotoFile}
+                />
                 <Input
-                  label="URL da imagem"
+                  label="URL da imagem (opcional, se não enviar arquivo)"
                   name="imageUrl"
-                  required
                   placeholder="https://..."
                   value={photoForm.imageUrl}
                   onChange={(e) => setPhotoForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
@@ -786,7 +976,11 @@ export function PatientDetailPage() {
                     className={textareaClass}
                   />
                 </div>
-                <Button type="submit" loading={submittingPhoto} disabled={submittingPhoto}>
+                <Button
+                  type="submit"
+                  loading={submittingPhoto}
+                  disabled={submittingPhoto || (!photoFile && !photoForm.imageUrl.trim())}
+                >
                   Salvar foto
                 </Button>
               </form>
@@ -810,14 +1004,10 @@ export function PatientDetailPage() {
                   key={photo.id}
                   className="overflow-hidden rounded-card border border-border bg-surface"
                 >
-                  <img
-                    src={photo.imageUrl}
+                  <ProgressPhotoImage
+                    imageUrl={photo.imageUrl}
                     alt={photo.notes ?? 'Foto de progresso'}
                     className="h-48 w-full object-cover"
-                    onError={(e) => {
-                      const el = e.target as HTMLImageElement;
-                      el.style.display = 'none';
-                    }}
                   />
                   <div className="p-3">
                     <p className="text-body-sm font-medium text-content">

@@ -1,6 +1,6 @@
-# Frontend – Anamnese Inteligente PaaS
+# Frontend – Fit Insight
 
-SPA React (Vite + TypeScript + Tailwind) para o PaaS de Anamnese.
+SPA React (Vite + TypeScript + Tailwind) para a plataforma Fit Insight.
 
 ## Desenvolvimento local
 

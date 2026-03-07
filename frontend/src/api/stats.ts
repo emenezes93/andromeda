@@ -68,3 +68,42 @@ export async function getTemplateReport(
   const qs = search.toString();
   return apiFetch<TemplateReport>(`/v1/stats/templates/${templateId}${qs ? `?${qs}` : ''}`);
 }
+
+export interface StudentOverviewItem {
+  patientId: string;
+  fullName: string;
+  training7d: string;
+  diet7d: string;
+  attention: string;
+  attentionSeverity: 'high' | 'medium' | 'low' | 'none';
+}
+
+export interface StudentsOverviewResponse {
+  students: StudentOverviewItem[];
+}
+
+export async function getStudentsOverview(): Promise<StudentsOverviewResponse> {
+  return apiFetch<StudentsOverviewResponse>('/v1/stats/students-overview');
+}
+
+export interface AnalyticsDashboard {
+  period: { from: string; to: string; days: number };
+  activeStudents: number;
+  inactiveStudents: number;
+  churnRiskStudents: number;
+  averageTrainingAdherence: number;
+  averageDietAdherence: number;
+  newPatientsThisPeriod: number;
+  sessionsCompletedThisPeriod: number;
+  goalsAchievedThisPeriod: number;
+  trendVsPrevious: {
+    activeStudentsDelta: number;
+    sessionsDelta: number;
+    adherenceDelta: number;
+  };
+}
+
+export async function getAnalyticsDashboard(days?: number): Promise<AnalyticsDashboard> {
+  const qs = days != null ? `?days=${days}` : '';
+  return apiFetch<AnalyticsDashboard>(`/v1/stats/analytics${qs}`);
+}

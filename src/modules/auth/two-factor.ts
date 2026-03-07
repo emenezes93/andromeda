@@ -20,7 +20,7 @@ export interface TwoFactorVerifyResult {
 export function generateTwoFactorSecret(userEmail: string, tenantName: string): speakeasy.GeneratedSecret {
   return speakeasy.generateSecret({
     name: `${tenantName} (${userEmail})`,
-    issuer: 'Anamnese Inteligente',
+    issuer: 'Fit Insight',
     length: 32,
   });
 }

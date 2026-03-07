@@ -22,6 +22,20 @@ function EventIcon({ type }: { type: PatientTimelineEvent['type'] }) {
       </svg>
     );
   }
+  if (type === 'training_execution') {
+    return (
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
+  }
+  if (type === 'diet_entry') {
+    return (
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+  }
   // goal
   return (
     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -33,6 +47,8 @@ function EventIcon({ type }: { type: PatientTimelineEvent['type'] }) {
 function iconBg(type: PatientTimelineEvent['type']): string {
   if (type === 'session') return 'bg-primary/10 text-primary';
   if (type === 'evolution') return 'bg-success-light text-success';
+  if (type === 'training_execution') return 'bg-primary/10 text-primary';
+  if (type === 'diet_entry') return 'bg-success/10 text-success';
   return 'bg-warning/10 text-warning';
 }
 

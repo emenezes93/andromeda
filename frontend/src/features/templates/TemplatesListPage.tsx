@@ -5,6 +5,7 @@ import type { Template } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SkeletonCardGrid } from '@/components/ui/SkeletonCard';
+import { Pagination } from '@/components/ui/Pagination';
 
 export function TemplatesListPage() {
   const [data, setData] = useState<{
@@ -14,7 +15,7 @@ export function TemplatesListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const limit = 10;
+  const limit = 25;
 
   useEffect(() => {
     setLoading(true);
@@ -60,6 +61,14 @@ export function TemplatesListPage() {
         </Link>
       </div>
 
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {meta
+          ? `Página ${page} de ${meta.totalPages}. ${meta.total} template(s).`
+          : loading
+            ? 'Carregando lista de templates.'
+            : ''}
+      </div>
+
       {templates.length === 0 ? (
         <Card>
           <p className="text-content-muted">Nenhum template ainda. Crie o primeiro.</p>
@@ -72,7 +81,7 @@ export function TemplatesListPage() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((t) => (
               <li key={t.id}>
-                <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="h-full transition-shadow hover:shadow-card-hover">
                   <Link to={`/templates/${t.id}`} className="block">
                     <h3 className="font-semibold text-content">{t.name}</h3>
                     <p className="mt-1 text-sm text-content-muted">
@@ -100,27 +109,13 @@ export function TemplatesListPage() {
             ))}
           </ul>
 
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-content-muted">
-                Página {page} de {meta.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                disabled={page >= meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={meta?.totalPages ?? 1}
+            onPageChange={setPage}
+            loading={loading}
+            label="lista de templates"
+          />
         </>
       )}
     </div>

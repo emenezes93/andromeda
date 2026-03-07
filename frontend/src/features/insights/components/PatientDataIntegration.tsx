@@ -129,7 +129,7 @@ export function PatientDataIntegration({ patientId }: PatientDataIntegrationProp
 
       {evolutionChartData.length > 1 && (
         <Card title="Evolução do Peso" padding="md">
-          <LineChart data={evolutionChartData} yAxisLabel="Peso (kg)" color="#0ea5e9" />
+          <LineChart data={evolutionChartData} yAxisLabel="Peso (kg)" color="var(--color-primary)" />
         </Card>
       )}
     </div>

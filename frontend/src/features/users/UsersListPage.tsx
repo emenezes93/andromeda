@@ -6,6 +6,7 @@ import type { TenantMember } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import { SkeletonTable } from '@/components/ui/SkeletonCard';
@@ -32,6 +33,14 @@ const ROLE_BADGE_VARIANT: Record<string, 'warning' | 'primary' | 'success' | 'de
 };
 
 const EDITABLE_ROLES: RoleKey[] = ['admin', 'practitioner', 'viewer'];
+
+const ROLE_FILTER_OPTIONS: SelectOption[] = [
+  { value: '', label: 'Todos os papéis' },
+  { value: 'owner', label: 'Proprietário' },
+  { value: 'admin', label: 'Administrador' },
+  { value: 'practitioner', label: 'Profissional' },
+  { value: 'viewer', label: 'Visualizador' },
+];
 
 const ROLE_RANK: Record<string, number> = {
   owner: 4,
@@ -116,17 +125,18 @@ export function UsersListPage() {
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<TenantMember | null>(null);
+  const [roleFilter, setRoleFilter] = useState('');
 
   const canManage = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
   const fetchUsers = useCallback(() => {
     setLoading(true);
     setError(null);
-    listUsers({ page: 1, limit: 50 })
+    listUsers({ page: 1, limit: 50, role: roleFilter || undefined })
       .then((res) => setMembers(res.data))
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar usuários.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [roleFilter]);
 
   useEffect(() => {
     fetchUsers();
@@ -197,7 +207,6 @@ export function UsersListPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-heading font-semibold text-content">Usuários</h1>
           {canManage && (
             <Link to="/users/invite">
               <Button>Convidar usuário</Button>
@@ -229,13 +238,20 @@ export function UsersListPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
+      {/* Page header — H1 vem do layout (título da rota) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-heading font-semibold text-content">Usuários</h1>
-          <p className="mt-0.5 text-body-sm text-content-muted">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-body-sm text-content-muted">
             {members.length} {members.length === 1 ? 'membro' : 'membros'} nesta organização
           </p>
+          <Select
+            label=""
+            options={ROLE_FILTER_OPTIONS}
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-auto min-w-[160px]"
+            aria-label="Filtrar por papel"
+          />
         </div>
         {canManage && (
           <Link to="/users/invite">
@@ -269,6 +285,9 @@ export function UsersListPage() {
                   </th>
                   <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-content-muted">
                     Papel
+                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-content-muted">
+                    Última atividade
                   </th>
                   {canManage && (
                     <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wide text-content-muted">
@@ -325,6 +344,25 @@ export function UsersListPage() {
                         <Badge variant={badgeVariant}>
                           {ROLE_LABELS[member.role] ?? member.role}
                         </Badge>
+                      </td>
+
+                      {/* Last activity + online indicator */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          {member.lastActivityAt &&
+                            (Date.now() - new Date(member.lastActivityAt).getTime() < 86400000 && (
+                              <span
+                                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-success"
+                                title="Ativo recentemente"
+                                aria-hidden="true"
+                              />
+                            ))}
+                          <span className="text-body-sm text-content-muted">
+                            {member.lastActivityAt
+                              ? `Ativo ${new Date(member.lastActivityAt).toLocaleDateString('pt-BR')}`
+                              : 'Sem atividade'}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Actions column — only rendered when current user can manage */}

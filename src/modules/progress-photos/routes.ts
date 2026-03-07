@@ -1,17 +1,158 @@
 import type { FastifyInstance } from 'fastify';
+import { env } from '@config/env.js';
 import { requireTenant } from '@http/middleware/tenant.js';
 import { requireAuth } from '@http/middleware/auth.js';
 import { Guards } from '@shared/utils/rbac.js';
-import { NotFoundError } from '@shared/errors/index.js';
+import { NotFoundError, BadRequestError } from '@shared/errors/index.js';
 import {
   createProgressPhotoSchema,
   updateProgressPhotoSchema,
   listProgressPhotosQuerySchema,
+  uploadProgressPhotoFieldsSchema,
 } from './schemas.js';
 import { auditLog } from '@shared/utils/audit.js';
 import { skipFor } from '@shared/utils/pagination.js';
+import {
+  saveProgressPhotoFile,
+  readProgressPhotoFile,
+  progressPhotoFileExists,
+} from './storageService.js';
+
+// Multipart is registered once in bootstrap/app.ts; do not register again here.
 
 export async function progressPhotosRoutes(fastify: FastifyInstance): Promise<void> {
+  // P1.1 — Upload real de arquivo (multipart)
+  fastify.post(
+    '/v1/progress-photos/upload',
+    {
+      schema: {
+        description: 'Upload de arquivo de imagem (multipart). Campos: file (imagem), patientId, takenAt, notes (opcional).',
+        consumes: ['multipart/form-data'],
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              patientId: { type: 'string' },
+              imageUrl: { type: 'string' },
+              takenAt: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      const user = requireAuth(request);
+      Guards.sessions(user.role);
+
+      const data = await request.file();
+      if (!data) throw new BadRequestError('Envie um arquivo de imagem (campo "file").');
+
+      const buffer = await data.toBuffer();
+      if (buffer.length === 0) throw new BadRequestError('Arquivo vazio.');
+      if (buffer.length > env.UPLOAD_MAX_SIZE_BYTES) {
+        throw new BadRequestError(`Arquivo maior que o permitido (máx. ${env.UPLOAD_MAX_SIZE_BYTES} bytes).`);
+      }
+
+      const rawFields = data.fields ?? {};
+      const fields: Record<string, string> = {};
+      for (const [key, val] of Object.entries(rawFields)) {
+        const v = Array.isArray(val) ? val[0] : val;
+        if (v && typeof v === 'object' && 'type' in v && (v as { type: string }).type === 'field' && 'value' in v) {
+          fields[key] = String((v as { value: unknown }).value);
+        }
+      }
+      const parsed = uploadProgressPhotoFieldsSchema.safeParse(fields);
+      if (!parsed.success) {
+        throw new BadRequestError(
+          `Campos inválidos: ${parsed.error.errors.map((e) => e.path.join('.') + ': ' + e.message).join('; ')}`
+        );
+      }
+      const { patientId, takenAt, notes } = parsed.data;
+
+      const patient = await fastify.prisma.patient.findFirst({
+        where: { id: patientId, tenantId, deletedAt: null },
+      });
+      if (!patient) throw new NotFoundError('Paciente não encontrado');
+
+      const mimeType = data.mimetype ?? 'image/jpeg';
+      const filename = data.filename ?? '';
+
+      const photo = await fastify.prisma.progressPhoto.create({
+        data: {
+          tenantId,
+          patientId,
+          imageUrl: '', // preenchido abaixo após salvar arquivo
+          takenAt: new Date(takenAt),
+          notes: notes?.trim() || null,
+        },
+      });
+
+      const ext = await saveProgressPhotoFile(tenantId, photo.id, buffer, mimeType, filename);
+      await fastify.prisma.progressPhoto.update({
+        where: { id: photo.id },
+        data: {
+          imageUrl: `/v1/progress-photos/${photo.id}/file`,
+          fileExtension: ext,
+        },
+      });
+
+      request.log?.info?.(
+        { requestId: request.id, photoId: photo.id, size: buffer.length, tenantId },
+        'progress_photo_upload'
+      );
+
+      await auditLog(fastify.prisma, tenantId, 'create', 'progress_photo', photo.id, user.userId, {
+        patientId,
+        upload: true,
+        size: buffer.length,
+      });
+
+      return reply.status(201).send({
+        id: photo.id,
+        patientId: photo.patientId,
+        imageUrl: `/v1/progress-photos/${photo.id}/file`,
+        takenAt: photo.takenAt.toISOString(),
+      });
+    }
+  );
+
+  // GET file — servir arquivo armazenado (P1.1)
+  fastify.get(
+    '/v1/progress-photos/:id/file',
+    {
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+        description: 'Retorna o arquivo de imagem da foto (se foi upload).',
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenant(request);
+      const user = requireAuth(request);
+      Guards.readOnly(user.role);
+
+      const { id } = request.params as { id: string };
+      const photo = await fastify.prisma.progressPhoto.findFirst({
+        where: { id, tenantId, deletedAt: null },
+      });
+      if (!photo) return reply.status(404).send({ error: 'Foto não encontrada' });
+      if (!photo.fileExtension) {
+        return reply.status(404).send({ error: 'Esta foto não possui arquivo armazenado (apenas URL externa).' });
+      }
+
+      const exists = await progressPhotoFileExists(photo.tenantId, photo.id, photo.fileExtension);
+      if (!exists) return reply.status(404).send({ error: 'Arquivo não encontrado no servidor.' });
+
+      const buffer = await readProgressPhotoFile(photo.tenantId, photo.id, photo.fileExtension);
+      const contentType = photo.fileExtension === '.png' ? 'image/png' : photo.fileExtension === '.webp' ? 'image/webp' : 'image/jpeg';
+      return reply
+        .header('Content-Type', contentType)
+        .header('Cache-Control', 'private, max-age=86400')
+        .send(buffer);
+    }
+  );
+
   fastify.post(
     '/v1/progress-photos',
     {

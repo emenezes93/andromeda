@@ -32,6 +32,9 @@ coverage
 # Local-only docs (keep on disk, do not commit)
 PROMPT_MELHORIAS.md
 
+# Uploaded files (P1.1 progress photos)
+uploads
+
 # Temp / editor
 *.tmp
 .tmp_docx

@@ -110,7 +110,6 @@ export function TenantsListPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-heading font-semibold text-content">Organizações</h1>
           <Link to="/tenants/new">
             <Button>Nova organização</Button>
           </Link>
@@ -129,8 +128,7 @@ export function TenantsListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-heading font-semibold text-content">Organizações</h1>
-          <p className="mt-0.5 text-body-sm text-content-muted">
+          <p className="text-body-sm text-content-muted">
             {meta.total} {meta.total === 1 ? 'organização' : 'organizações'} no total
           </p>
         </div>

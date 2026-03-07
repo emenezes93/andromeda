@@ -1,4 +1,5 @@
 import type { User } from '@/types';
+import { resetAnalytics } from '@/lib/analytics';
 
 const TOKEN_KEY = 'token';
 const REFRESH_KEY = 'refreshToken';
@@ -31,6 +32,7 @@ export function setAuth(token: string, refreshToken: string, user: User): void {
 }
 
 export function clearAuth(): void {
+  resetAnalytics();
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);

@@ -10,7 +10,10 @@ export class Tenant {
     public readonly status: TenantStatus,
     public readonly createdAt: Date,
     public readonly deletedAt: Date | null = null,
-    public readonly planTier: string = 'free'
+    public readonly planTier: string = 'free',
+    public readonly emailAlertsEnabled: boolean = false,
+    public readonly logoUrl: string | null = null,
+    public readonly brandColor: string | null = null
   ) {}
 
   static create(name: string): Tenant {
@@ -26,10 +29,30 @@ export class Tenant {
   }
 
   suspend(): Tenant {
-    return new Tenant(this.id, this.name, 'suspended', this.createdAt, this.deletedAt, this.planTier);
+    return new Tenant(
+      this.id,
+      this.name,
+      'suspended',
+      this.createdAt,
+      this.deletedAt,
+      this.planTier,
+      this.emailAlertsEnabled,
+      this.logoUrl,
+      this.brandColor
+    );
   }
 
   activate(): Tenant {
-    return new Tenant(this.id, this.name, 'active', this.createdAt, this.deletedAt, this.planTier);
+    return new Tenant(
+      this.id,
+      this.name,
+      'active',
+      this.createdAt,
+      this.deletedAt,
+      this.planTier,
+      this.emailAlertsEnabled,
+      this.logoUrl,
+      this.brandColor
+    );
   }
 }

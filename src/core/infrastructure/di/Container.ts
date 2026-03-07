@@ -25,6 +25,7 @@ import { LoginUseCase } from '@application/use-cases/auth/LoginUseCase.js';
 import { RefreshTokenUseCase } from '@application/use-cases/auth/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '@application/use-cases/auth/LogoutUseCase.js';
 import { RegisterUseCase } from '@application/use-cases/auth/RegisterUseCase.js';
+import { SignupUseCase } from '@application/use-cases/auth/SignupUseCase.js';
 import { ExportUserDataUseCase } from '@application/use-cases/users/ExportUserDataUseCase.js';
 import { ListUsersUseCase } from '@application/use-cases/users/ListUsersUseCase.js';
 import { GetUserUseCase } from '@application/use-cases/users/GetUserUseCase.js';
@@ -52,6 +53,7 @@ import { GetTemplateUseCase } from '@application/use-cases/anamnesis/templates/G
 import { CreateTemplateUseCase } from '@application/use-cases/anamnesis/templates/CreateTemplateUseCase.js';
 import { UpdateTemplateUseCase } from '@application/use-cases/anamnesis/templates/UpdateTemplateUseCase.js';
 import { DeleteTemplateUseCase } from '@application/use-cases/anamnesis/templates/DeleteTemplateUseCase.js';
+import { SeedDefaultTemplatesUseCase } from '@application/use-cases/anamnesis/templates/SeedDefaultTemplatesUseCase.js';
 import { TemplateController } from '@presentation/controllers/TemplateController.js';
 import { ListSessionsUseCase } from '@application/use-cases/anamnesis/sessions/ListSessionsUseCase.js';
 import { GetSessionUseCase } from '@application/use-cases/anamnesis/sessions/GetSessionUseCase.js';
@@ -72,6 +74,8 @@ import { ListAuditLogsUseCase } from '@application/use-cases/audit/ListAuditLogs
 import { AuditController } from '@presentation/controllers/AuditController.js';
 import { GetDashboardStatsUseCase } from '@application/use-cases/stats/GetDashboardStatsUseCase.js';
 import { GetTemplateReportUseCase } from '@application/use-cases/stats/GetTemplateReportUseCase.js';
+import { GetStudentsOverviewUseCase } from '@application/use-cases/stats/GetStudentsOverviewUseCase.js';
+import { GetAnalyticsDashboardUseCase } from '@application/use-cases/stats/GetAnalyticsDashboardUseCase.js';
 import { StatsController } from '@presentation/controllers/StatsController.js';
 import { ListGoalsUseCase } from '@application/use-cases/goals/ListGoalsUseCase.js';
 import { GetGoalUseCase } from '@application/use-cases/goals/GetGoalUseCase.js';
@@ -82,6 +86,7 @@ import { GoalController } from '@presentation/controllers/GoalController.js';
 import { QuotaController } from '@presentation/controllers/QuotaController.js';
 import { PrismaQuotaService } from '../services/PrismaQuotaService.js';
 import { GetPatientTimelineUseCase } from '@application/use-cases/patients/GetPatientTimelineUseCase.js';
+import { GetPatientHubSummaryUseCase } from '@application/use-cases/patients/GetPatientHubSummaryUseCase.js';
 import { env } from '@config/env.js';
 
 /**
@@ -306,6 +311,30 @@ export class Container {
     return this._registerUseCase;
   }
 
+  private _signupUseCase?: SignupUseCase;
+  get signupUseCase(): SignupUseCase {
+    if (!this._signupUseCase) {
+      this._signupUseCase = new SignupUseCase(
+        this.userRepository,
+        this.tenantRepository,
+        this.refreshTokenRepository,
+        this.passwordService,
+        this.tokenService,
+        this.auditService,
+        this.seedDefaultTemplatesUseCase
+      );
+    }
+    return this._signupUseCase;
+  }
+
+  private _seedDefaultTemplatesUseCase?: SeedDefaultTemplatesUseCase;
+  get seedDefaultTemplatesUseCase(): SeedDefaultTemplatesUseCase {
+    if (!this._seedDefaultTemplatesUseCase) {
+      this._seedDefaultTemplatesUseCase = new SeedDefaultTemplatesUseCase(this.templateRepository);
+    }
+    return this._seedDefaultTemplatesUseCase;
+  }
+
   private _exportUserDataUseCase?: ExportUserDataUseCase;
   get exportUserDataUseCase(): ExportUserDataUseCase {
     if (!this._exportUserDataUseCase) {
@@ -497,6 +526,14 @@ export class Container {
       this._getPatientTimelineUseCase = new GetPatientTimelineUseCase(this.prisma);
     }
     return this._getPatientTimelineUseCase;
+  }
+
+  private _getPatientHubSummaryUseCase?: GetPatientHubSummaryUseCase;
+  get getPatientHubSummaryUseCase(): GetPatientHubSummaryUseCase {
+    if (!this._getPatientHubSummaryUseCase) {
+      this._getPatientHubSummaryUseCase = new GetPatientHubSummaryUseCase(this.prisma);
+    }
+    return this._getPatientHubSummaryUseCase;
   }
 
   // Template Use Cases
@@ -705,6 +742,22 @@ export class Container {
     return this._getTemplateReportUseCase;
   }
 
+  private _getStudentsOverviewUseCase?: GetStudentsOverviewUseCase;
+  get getStudentsOverviewUseCase(): GetStudentsOverviewUseCase {
+    if (!this._getStudentsOverviewUseCase) {
+      this._getStudentsOverviewUseCase = new GetStudentsOverviewUseCase(this.prisma);
+    }
+    return this._getStudentsOverviewUseCase;
+  }
+
+  private _getAnalyticsDashboardUseCase?: GetAnalyticsDashboardUseCase;
+  get getAnalyticsDashboardUseCase(): GetAnalyticsDashboardUseCase {
+    if (!this._getAnalyticsDashboardUseCase) {
+      this._getAnalyticsDashboardUseCase = new GetAnalyticsDashboardUseCase(this.statsRepository);
+    }
+    return this._getAnalyticsDashboardUseCase;
+  }
+
   private _listGoalsUseCase?: ListGoalsUseCase;
   get listGoalsUseCase(): ListGoalsUseCase {
     if (!this._listGoalsUseCase) {
@@ -757,7 +810,8 @@ export class Container {
         this.loginUseCase,
         this.refreshTokenUseCase,
         this.logoutUseCase,
-        this.registerUseCase
+        this.registerUseCase,
+        this.signupUseCase
       );
     }
     return this._authController;
@@ -804,7 +858,9 @@ export class Container {
         this.createPatientUseCase,
         this.updatePatientUseCase,
         this.deletePatientUseCase,
-        this.getPatientTimelineUseCase
+        this.getPatientTimelineUseCase,
+        this.getPatientHubSummaryUseCase,
+        this.prisma
       );
     }
     return this._patientController;
@@ -872,7 +928,9 @@ export class Container {
     if (!this._statsController) {
       this._statsController = new StatsController(
         this.getDashboardStatsUseCase,
-        this.getTemplateReportUseCase
+        this.getTemplateReportUseCase,
+        this.getStudentsOverviewUseCase,
+        this.getAnalyticsDashboardUseCase
       );
     }
     return this._statsController;

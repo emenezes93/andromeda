@@ -53,6 +53,27 @@ export interface TemplateReportResult {
   sessions: Array<{ id: string; status: string; createdAt: string }>;
 }
 
+export interface AnalyticsDashboardOpts {
+  periodDays: number; // 7, 30, 90
+}
+
+export interface AnalyticsDashboardResult {
+  period: { from: string; to: string; days: number };
+  activeStudents: number;
+  inactiveStudents: number;
+  churnRiskStudents: number;
+  averageTrainingAdherence: number;
+  averageDietAdherence: number;
+  newPatientsThisPeriod: number;
+  sessionsCompletedThisPeriod: number;
+  goalsAchievedThisPeriod: number;
+  trendVsPrevious: {
+    activeStudentsDelta: number;
+    sessionsDelta: number;
+    adherenceDelta: number;
+  };
+}
+
 export interface IStatsRepository {
   getDashboard(tenantId: string, opts: DashboardStatsOpts): Promise<DashboardStatsResult>;
   getTemplateReport(
@@ -60,4 +81,8 @@ export interface IStatsRepository {
     templateId: string,
     opts: TemplateReportOpts
   ): Promise<TemplateReportResult>;
+  getAnalyticsDashboard(
+    tenantId: string,
+    opts: AnalyticsDashboardOpts
+  ): Promise<AnalyticsDashboardResult>;
 }

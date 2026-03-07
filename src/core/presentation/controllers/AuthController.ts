@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import {
   loginBodySchema,
   registerBodySchema,
+  signupBodySchema,
   refreshBodySchema,
   logoutBodySchema,
 } from '../../../modules/auth/schemas.js';
@@ -13,6 +14,7 @@ import { LoginUseCase, type LoginResponse } from '@application/use-cases/auth/Lo
 import { RefreshTokenUseCase } from '@application/use-cases/auth/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '@application/use-cases/auth/LogoutUseCase.js';
 import { RegisterUseCase } from '@application/use-cases/auth/RegisterUseCase.js';
+import { SignupUseCase } from '@application/use-cases/auth/SignupUseCase.js';
 
 /**
  * Presentation Layer: Auth Controller
@@ -23,7 +25,8 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
-    private readonly registerUseCase: RegisterUseCase
+    private readonly registerUseCase: RegisterUseCase,
+    private readonly signupUseCase: SignupUseCase
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -39,6 +42,20 @@ export class AuthController {
         },
       },
       this.login.bind(this)
+    );
+
+    app.post(
+      '/v1/auth/signup',
+      {
+        config: {
+          rateLimit: { max: 5, timeWindow: '1 minute' },
+        },
+        schema: {
+          body: { $ref: 'SignupBody#' },
+          response: { 201: { $ref: 'LoginResponse#' } },
+        },
+      },
+      this.signup.bind(this)
     );
 
     app.post(
@@ -124,6 +141,22 @@ export class AuthController {
     const body = logoutBodySchema.parse(request.body);
     await this.logoutUseCase.execute({ refreshToken: body.refreshToken });
     await reply.status(204).send();
+  }
+
+  private async signup(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const body = signupBodySchema.parse(request.body);
+    const result = await this.signupUseCase.execute({
+      email: body.email,
+      password: body.password,
+      name: body.name,
+      tenantName: body.tenantName,
+    });
+    await reply.status(201).send({
+      token: result.token.token,
+      refreshToken: result.refreshToken.token,
+      expiresIn: result.expiresIn,
+      user: result.user,
+    });
   }
 
   private async register(request: FastifyRequest, reply: FastifyReply): Promise<void> {

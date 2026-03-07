@@ -14,6 +14,18 @@ export interface SubscriptionInfo {
   currentPeriodEnd: string | null;
   planId: PlanId | null;
   planLabel: string;
+  trialEndsAt: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+export interface InvoiceItem {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  status: string;
+  pdfUrl: string | null;
+  hostedInvoiceUrl: string | null;
 }
 
 export async function getPlans(): Promise<BillingPlan[]> {
@@ -46,4 +58,27 @@ export async function createPortal(returnPath?: string): Promise<{ url: string }
       returnPath: returnPath ?? '/subscription',
     }),
   });
+}
+
+export async function getInvoices(): Promise<InvoiceItem[]> {
+  return apiFetch<InvoiceItem[]>('/v1/billing/invoices');
+}
+
+export async function changePlan(planId: PlanId): Promise<{
+  status: string;
+  currentPeriodEnd: string;
+  planLabel: string;
+}> {
+  return apiFetch<{ status: string; currentPeriodEnd: string; planLabel: string }>(
+    '/v1/billing/change-plan',
+    { method: 'POST', body: JSON.stringify({ planId }) }
+  );
+}
+
+export async function cancelSubscription(): Promise<{ cancelAt: string }> {
+  return apiFetch<{ cancelAt: string }>('/v1/billing/cancel', { method: 'POST' });
+}
+
+export async function reactivateSubscription(): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>('/v1/billing/reactivate', { method: 'POST' });
 }

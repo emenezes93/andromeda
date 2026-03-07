@@ -25,8 +25,10 @@ describe('TemplatesListPage', () => {
 
   it('shows empty state when there are no templates', async () => {
     renderList();
-    expect(await screen.findByText(/0 template\(s\)/i)).toBeInTheDocument();
+    const labels = await screen.findAllByText(/0 template\(s\)/i);
+    expect(labels[0]).toBeInTheDocument();
     expect(screen.getByText(/nenhum template ainda/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /novo template/i })).toBeInTheDocument();
+    const links = screen.getAllByRole('link', { name: /novo template/i });
+    expect(links.length).toBeGreaterThanOrEqual(1);
   });
 });

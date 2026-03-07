@@ -58,8 +58,8 @@ export function TemplateDetailPage() {
       />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-content">{template.name}</h2>
-          <p className="text-sm text-content-muted">
+          <h1 className="text-heading font-semibold text-content">{template.name}</h1>
+          <p className="mt-1 text-body-sm text-content-muted">
             Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}
           </p>
         </div>

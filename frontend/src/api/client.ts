@@ -1,3 +1,4 @@
+import { resetAnalytics } from '@/lib/analytics';
 import { getApiErrorHandler } from './globalErrorHandler';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -18,13 +19,24 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { skipAuth, ...fetchOptions } = options;
   const url = path.startsWith('http') ? path : `${API_URL}${path}`;
-  const res = await fetch(url, {
+  let res: Response;
+  try {
+    res = await fetch(url, {
     ...fetchOptions,
     headers: {
       ...getAuthHeaders(skipAuth),
       ...(fetchOptions.headers as Record<string, string>),
     },
   });
+  } catch (err) {
+    const notify = getApiErrorHandler();
+    const isNetwork =
+      err instanceof TypeError && (err.message === 'Failed to fetch' || err.message.includes('network'));
+    if (notify && isNetwork) {
+      notify('Verifique sua conexão ou tente novamente em instantes.', 'error');
+    }
+    throw err;
+  }
 
   if (res.status === 401) {
     const refreshToken = localStorage.getItem('refreshToken');
@@ -45,6 +57,7 @@ export async function apiFetch<T>(
         // fall through to clear auth
       }
     }
+    resetAnalytics();
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');

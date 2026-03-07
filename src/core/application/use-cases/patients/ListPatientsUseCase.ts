@@ -5,6 +5,10 @@ export interface ListPatientsRequest {
   page: number;
   limit: number;
   search?: string;
+  mainGoal?: string;
+  hasActivePlan?: boolean;
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 export interface ListPatientsResponse {
@@ -38,6 +42,10 @@ export class ListPatientsUseCase {
       page: request.page,
       limit: request.limit,
       search: request.search,
+      mainGoal: request.mainGoal,
+      hasActivePlan: request.hasActivePlan,
+      createdAfter: request.createdAfter,
+      createdBefore: request.createdBefore,
     });
     const totalPages = Math.ceil(total / request.limit) || 1;
     return {

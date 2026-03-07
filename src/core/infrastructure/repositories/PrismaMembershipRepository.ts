@@ -51,9 +51,13 @@ export class PrismaMembershipRepository implements IMembershipRepository {
 
   async findAllByTenantId(
     tenantId: string,
-    opts: { page: number; limit: number; active?: boolean }
-  ): Promise<{ data: MemberWithUser[]; total: number }> {
-    const where = { tenantId, ...(opts.active !== undefined && { active: opts.active }) };
+    opts: { page: number; limit: number; active?: boolean; role?: string }
+  ): Promise<{ data: (MemberWithUser & { lastActivityAt: Date | null })[]; total: number }> {
+    const where = {
+      tenantId,
+      ...(opts.active !== undefined && { active: opts.active }),
+      ...(opts.role !== undefined && opts.role !== '' && { role: opts.role }),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.membership.findMany({
         where,
@@ -64,9 +68,24 @@ export class PrismaMembershipRepository implements IMembershipRepository {
       }),
       this.prisma.membership.count({ where }),
     ]);
+    const userIds = rows.map((m) => m.userId);
+    const lastActivities =
+      userIds.length > 0
+        ? await this.prisma.auditLog.groupBy({
+            by: ['actorUserId'],
+            where: { actorUserId: { in: userIds }, tenantId },
+            _max: { createdAt: true },
+          })
+        : [];
+    const activityMap = new Map(
+      lastActivities
+        .filter((a) => a.actorUserId != null)
+        .map((a) => [a.actorUserId!, a._max.createdAt ?? null])
+    );
     const data = rows.map((m) => ({
       membership: this.toDomain(m),
       user: this.userToDomain(m.user),
+      lastActivityAt: activityMap.get(m.userId) ?? null,
     }));
     return { data, total };
   }

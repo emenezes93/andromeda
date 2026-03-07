@@ -193,7 +193,7 @@ export function DietDashboardPage() {
           </div>
 
           {/* Streak */}
-          <div className="flex flex-col items-center rounded-xl border border-warning/30 bg-warning-light px-6 py-3 text-center">
+          <div className="flex flex-col items-center rounded-card border border-warning/30 bg-warning-light px-6 py-3 text-center">
             <span className="text-3xl">🔥</span>
             <span className="text-2xl font-bold text-warning">{stats.streak}</span>
             <span className="text-body-sm text-warning/80">dias seguidos</span>
@@ -214,7 +214,7 @@ export function DietDashboardPage() {
               <div
                 key={key}
                 title={meta.label}
-                className={`flex flex-col items-center gap-1 rounded-xl border px-3 py-2 transition-calm ${
+                className={`flex flex-col items-center gap-1 rounded-card border px-3 py-2 transition-calm ${
                   earned
                     ? 'border-primary/30 bg-primary-subtle text-primary shadow-sm'
                     : 'border-border bg-surface-muted text-content-subtle opacity-40 grayscale'
@@ -247,30 +247,30 @@ export function DietDashboardPage() {
               label="Calorias"
               current={stats.todaySummary.calories}
               goal={plan.caloriesKcal}
-              color="#f97316"
+              color="var(--color-primary)"
               unit="kcal"
             />
             <MacroRing
               label="Proteínas"
               current={stats.todaySummary.proteinG}
               goal={plan.proteinG}
-              color="#3b82f6"
+              color="var(--color-success)"
             />
             <MacroRing
               label="Carboidratos"
               current={stats.todaySummary.carbsG}
               goal={plan.carbsG}
-              color="#a855f7"
+              color="var(--color-warning)"
             />
             <MacroRing
               label="Gorduras"
               current={stats.todaySummary.fatG}
               goal={plan.fatG}
-              color="#eab308"
+              color="var(--color-info)"
             />
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border p-8 text-center">
+          <div className="rounded-card border border-dashed border-border p-8 text-center">
             <p className="text-content-muted">Nenhum plano ativo.</p>
             <p className="mt-1 text-body-sm text-content-subtle">
               Crie um plano para acompanhar suas metas diárias.
@@ -291,7 +291,7 @@ export function DietDashboardPage() {
               </div>
               <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-muted">
                 <div
-                  className="h-full rounded-full bg-sky-400 transition-all"
+                  className="h-full rounded-full bg-info transition-all"
                   style={{ width: `${Math.min(100, (stats.todaySummary.waterMl / plan.waterMl) * 100)}%` }}
                 />
               </div>
@@ -347,7 +347,7 @@ export function DietDashboardPage() {
               <h4 className="mb-3 text-body-sm font-medium text-content-muted">
                 ⚖️ Peso (kg)
               </h4>
-              <LineChart data={weightData} color="#0ea5e9" yAxisLabel="kg" />
+              <LineChart data={weightData} color="var(--color-primary)" yAxisLabel="kg" />
             </Card>
           )}
 
@@ -356,7 +356,7 @@ export function DietDashboardPage() {
               <h4 className="mb-3 text-body-sm font-medium text-content-muted">
                 🔴 Gordura Corporal (%)
               </h4>
-              <LineChart data={fatData} color="#ef4444" yAxisLabel="%" />
+              <LineChart data={fatData} color="var(--color-error)" yAxisLabel="%" />
             </Card>
           )}
 
@@ -365,7 +365,7 @@ export function DietDashboardPage() {
               <h4 className="mb-3 text-body-sm font-medium text-content-muted">
                 💪 Massa Magra (kg)
               </h4>
-              <LineChart data={leanData} color="#22c55e" yAxisLabel="kg" />
+              <LineChart data={leanData} color="var(--color-success)" yAxisLabel="kg" />
             </Card>
           )}
 
@@ -417,7 +417,13 @@ export function DietDashboardPage() {
                   cy="40"
                   r="32"
                   fill="none"
-                  stroke={stats.macroAdherence >= 80 ? '#22c55e' : stats.macroAdherence >= 50 ? '#f97316' : '#ef4444'}
+                  stroke={
+                    stats.macroAdherence >= 80
+                      ? 'var(--color-success)'
+                      : stats.macroAdherence >= 50
+                        ? 'var(--color-warning)'
+                        : 'var(--color-error)'
+                  }
                   strokeWidth="10"
                   strokeDasharray={`${(stats.macroAdherence / 100) * 201} 201`}
                   strokeLinecap="round"

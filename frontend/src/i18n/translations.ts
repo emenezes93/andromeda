@@ -15,6 +15,32 @@ export interface Translations {
     tenants: string;
     subscription: string;
     security: string;
+    notifications: string;
+    /** Fase 2: menu orientado a tarefas (5–7 itens) */
+    taskInicio: string;
+    taskPacientes: string;
+    taskAvaliacoes: string;
+    taskQuestionarios: string;
+    taskPlanos: string;
+    taskRelatorios: string;
+    tooltipInicio: string;
+    tooltipPacientes: string;
+    tooltipAvaliacoes: string;
+    tooltipQuestionarios: string;
+    tooltipPlanos: string;
+    tooltipRelatorios: string;
+    planosDieta: string;
+    planosTreino: string;
+    planosAgendamentos: string;
+    planosExercicios: string;
+    relatoriosHistorico: string;
+    relatoriosUsoIa: string;
+    help: string;
+  };
+  navBanner: {
+    title: string;
+    cta: string;
+    dismiss: string;
   };
   sidebar: {
     logout: string;
@@ -51,6 +77,72 @@ export interface Translations {
     view: string;
     sessionsByDay: string;
     sessionsByTemplate: string;
+    nextActionsEmpty: string;
+    nextActionsEmptySub: string;
+    onboardingCtaTitle: string;
+    onboardingCtaButton: string;
+    onboardingCtaDismiss: string;
+    releaseR1Title: string;
+    releaseR1Message1: string;
+    releaseR1Message2: string;
+    releaseR1Dismiss: string;
+    /** R2 — Encontrabilidade: menu por tarefas + tour */
+    releaseR2Title: string;
+    releaseR2Message: string;
+    releaseR2CtaTour: string;
+    releaseR2Dismiss: string;
+    tourR2Title: string;
+    tourR2Summary: string;
+    tourR2Understand: string;
+    tourR2ViewArticle: string;
+    /** R3 — Escala e Autonomia: busca/filtros + ajuda in-app */
+    releaseR3Title: string;
+    releaseR3MessageSearch: string;
+    releaseR3MessageHelp: string;
+    releaseR3Dismiss: string;
+  };
+  exportSession?: {
+    json: string;
+    report: string;
+  };
+  signup?: {
+    title: string;
+    subtitle: string;
+    trialNote: string;
+    name: string;
+    email: string;
+    password: string;
+    tenantName: string;
+    submit: string;
+    hasAccount: string;
+    signIn: string;
+  };
+  billing?: {
+    trialBanner: string;
+    trialBannerCta: string;
+    planCurrent: string;
+    invoices: string;
+    cancelSubscription: string;
+    cancelConfirm: string;
+    keepSubscription: string;
+    cancelScheduled: string;
+  };
+  exercises: {
+    title: string;
+    subtitle: string;
+    newExercise: string;
+    search: string;
+    muscleGroup: string;
+    equipment: string;
+    global: string;
+    edit: string;
+    delete: string;
+    deleteConfirm: string;
+    name: string;
+    videoUrl: string;
+    createSuccess: string;
+    updateSuccess: string;
+    deleteSuccess: string;
   };
 }
 
@@ -69,6 +161,31 @@ export const ptBR: Translations = {
     tenants: 'Organizações',
     subscription: 'Assinatura',
     security: 'Segurança',
+    notifications: 'Notificações',
+    taskInicio: 'Início',
+    taskPacientes: 'Pacientes',
+    taskAvaliacoes: 'Avaliações',
+    taskQuestionarios: 'Questionários',
+    taskPlanos: 'Planos',
+    taskRelatorios: 'Relatórios',
+    tooltipInicio: 'Visão geral e próximas ações',
+    tooltipPacientes: 'Cadastro e histórico de pacientes',
+    tooltipAvaliacoes: 'Sessões e questionários de anamnese',
+    tooltipQuestionarios: 'Modelos de questionário',
+    tooltipPlanos: 'Planos de dieta, treino e agendamentos',
+    tooltipRelatorios: 'Histórico de atividades e uso de IA',
+    planosDieta: 'Planos de dieta',
+    planosTreino: 'Planos de treino',
+    planosAgendamentos: 'Agendamentos',
+    planosExercicios: 'Exercícios',
+    relatoriosHistorico: 'Histórico de atividades',
+    relatoriosUsoIa: 'Uso de IA',
+    help: 'Ajuda',
+  },
+  navBanner: {
+    title: 'O menu foi reorganizado para facilitar o seu dia a dia.',
+    cta: 'Conhecer',
+    dismiss: 'Fechar',
   },
   sidebar: {
     logout: 'Sair',
@@ -101,10 +218,74 @@ export const ptBR: Translations = {
     template: 'Template',
     status: 'Status',
     actions: 'Ações',
-    continue: 'Continuar',
-    view: 'Ver',
+    continue: 'Continuar anamnese',
+    view: 'Ver detalhes',
     sessionsByDay: 'Avaliações nos últimos dias',
     sessionsByTemplate: 'Avaliações por template',
+    nextActionsEmpty: 'Você está em dia! Nada pendente no momento.',
+    nextActionsEmptySub: 'Quando houver pendências, elas aparecerão aqui.',
+    onboardingCtaTitle: 'Complete sua configuração para aproveitar melhor o sistema.',
+    onboardingCtaButton: 'Ir para configuração',
+    onboardingCtaDismiss: 'Dispensar',
+    releaseR1Title: 'Novidades',
+    releaseR1Message1: 'Agora ficou mais claro salvar e enviar: feedbacks de carregamento e confirmações para ações importantes.',
+    releaseR1Message2: 'Seu painel de Próximas Ações: veja o que fazer agora e vá direto para cada tarefa.',
+    releaseR1Dismiss: 'Fechar',
+    releaseR2Title: 'O menu mudou (para ficar mais simples)',
+    releaseR2Message: 'Organizamos por tarefas: Pacientes, Avaliações, Relatórios e mais. Faça um tour de 30s.',
+    releaseR2CtaTour: 'Fazer tour',
+    releaseR2Dismiss: 'Fechar',
+    tourR2Title: 'Menu por tarefas',
+    tourR2Summary: 'Uso diário: Início, Pacientes, Avaliações, Questionários, Planos (dieta, treino, agendamentos), Relatórios (histórico, uso de IA), Ajuda. Administração no final: Usuários, Organizações, Assinatura, Segurança.',
+    tourR2Understand: 'Entendi',
+    tourR2ViewArticle: 'Ver artigo "Onde encontro X agora?"',
+    releaseR3Title: 'Novidades',
+    releaseR3MessageSearch: 'Busca e filtros melhorados: encontre pacientes e sessões mais rápido, mesmo com listas grandes.',
+    releaseR3MessageHelp: 'Ajuda dentro do app: consulte artigos e resolva dúvidas sem sair daqui.',
+    releaseR3Dismiss: 'Fechar',
+  },
+  exportSession: {
+    json: 'Exportar JSON',
+    report: 'Exportar relatório (HTML)',
+  },
+  signup: {
+    title: 'Criar conta',
+    subtitle: 'Nome completo, e-mail, senha e nome da clínica ou empresa.',
+    trialNote: '14 dias grátis, sem cartão de crédito',
+    name: 'Nome completo',
+    email: 'E-mail',
+    password: 'Senha',
+    tenantName: 'Nome da clínica/empresa',
+    submit: 'Criar conta',
+    hasAccount: 'Já tem conta?',
+    signIn: 'Entrar',
+  },
+  billing: {
+    trialBanner: 'Teste grátis por mais {days} dias.',
+    trialBannerCta: 'Assine agora',
+    planCurrent: 'Plano atual',
+    invoices: 'Faturas',
+    cancelSubscription: 'Cancelar assinatura',
+    cancelConfirm: 'Sua assinatura será cancelada ao final do período. Tem certeza?',
+    keepSubscription: 'Manter assinatura',
+    cancelScheduled: 'Sua assinatura será cancelada em {date}.',
+  },
+  exercises: {
+    title: 'Biblioteca de exercícios',
+    subtitle: 'Gerencie exercícios globais e personalizados para usar nos planos de treino.',
+    newExercise: 'Novo exercício',
+    search: 'Buscar por nome...',
+    muscleGroup: 'Grupo muscular',
+    equipment: 'Equipamento',
+    global: 'Global',
+    edit: 'Editar',
+    delete: 'Excluir',
+    deleteConfirm: 'Excluir este exercício? Só é possível excluir exercícios criados por você.',
+    name: 'Nome',
+    videoUrl: 'URL do vídeo',
+    createSuccess: 'Exercício criado.',
+    updateSuccess: 'Exercício atualizado.',
+    deleteSuccess: 'Exercício excluído.',
   },
 };
 
@@ -123,6 +304,31 @@ export const enUS: Translations = {
     tenants: 'Organizations',
     subscription: 'Subscription',
     security: 'Security',
+    notifications: 'Notifications',
+    taskInicio: 'Home',
+    taskPacientes: 'Patients',
+    taskAvaliacoes: 'Assessments',
+    taskQuestionarios: 'Questionnaires',
+    taskPlanos: 'Plans',
+    taskRelatorios: 'Reports',
+    tooltipInicio: 'Overview and next actions',
+    tooltipPacientes: 'Patient records and history',
+    tooltipAvaliacoes: 'Sessions and anamnesis questionnaires',
+    tooltipQuestionarios: 'Questionnaire templates',
+    tooltipPlanos: 'Diet, training and scheduled plans',
+    tooltipRelatorios: 'Activity log and AI usage',
+    planosDieta: 'Diet plans',
+    planosTreino: 'Training plans',
+    planosAgendamentos: 'Scheduled',
+    planosExercicios: 'Exercises',
+    relatoriosHistorico: 'Activity log',
+    relatoriosUsoIa: 'AI usage',
+    help: 'Help',
+  },
+  navBanner: {
+    title: 'The menu has been reorganized to make your day easier.',
+    cta: 'Learn more',
+    dismiss: 'Dismiss',
   },
   sidebar: {
     logout: 'Sign out',
@@ -155,10 +361,75 @@ export const enUS: Translations = {
     template: 'Template',
     status: 'Status',
     actions: 'Actions',
-    continue: 'Continue',
-    view: 'View',
+    continue: 'Continue questionnaire',
+    view: 'View details',
     sessionsByDay: 'Assessments over the last days',
     sessionsByTemplate: 'Assessments by template',
+    nextActionsEmpty: "You're all set! Nothing pending right now.",
+    nextActionsEmptySub: 'When you have pending items, they will appear here.',
+    onboardingCtaTitle: 'Complete your setup to get the most out of the system.',
+    onboardingCtaButton: 'Go to setup',
+    onboardingCtaDismiss: 'Dismiss',
+    releaseR1Title: "What's new",
+    releaseR1Message1: 'Saving and sending are clearer: loading feedback and confirmations for important actions.',
+    releaseR1Message2: 'Your Next Actions panel: see what to do now and go straight to each task.',
+    releaseR1Dismiss: 'Dismiss',
+    releaseR2Title: 'The menu changed (to keep it simple)',
+    releaseR2Message: 'We organized it by task: Patients, Assessments, Reports and more. Take a 30s tour.',
+    releaseR2CtaTour: 'Take tour',
+    releaseR2Dismiss: 'Dismiss',
+    tourR2Title: 'Menu by task',
+    tourR2Summary:
+      'Daily use: Home, Patients, Assessments, Questionnaires, Plans (diet, training, scheduling), Reports (history, AI usage), Help. Administration at the bottom: Users, Organizations, Subscription, Security.',
+    tourR2Understand: 'Got it',
+    tourR2ViewArticle: 'See "Where do I find X now?" article',
+    releaseR3Title: "What's new",
+    releaseR3MessageSearch: 'Improved search and filters: find patients and sessions faster, even with large lists.',
+    releaseR3MessageHelp: 'Help inside the app: browse articles and resolve doubts without leaving.',
+    releaseR3Dismiss: 'Dismiss',
+  },
+  exportSession: {
+    json: 'Export JSON',
+    report: 'Export report (HTML)',
+  },
+  signup: {
+    title: 'Create account',
+    subtitle: 'Full name, email, password and clinic or company name.',
+    trialNote: '14-day free trial, no credit card required',
+    name: 'Full name',
+    email: 'Email',
+    password: 'Password',
+    tenantName: 'Clinic/company name',
+    submit: 'Create account',
+    hasAccount: 'Already have an account?',
+    signIn: 'Sign in',
+  },
+  billing: {
+    trialBanner: 'Free trial for {days} more days.',
+    trialBannerCta: 'Subscribe now',
+    planCurrent: 'Current plan',
+    invoices: 'Invoices',
+    cancelSubscription: 'Cancel subscription',
+    cancelConfirm: 'Your subscription will be canceled at the end of the period. Are you sure?',
+    keepSubscription: 'Keep subscription',
+    cancelScheduled: 'Your subscription will be canceled on {date}.',
+  },
+  exercises: {
+    title: 'Exercise library',
+    subtitle: 'Manage global and custom exercises for use in training plans.',
+    newExercise: 'New exercise',
+    search: 'Search by name...',
+    muscleGroup: 'Muscle group',
+    equipment: 'Equipment',
+    global: 'Global',
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this exercise? You can only delete exercises you created.',
+    name: 'Name',
+    videoUrl: 'Video URL',
+    createSuccess: 'Exercise created.',
+    updateSuccess: 'Exercise updated.',
+    deleteSuccess: 'Exercise deleted.',
   },
 };
 

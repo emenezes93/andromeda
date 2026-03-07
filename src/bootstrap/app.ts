@@ -18,13 +18,21 @@ import { trainingPlansRoutes } from '../modules/training-plans/routes.js';
 import { trainingExecutionsRoutes } from '../modules/training-executions/routes.js';
 import { progressPhotosRoutes } from '../modules/progress-photos/routes.js';
 import { dietRoutes } from '../modules/diet/routes.js';
+import { exercisesRoutes } from '../modules/exercises/routes.js';
+import { alertsRoutes } from '../modules/alerts/routes.js';
 import { twoFactorRoutes } from '../modules/auth/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
 
+/** Nome da aplicação (código Andromeda) */
+const APP_LOG_BASE = { service: 'andromeda', app: 'Fit Insight' };
+
 export async function buildApp() {
   const app = Fastify({
-    logger: { level: env.NODE_ENV === 'production' ? 'info' : 'debug' },
+    logger: {
+      level: env.NODE_ENV === 'production' ? 'info' : 'debug',
+      base: APP_LOG_BASE,
+    },
     requestIdHeader: 'x-request-id',
     requestIdLogLabel: 'requestId',
     bodyLimit: env.BODY_LIMIT,
@@ -66,6 +74,7 @@ export async function buildApp() {
       '/health',
       '/ready',
       '/v1/auth/login',
+      '/v1/auth/signup',
       '/v1/auth/login-2fa',
       '/v1/auth/refresh',
       '/v1/auth/logout',
@@ -83,6 +92,8 @@ export async function buildApp() {
   });
   await app.register(swaggerPlugin);
   await app.register(errorHandlerPlugin);
+  const multipart = (await import('@fastify/multipart')).default;
+  await app.register(multipart, { limits: { fileSize: 2 * 1024 * 1024 } });
 
   // Dependency Injection Container (hexagonal)
   const container = new Container(app.prisma, app.log);
@@ -117,6 +128,8 @@ export async function buildApp() {
   await app.register(trainingExecutionsRoutes);
   await app.register(progressPhotosRoutes);
   await app.register(dietRoutes);
+  await app.register(exercisesRoutes);
+  await app.register(alertsRoutes);
 
   return app;
 }

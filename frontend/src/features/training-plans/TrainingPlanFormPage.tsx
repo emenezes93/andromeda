@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { ExerciseAutocomplete } from '@/components/ui/ExerciseAutocomplete';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { track } from '@/lib/analytics';
 import { PLAN_TEMPLATES, templateToSelectedDays } from './planTemplates';
 import type { PlanTemplate, SelectedDay, SelectedExercise } from './planTemplates';
 
@@ -249,7 +252,9 @@ export function TrainingPlanFormPage() {
   const [addForms, setAddForms] = useState<Record<string, AddExForm>>({});
 
   const selectedCount = countSelected(days);
-  useUnsavedChanges(!submitting && (selectedCount > 0 || details.name !== ''));
+  const { showConfirmModal, confirmLeave, cancelLeave, message } = useUnsavedChanges(
+    !submitting && (selectedCount > 0 || details.name !== '')
+  );
 
   // Load patients
   useEffect(() => {
@@ -486,6 +491,7 @@ export function TrainingPlanFormPage() {
         navigate(`/training-plans/${id}`);
       } else {
         const created = await createTrainingPlan(body);
+        track({ name: 'training_plan_created', planId: created.id, patientId: body.patientId });
         toast.success('Plano criado! Bom treino! 💪');
         navigate(`/training-plans/${created.id}`);
       }
@@ -508,6 +514,7 @@ export function TrainingPlanFormPage() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -655,17 +662,25 @@ export function TrainingPlanFormPage() {
                         <p className="text-body-sm font-semibold text-content">
                           Adicionar exercício
                         </p>
-                        <input
-                          type="text"
-                          placeholder="Nome do exercício *"
+                        <ExerciseAutocomplete
                           value={addForms[day.id]?.name ?? ''}
-                          onChange={(e) =>
+                          onChange={(name) =>
                             setAddForms((prev) => ({
                               ...prev,
-                              [day.id]: { ...prev[day.id], name: e.target.value },
+                              [day.id]: { ...prev[day.id], name },
                             }))
                           }
-                          className="w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content focus:border-primary focus:outline-none"
+                          onSelect={({ name, muscleGroup }) =>
+                            setAddForms((prev) => ({
+                              ...prev,
+                              [day.id]: {
+                                ...prev[day.id],
+                                name,
+                                muscleGroup: muscleGroup || (prev[day.id]?.muscleGroup ?? ''),
+                              },
+                            }))
+                          }
+                          placeholder="Nome do exercício * (busque ou digite)"
                         />
                         <div className="grid grid-cols-3 gap-2">
                           <input
@@ -911,5 +926,16 @@ export function TrainingPlanFormPage() {
         </Card>
       )}
     </div>
+    <ConfirmModal
+      open={showConfirmModal}
+      title="Alterações não salvas"
+      message={message}
+      confirmLabel="Sair"
+      cancelLabel="Ficar"
+      variant="danger"
+      onConfirm={confirmLeave}
+      onCancel={cancelLeave}
+    />
+    </>
   );
 }

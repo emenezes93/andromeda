@@ -39,6 +39,7 @@ export class GoalController {
     const result = await this.createGoalUseCase.execute({
       tenantId,
       patientId: body.patientId,
+      basedOnSessionId: body.basedOnSessionId ?? undefined,
       type: body.type,
       title: body.title,
       description: body.description,

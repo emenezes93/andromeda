@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (_, reply) => {
     return reply.status(200).send({
-      api: 'Anamnese Inteligente PaaS',
+      api: 'Fit Insight',
       docs: '/documentation',
       health: '/health',
       login: 'POST /v1/auth/login',

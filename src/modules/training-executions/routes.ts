@@ -202,6 +202,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
         executedAt: execution.executedAt.toISOString(),
         durationMinutes: execution.durationMinutes,
         notes: execution.notes,
+        coachNotes: execution.coachNotes,
         completed: execution.completed,
       });
     }
@@ -222,6 +223,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
             executedAt: { type: 'string' },
             durationMinutes: { type: 'number', nullable: true },
             notes: { type: 'string', nullable: true },
+            coachNotes: { type: 'string', nullable: true },
             completed: { type: 'boolean' },
           },
         },
@@ -233,6 +235,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
               executedAt: { type: 'string' },
               durationMinutes: { type: 'number', nullable: true },
               notes: { type: 'string', nullable: true },
+              coachNotes: { type: 'string', nullable: true },
               completed: { type: 'boolean' },
             },
           },
@@ -256,6 +259,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
         executedAt?: Date;
         durationMinutes?: number | null;
         notes?: string | null;
+        coachNotes?: string | null;
         completed?: boolean;
       } = {};
       if (body.executedAt != null) {
@@ -265,6 +269,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
       }
       if (body.durationMinutes !== undefined) data.durationMinutes = body.durationMinutes;
       if (body.notes !== undefined) data.notes = body.notes;
+      if (body.coachNotes !== undefined) data.coachNotes = body.coachNotes;
       if (body.completed !== undefined) data.completed = body.completed;
 
       const execution = await fastify.prisma.trainingExecution.update({
@@ -281,6 +286,7 @@ export async function trainingExecutionsRoutes(fastify: FastifyInstance): Promis
         executedAt: execution.executedAt.toISOString(),
         durationMinutes: execution.durationMinutes,
         notes: execution.notes,
+        coachNotes: execution.coachNotes,
         completed: execution.completed,
       });
     }

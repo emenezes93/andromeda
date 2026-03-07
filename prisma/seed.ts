@@ -14,6 +14,7 @@ import {
   templateAvaliacaoNutricional,
   templateReavaliacao90,
 } from './seed-data/templates-fitness.js';
+import { globalExercises } from './seed-data/exercises-global.js';
 
 const prisma = new PrismaClient();
 
@@ -131,6 +132,23 @@ async function main() {
   ];
   for (const t of templatesFitness) {
     await upsertTemplate(t.name, t.schema as object);
+  }
+
+  // Exercícios globais (visíveis para todos os tenants)
+  const existingExerciseCount = await prisma.exercise.count({
+    where: { tenantId: tenant.id, isGlobal: true },
+  });
+  if (existingExerciseCount === 0) {
+    await prisma.exercise.createMany({
+      data: globalExercises.map((e) => ({
+        tenantId: tenant.id,
+        name: e.name,
+        muscleGroup: e.muscleGroup,
+        equipment: e.equipment,
+        isGlobal: true,
+      })),
+    });
+    console.log('Created', globalExercises.length, 'global exercises');
   }
 
   console.log('Seed OK:', { tenant: tenant.name, user: user.email });

@@ -5,6 +5,7 @@ export interface ListUsersRequest {
   page: number;
   limit: number;
   active?: boolean;
+  role?: string;
 }
 
 export interface UserListItem {
@@ -13,6 +14,7 @@ export interface UserListItem {
   name: string | null;
   role: string;
   active: boolean;
+  lastActivityAt?: string | null;
 }
 
 export interface ListUsersResponse {
@@ -37,15 +39,17 @@ export class ListUsersUseCase {
       page: request.page,
       limit: request.limit,
       active: request.active,
+      role: request.role,
     });
     const totalPages = Math.ceil(total / request.limit) || 1;
     return {
-      data: data.map(({ user, membership }) => ({
+      data: data.map(({ user, membership, lastActivityAt }) => ({
         id: user.id,
         email: user.email,
         name: user.name,
         role: membership.role,
         active: membership.active,
+        lastActivityAt: lastActivityAt ? lastActivityAt.toISOString() : null,
       })),
       meta: {
         page: request.page,

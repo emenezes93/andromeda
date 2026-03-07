@@ -46,6 +46,13 @@ export const listPatientsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(20),
   search: z.string().max(255).optional(),
+  mainGoal: z.string().max(255).optional(),
+  hasActivePlan: z.preprocess(
+    (v) => (v === 'true' ? true : v === 'false' ? false : v),
+    z.boolean().optional()
+  ),
+  createdAfter: z.string().optional(),
+  createdBefore: z.string().optional(),
 });
 
 export type CreatePatientBody = z.infer<typeof createPatientSchema>;

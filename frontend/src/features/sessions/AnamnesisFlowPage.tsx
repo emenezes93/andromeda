@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getNextQuestion } from '@/api/engine';
 import { getSession, submitAnswers, signSession } from '@/api/sessions';
+import { track } from '@/lib/analytics';
 import type { QuestionSchema } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -43,9 +44,9 @@ export function AnamnesisFlowPage() {
     [id]
   );
 
+  const hasTrackedStart = useRef(false);
   useEffect(() => {
     if (!id) return;
-    // Carregar respostas já enviadas (último envio da sessão) para continuar de onde parou
     getSession(id)
       .then((session) => {
         const last = session.answers?.length
@@ -57,9 +58,16 @@ export function AnamnesisFlowPage() {
             : {};
         setAnswers(initial);
         fetchNext(initial);
+        if (!hasTrackedStart.current) {
+          hasTrackedStart.current = true;
+          track({ name: 'questionnaire_start', sessionId: id });
+        }
       })
       .catch(() => fetchNext({}));
   }, [id, fetchNext]);
+
+  /** Valor sentinela para "Prefiro não responder" (backend pode aceitar como null ou string). */
+  const PREFER_NOT_TO_ANSWER = '__prefer_not_to_answer';
 
   const handleNext = () => {
     if (!id || !question) return;
@@ -71,7 +79,9 @@ export function AnamnesisFlowPage() {
           : typeof currentValue === 'string'
             ? currentValue
             : currentValue;
-    if (question.required) {
+    const isPreferNotToAnswer =
+      question.allowPreferNotToAnswer && (currentValue === PREFER_NOT_TO_ANSWER || currentValue === 'Prefiro não responder');
+    if (question.required && !isPreferNotToAnswer) {
       const empty =
         value === '' ||
         value === undefined ||
@@ -81,7 +91,8 @@ export function AnamnesisFlowPage() {
         return;
       }
     }
-    const newAnswers = { ...answers, [question.id]: value };
+    const valueToStore = isPreferNotToAnswer ? PREFER_NOT_TO_ANSWER : value;
+    const newAnswers = { ...answers, [question.id]: valueToStore };
     setSubmitting(true);
     setError(null);
     getNextQuestion(id, newAnswers)
@@ -93,11 +104,12 @@ export function AnamnesisFlowPage() {
           setCompletionPercent(100);
           return;
         }
-        setQuestionHistory((prev) => [...prev, { question, value, completionPercent }]);
+        setQuestionHistory((prev) => [...prev, { question, value: valueToStore, completionPercent }]);
         setAnswers(newAnswers);
         setQuestion(res.nextQuestion);
         setCompletionPercent(res.completionPercent);
         setCurrentValue('');
+        track({ name: 'questionnaire_progress', sessionId: id, completionPercent: res.completionPercent });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro'))
       .finally(() => setSubmitting(false));
@@ -122,6 +134,7 @@ export function AnamnesisFlowPage() {
       if (!id || !pendingFinalAnswers) return;
       await signSession(id, payload);
       await submitAnswers(id, pendingFinalAnswers);
+      track({ name: 'questionnaire_complete', sessionId: id });
       navigate(`/sessions/${id}/insights`, { replace: true });
     },
     [id, pendingFinalAnswers, navigate]
@@ -241,6 +254,11 @@ export function AnamnesisFlowPage() {
 
       <Card>
         <h2 className="text-heading-sm font-semibold text-content">{question.text}</h2>
+        {question.description && (
+          <p className="mt-1.5 text-body-sm text-content-muted" role="complementary">
+            {question.description}
+          </p>
+        )}
         {question.type === 'number' && (
           <div className="mt-4">
             <Input
@@ -319,6 +337,24 @@ export function AnamnesisFlowPage() {
               onChange={(e) => setCurrentValue(e.target.value)}
               placeholder="Sua resposta"
             />
+          </div>
+        )}
+        {question.allowPreferNotToAnswer && (
+          <div className="mt-4 pt-3 border-t border-border-muted">
+            <label className="flex cursor-pointer items-center gap-2 text-body-sm text-content-muted hover:text-content transition-calm">
+              <input
+                type="checkbox"
+                checked={
+                  currentValue === '__prefer_not_to_answer' || currentValue === 'Prefiro não responder'
+                }
+                onChange={(e) => {
+                  setCurrentValue(e.target.checked ? '__prefer_not_to_answer' : '');
+                  setError(null);
+                }}
+                className="rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+              />
+              <span>Prefiro não responder</span>
+            </label>
           </div>
         )}
         {error && (

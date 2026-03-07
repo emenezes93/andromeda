@@ -59,6 +59,19 @@ export async function disable2fa(password: string): Promise<{ ok: boolean }> {
   });
 }
 
+export async function signup(data: {
+  email: string;
+  password: string;
+  name: string;
+  tenantName: string;
+}): Promise<LoginResponse> {
+  return apiFetch<LoginResponse>('/v1/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    skipAuth: true,
+  });
+}
+
 export async function logout(refreshToken: string): Promise<void> {
   try {
     await apiFetch('/v1/auth/logout', {

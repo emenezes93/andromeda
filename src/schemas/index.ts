@@ -3,6 +3,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
   loginBodySchema,
   registerBodySchema,
+  signupBodySchema,
   refreshBodySchema,
   logoutBodySchema,
   changePasswordBodySchema,
@@ -77,6 +78,10 @@ export function registerSchemas(app: FastifyInstance): void {
     ...zodToJsonSchema(registerBodySchema),
   });
   app.addSchema({
+    $id: 'SignupBody',
+    ...zodToJsonSchema(signupBodySchema),
+  });
+  app.addSchema({
     $id: 'UserResponse',
     type: 'object',
     properties: {
@@ -102,6 +107,7 @@ export function registerSchemas(app: FastifyInstance): void {
       id: { type: 'string' },
       name: { type: 'string' },
       status: { type: 'string' },
+      emailAlertsEnabled: { type: 'boolean' },
       createdAt: { type: 'string' },
     },
   });

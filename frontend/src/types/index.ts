@@ -59,9 +59,13 @@ export interface TemplateSchemaJson {
 export interface QuestionSchema {
   id: string;
   text: string;
+  /** Microcopy: explicação curta para perguntas sensíveis (ex.: "Isso nos ajuda a ajustar seu plano."). */
+  description?: string;
   type: 'text' | 'number' | 'single' | 'multiple' | 'sentiment';
   options?: string[];
   required: boolean;
+  /** Se true, exibe opção "Prefiro não responder" e não exige resposta no campo principal. */
+  allowPreferNotToAnswer?: boolean;
   tags?: string[];
   showWhen?: { questionId: string; operator: string; value: unknown };
 }
@@ -115,6 +119,12 @@ export interface PatientEvolution {
   heartRateBpm: number | null;
   notes: string | null;
   createdAt: string;
+  /** Opcionais para gráfico comparativo (quando disponíveis no backend) */
+  bodyFatPct?: number | null;
+  muscleMassKg?: number | null;
+  chestCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
 }
 
 export interface PatientWithCount extends Patient {
@@ -165,6 +175,7 @@ export interface TenantMember {
   name: string | null;
   role: string;
   active: boolean;
+  lastActivityAt?: string | null;
 }
 
 export interface TenantMembersResponse {
@@ -176,6 +187,9 @@ export interface Tenant {
   id: string;
   name: string;
   status: string;
+  emailAlertsEnabled?: boolean;
+  logoUrl?: string | null;
+  brandColor?: string | null;
   createdAt: string;
 }
 
@@ -221,7 +235,12 @@ export interface AiInsight {
   createdAt: string;
 }
 
-export type TimelineEventType = 'session' | 'evolution' | 'goal';
+export type TimelineEventType =
+  | 'session'
+  | 'evolution'
+  | 'goal'
+  | 'training_execution'
+  | 'diet_entry';
 export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'error';
 
 export interface PatientTimelineEvent {
@@ -238,6 +257,53 @@ export interface PatientTimelineEvent {
 export interface PatientTimelineResponse {
   patientId: string;
   events: PatientTimelineEvent[];
+}
+
+// Patient Hub Summary (GET /v1/patients/:id/hub-summary)
+export interface PatientHubSummaryResponse {
+  patientId: string;
+  fullName: string;
+  mainGoal: string | null;
+  lastInsight: {
+    sessionId: string;
+    sessionCompletedAt: string;
+    risks: { readiness?: number; dropoutRisk?: number; stress?: number; sleepQuality?: number };
+    summary: string | null;
+  } | null;
+  lastEvolution: {
+    recordedAt: string;
+    weightKg: number | null;
+    bodyFatPercent: number | null;
+    leanMassKg: number | null;
+    bmi: number | null;
+  } | null;
+  training7d: {
+    executionsCount: number;
+    plannedDays: number;
+    adherencePercent: number;
+    lastExecutedAt: string | null;
+    averageDurationMinutes: number | null;
+  };
+  diet: {
+    streak: number;
+    macroAdherencePercent: number;
+    levelLabel: string;
+  };
+  alerts: Array<{
+    type: string;
+    severity: 'high' | 'medium' | 'low' | 'info';
+    message: string;
+    goalId?: string;
+    targetDate?: string;
+  }>;
+  goalsWithOrigin: Array<{
+    goalId: string;
+    title: string;
+    targetValue: number;
+    unit: string;
+    achievedAt: string | null;
+    sessionCompletedAt: string;
+  }>;
 }
 
 export interface PlanUsageSummary {
@@ -275,6 +341,7 @@ export interface TrainingPlan {
   endDate: string | null;
   active: boolean;
   executionsCount: number;
+  adherencePercent?: number;
   createdAt?: string;
 }
 export interface TrainingPlanListResponse {
@@ -302,6 +369,7 @@ export interface TrainingExecution {
   executedAt: string;
   durationMinutes: number | null;
   notes: string | null;
+  coachNotes: string | null;
   completed: boolean;
   createdAt: string;
 }
@@ -322,6 +390,7 @@ export interface UpdateTrainingExecutionBody {
   executedAt?: string;
   durationMinutes?: number | null;
   notes?: string | null;
+  coachNotes?: string | null;
   completed?: boolean;
 }
 
@@ -365,6 +434,7 @@ export interface Goal {
   achievedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  basedOnSessionId?: string | null;
 }
 export interface GoalListResponse {
   data: Goal[];
@@ -372,6 +442,7 @@ export interface GoalListResponse {
 }
 export interface CreateGoalBody {
   patientId: string;
+  basedOnSessionId?: string | null;
   type: GoalType;
   title: string;
   description?: string;
@@ -563,4 +634,46 @@ export interface DietStats {
   todaySummary: DietTodaySummary;
   bodyMetrics: DietBodyMetric[];
   totalEntries: number;
+}
+
+// Exercises (library)
+export type ExerciseMuscleGroup =
+  | 'chest'
+  | 'back'
+  | 'shoulders'
+  | 'arms'
+  | 'legs'
+  | 'core'
+  | 'cardio'
+  | 'other';
+export type ExerciseEquipment =
+  | 'barbell'
+  | 'dumbbell'
+  | 'cable'
+  | 'machine'
+  | 'bodyweight'
+  | 'band'
+  | 'other';
+
+export interface Exercise {
+  id: string;
+  tenantId: string;
+  name: string;
+  muscleGroup: ExerciseMuscleGroup;
+  equipment: string | null;
+  videoUrl: string | null;
+  isGlobal: boolean;
+  createdAt: string;
+}
+
+export interface ExerciseListResponse {
+  data: Exercise[];
+  meta: PaginationMeta;
+}
+
+export interface CreateExerciseBody {
+  name: string;
+  muscleGroup: ExerciseMuscleGroup;
+  equipment?: ExerciseEquipment | null;
+  videoUrl?: string | null;
 }

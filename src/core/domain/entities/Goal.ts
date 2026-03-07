@@ -19,7 +19,8 @@ export class Goal {
     public readonly achievedAt: Date | null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
-    public readonly deletedAt: Date | null = null
+    public readonly deletedAt: Date | null = null,
+    public readonly basedOnSessionId: string | null = null
   ) {}
 
   isAchieved(): boolean {

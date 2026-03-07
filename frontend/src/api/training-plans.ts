@@ -50,3 +50,26 @@ export async function updateTrainingPlan(
 export async function deleteTrainingPlan(id: string): Promise<void> {
   return apiFetch<void>(`/v1/training-plans/${id}`, { method: 'DELETE' });
 }
+
+export interface DuplicateTrainingPlanBody {
+  patientId: string;
+  name?: string;
+}
+
+export interface DuplicateTrainingPlanResponse {
+  id: string;
+  patientId: string;
+  patientName: string;
+  name: string;
+  startDate: string;
+}
+
+export async function duplicateTrainingPlan(
+  id: string,
+  body: DuplicateTrainingPlanBody
+): Promise<DuplicateTrainingPlanResponse> {
+  return apiFetch<DuplicateTrainingPlanResponse>(
+    `/v1/training-plans/${id}/duplicate`,
+    { method: 'POST', body: JSON.stringify(body) }
+  );
+}

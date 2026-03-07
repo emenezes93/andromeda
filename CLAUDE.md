@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-tenant Anamnese Inteligente PaaS API (v2). A Fastify-based Node.js REST API with PostgreSQL, providing adaptive health questionnaires, AI-powered insights, and full audit trails. Includes a React 18 + Vite frontend.
+Multi-tenant Fit Insight API (v2). A Fastify-based Node.js REST API with PostgreSQL, providing adaptive health questionnaires, AI-powered insights, and full audit trails. Includes a React 18 + Vite frontend.
 
 ## Commands
 
@@ -73,7 +73,7 @@ npm run test             # Vitest run
 
 - **src/modules/** — Legacy Fastify "route → service → schema" modules. Use for maintenance and new features not yet migrated. Migration to core is optional and incremental.
 
-  Modules: `health`, `auth` (legacy), `billing`, `patient-portal`, `patients-legacy` (evolutions), `progress-photos`, `scheduled-questionnaires`, `training-plans`, `training-executions`
+  Modules: `health`, `auth` (legacy), `billing`, `patient-portal`, `patients-legacy` (evolutions), `progress-photos`, `scheduled-questionnaires`, `training-plans`, `training-executions`, `diet`, `alerts`, `exercises`, `patient-notifications`
 
 - **Env source:** Use only `src/config/env.ts` (never `src/plugins/env.ts`).
 
@@ -124,11 +124,23 @@ Controlled by `AI_MODE` env var; `Container.ts` selects the implementation:
 
 Optional Redis caching: `RedisInsightCache` if `REDIS_URL` is set, else `NoopInsightCache`.
 
+### Plan Tiers & Quotas (src/config/planLimits.ts)
+Tiers: `free`, `trial`, `solo`, `clinic`, `pro`. Each defines `maxPatients`, `maxSessionsPerMonth`, `aiInsightsEnabled`. Quota enforcement via `PrismaQuotaService`; checked before creating patients/sessions.
+
 ### Billing (src/modules/billing/)
 Optional Stripe integration; enabled when `STRIPE_SECRET_KEY` is set:
 - Stripe webhook verification (`/v1/billing/webhook` skips auth middleware)
 - Subscription tiers tracked on `Tenant` model (`stripeCustomerId`, `subscriptionStatus`, `planTier`)
 - AI cost alerts: `aiCostLimitUsd` + `aiCostAlertThreshold` on Tenant
+
+### Diet Gamification (src/modules/diet/)
+XP system: 10 XP per meal entry + streak bonuses (3d: +15, 7d: +50, 30d: +200). Levels: Iniciante (0-199) → Dedicado (200-499) → Avançado (500-999) → Elite (1000+). Seven badge types tracked via `GET /v1/diet-stats/:patientId`.
+
+### Patient Portal (src/modules/patient-portal/)
+Separate auth flow for patients (not practitioners). Patient logs in with email/password linked to `Patient.userId`. Endpoints prefixed `/v1/patient-portal/` provide read-only access to own plans, sessions, goals, notifications. Skips standard auth middleware.
+
+### File Uploads (src/modules/progress-photos/storageService.ts)
+Local disk storage at `UPLOAD_STORAGE_PATH` (default `./uploads/`). Used for progress photos (`POST /v1/progress-photos/upload`) and tenant logos (`POST /v1/tenants/:id/logo`). Max size controlled by `UPLOAD_MAX_SIZE_BYTES`.
 
 ### Shared Utilities (src/shared/)
 - `errors/AppError.ts` — AppError hierarchy: `BadRequestError (400)`, `UnauthorizedError (401)`, `ForbiddenError (403)`, `NotFoundError (404)`, `ConflictError (409)`, `UnprocessableEntityError (422)`
@@ -154,10 +166,13 @@ Optional Stripe integration; enabled when `STRIPE_SECRET_KEY` is set:
 - CSS design tokens defined in `frontend/src/styles/index.css`, mapped in `frontend/tailwind.config.js`
 - **Always use token classes** (e.g., `border-error bg-error-light text-error`) — never raw Tailwind color classes like `red-*`
 - Badge variants: `default`, `primary`, `success`, `warning`, `error` — see `frontend/src/components/ui/Badge.tsx`
-- `SessionStatusBadge` — `frontend/src/components/ui/SessionStatusBadge.tsx`
+- Button variants: `primary`, `secondary`, `ghost`, `outline`, `tactile` (no `danger` variant)
+- Card padding: `none`, `sm`, `md` (no `lg`)
+- Toast: `const toast = useToast()` → `toast.success('msg')` / `toast.error('msg')`
+- i18n: `useTranslation()` hook; translations in `frontend/src/i18n/translations.ts` (pt-BR + en-US)
 
 ### Routing (frontend/src/routes/index.tsx)
-React Router v6 with 30+ routes, all lazy-loaded. `ProtectedRoute` enforces auth; `PageLayout` wraps all authenticated pages with sidebar + responsive hamburger. Public routes: `/login`, `/fill/:token`, `/onboarding`.
+React Router v6 with 40+ routes, all lazy-loaded. `ProtectedRoute` enforces auth; `PageLayout` wraps all authenticated pages with sidebar + responsive hamburger. Public routes: `/login`, `/signup`, `/fill/:token`, `/onboarding`.
 
 ## Testing
 

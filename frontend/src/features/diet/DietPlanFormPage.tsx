@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { track } from '@/lib/analytics';
 
 function todayISO() {
   return new Date().toISOString().split('T')[0];
@@ -64,7 +66,7 @@ export function DietPlanFormPage() {
 
   const [form, setForm] = useState<FormState>({ ...emptyForm, patientId: searchParams.get('patientId') ?? '' });
   const [isDirty, setIsDirty] = useState(false);
-  useUnsavedChanges(isDirty);
+  const { showConfirmModal, confirmLeave, cancelLeave, message } = useUnsavedChanges(isDirty);
 
   // Buscar plano existente em modo edição
   const { data: existing } = useQuery({
@@ -107,6 +109,7 @@ export function DietPlanFormPage() {
       queryClient.invalidateQueries({ queryKey: ['diet-plans'] });
       queryClient.invalidateQueries({ queryKey: ['diet-plan', data.id] });
       setIsDirty(false);
+      if (!isEditing) track({ name: 'diet_plan_created', planId: data.id, patientId: data.patientId });
       toast.success(isEditing ? 'Plano atualizado!' : 'Plano criado!');
       navigate(`/diet-plans/${data.id}`);
     },
@@ -160,6 +163,7 @@ export function DietPlanFormPage() {
   const patients = patientsData?.data ?? [];
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Paciente + Nome */}
       <Card padding="md">
@@ -356,5 +360,16 @@ export function DietPlanFormPage() {
         </Link>
       </div>
     </form>
+    <ConfirmModal
+      open={showConfirmModal}
+      title="Alterações não salvas"
+      message={message}
+      confirmLabel="Sair"
+      cancelLabel="Ficar"
+      variant="danger"
+      onConfirm={confirmLeave}
+      onCancel={cancelLeave}
+    />
+    </>
   );
 }

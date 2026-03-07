@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
 import { SkeletonDetail } from '@/components/ui/SkeletonCard';
 
 function formatAnswerValue(value: unknown): string {
@@ -18,6 +19,7 @@ function formatAnswerValue(value: unknown): string {
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
+  const { t } = useTranslation();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,10 +112,10 @@ export function SessionDetailPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-semibold text-content">{templateName}</h2>
+            <h1 className="text-heading font-semibold text-content">{templateName}</h1>
             {session.status && <SessionStatusBadge status={session.status} />}
           </div>
-          <p className="text-sm text-content-muted">
+          <p className="text-body-sm text-content-muted">
             Criada em {new Date(session.createdAt).toLocaleString('pt-BR')}
           </p>
           {lastAnswerEntry && (
@@ -154,7 +156,7 @@ export function SessionDetailPage() {
               loading={exporting === 'json'}
               disabled={!!exporting}
             >
-              Export JSON
+              {t.exportSession?.json ?? 'Exportar JSON'}
             </Button>
             <Button
               variant="outline"
@@ -163,7 +165,7 @@ export function SessionDetailPage() {
               loading={exporting === 'pdf'}
               disabled={!!exporting}
             >
-              Export PDF
+              {t.exportSession?.report ?? 'Exportar relatório (HTML)'}
             </Button>
           </div>
         </div>

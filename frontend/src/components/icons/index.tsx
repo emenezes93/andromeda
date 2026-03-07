@@ -1,56 +1,59 @@
-/** Inline SVG icons – no external dependency. Size 20x20 by default. */
+import {
+  LayoutGrid,
+  FileText,
+  Clock,
+  ClipboardCheck,
+  LogOut,
+  Users,
+  User,
+  Building2,
+  CreditCard,
+  Shield,
+  Target,
+  Brain,
+  CalendarClock,
+  Dumbbell,
+  Apple,
+  Menu,
+  Moon,
+  Sun,
+  X,
+  ChevronDown,
+  HelpCircle,
+} from 'lucide-react';
+
 const iconClass = 'size-5 shrink-0';
 
-export function IconDashboard({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
+type IconProps = { className?: string };
+
+export function IconDashboard({ className = iconClass }: IconProps) {
+  return <LayoutGrid className={className} />;
 }
 
-export function IconTemplates({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  );
+export function IconTemplates({ className = iconClass }: IconProps) {
+  return <FileText className={className} />;
 }
 
-export function IconSessions({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
+export function IconSessions({ className = iconClass }: IconProps) {
+  return <Clock className={className} />;
 }
 
-export function IconAudit({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-    </svg>
-  );
+export function IconAudit({ className = iconClass }: IconProps) {
+  return <ClipboardCheck className={className} />;
 }
 
-export function IconLogout({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
-  );
+export function IconLogout({ className = iconClass }: IconProps) {
+  return <LogOut className={className} />;
 }
 
-/** ECG pulse – brand mark for logo */
-export function IconPulse({ className = 'size-8' }: { className?: string }) {
+/** ECG pulse – brand mark for logo. Path uses currentColor; parent controls contrast (e.g. wrap in a span with text-white when on primary bg). */
+export function IconPulse({ className = 'size-8' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden>
       <rect width="32" height="32" rx="8" fill="currentColor" className="text-primary" />
       <path
         d="M6 18h4v-2h2v6h2v-8h2v4h4"
-        stroke="white"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -60,52 +63,78 @@ export function IconPulse({ className = 'size-8' }: { className?: string }) {
   );
 }
 
-export function IconPatients({ className = iconClass }: { className?: string }) {
-  // people/person group SVG
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
+export function IconPatients({ className = iconClass }: IconProps) {
+  return <Users className={className} />;
 }
 
-export function IconUsers({ className = iconClass }: { className?: string }) {
-  // single user SVG
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  );
+export function IconUsers({ className = iconClass }: IconProps) {
+  return <User className={className} />;
 }
 
-export function IconTenants({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  );
+export function IconTenants({ className = iconClass }: IconProps) {
+  return <Building2 className={className} />;
 }
 
-export function IconSubscription({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-    </svg>
-  );
+export function IconSubscription({ className = iconClass }: IconProps) {
+  return <CreditCard className={className} />;
 }
 
-export function IconShield({ className = iconClass }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  );
+export function IconShield({ className = iconClass }: IconProps) {
+  return <Shield className={className} />;
 }
 
-export function IconGoals({ className = iconClass }: { className?: string }) {
+export function IconGoals({ className = iconClass }: IconProps) {
+  return <Target className={className} />;
+}
+
+export function IconAi({ className = iconClass }: IconProps) {
+  return <Brain className={className} />;
+}
+
+export function IconSchedule({ className = iconClass }: IconProps) {
+  return <CalendarClock className={className} />;
+}
+
+export function IconTraining({ className = iconClass }: IconProps) {
+  return <Dumbbell className={className} />;
+}
+
+export function IconDiet({ className = iconClass }: IconProps) {
+  return <Apple className={className} />;
+}
+
+export function IconChevronDown({ className = iconClass }: IconProps) {
+  return <ChevronDown className={className} />;
+}
+
+export function IconHelp({ className = iconClass }: IconProps) {
+  return <HelpCircle className={className} />;
+}
+
+export function IconMenu({ className = iconClass }: IconProps) {
+  return <Menu className={className} />;
+}
+
+export function IconX({ className = iconClass }: IconProps) {
+  return <X className={className} />;
+}
+
+export function IconSun({ className = iconClass }: IconProps) {
+  return <Sun className={className} />;
+}
+
+export function IconMoon({ className = iconClass }: IconProps) {
+  return <Moon className={className} />;
+}
+
+export function IconBell({ className = iconClass }: IconProps) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+      />
     </svg>
   );
 }

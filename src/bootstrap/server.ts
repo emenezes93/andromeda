@@ -3,6 +3,7 @@ import { env } from '@config/env.js';
 import { cleanupExpiredTokens } from '@shared/utils/cleanup.js';
 import { setupCleanupQueue } from '@shared/queue/cleanupQueue.js';
 import { startScheduledQuestionnairesJob } from '../modules/scheduled-questionnaires/job.js';
+import { startAlertsJob } from '../modules/alerts/job.js';
 
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours (fallback when Redis is not used)
 
@@ -10,12 +11,14 @@ async function main() {
   const app = await buildApp();
   try {
     await app.listen({ port: env.PORT, host: env.HOST });
+    app.log.info({ port: env.PORT, host: env.HOST }, 'Andromeda (Fit Insight) listening');
   } catch (err) {
     app.log.fatal(err);
     process.exit(1);
   }
 
   startScheduledQuestionnairesJob(app.prisma, app.log);
+  startAlertsJob(app.prisma, app.log);
 
   let cleanupStop: (() => Promise<void>) | null = null;
   if (env.REDIS_URL) {

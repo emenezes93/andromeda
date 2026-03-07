@@ -14,14 +14,34 @@ export class PrismaPatientRepository implements IPatientRepository {
 
   async findAll(
     tenantId: string,
-    opts: { page: number; limit: number; search?: string }
+    opts: {
+      page: number;
+      limit: number;
+      search?: string;
+      mainGoal?: string;
+      hasActivePlan?: boolean;
+      createdAfter?: string;
+      createdBefore?: string;
+    }
   ): Promise<{ data: Patient[]; total: number }> {
+    const createdAtFilter: { gte?: Date; lte?: Date } = {};
+    if (opts.createdAfter) createdAtFilter.gte = new Date(opts.createdAfter);
+    if (opts.createdBefore) createdAtFilter.lte = new Date(opts.createdBefore);
     const where = {
       tenantId,
       deletedAt: null,
       ...(opts.search
         ? { fullName: { contains: opts.search, mode: 'insensitive' as const } }
         : {}),
+      ...(opts.mainGoal != null && opts.mainGoal !== ''
+        ? { mainGoal: opts.mainGoal }
+        : {}),
+      ...(opts.hasActivePlan === true
+        ? { trainingPlans: { some: { active: true, deletedAt: null } } }
+        : opts.hasActivePlan === false
+          ? { NOT: { trainingPlans: { some: { active: true, deletedAt: null } } } }
+          : {}),
+      ...(Object.keys(createdAtFilter).length > 0 ? { createdAt: createdAtFilter } : {}),
     };
     const [rows, total] = await Promise.all([
       this.prisma.patient.findMany({

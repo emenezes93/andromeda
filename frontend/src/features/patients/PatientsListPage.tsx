@@ -1,13 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listPatients, exportPatientsCSV } from '@/api/patients';
+import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { SkeletonCardGrid } from '@/components/ui/SkeletonCard';
+import { Pagination } from '@/components/ui/Pagination';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Select, type SelectOption } from '@/components/ui/Select';
+import { ImportPatientsModal } from './ImportPatientsModal';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -37,28 +42,127 @@ function genderBadgeVariant(gender: string | null): 'primary' | 'default' | 'suc
 // Component
 // ---------------------------------------------------------------------------
 
-const LIMIT = 12;
+/** Tamanho de página padrão para listas (M6 — benchmark p95 pode ser medido para este valor). */
+const LIST_PAGE_SIZE = 25;
 const DEBOUNCE_MS = 400;
+
+const MAIN_GOAL_OPTIONS: SelectOption[] = [
+  { value: '', label: 'Todos' },
+  { value: 'Emagrecimento', label: 'Emagrecimento' },
+  { value: 'Ganho de massa', label: 'Ganho de massa' },
+  { value: 'Performance', label: 'Performance' },
+  { value: 'Melhorar saúde', label: 'Melhorar saúde' },
+  { value: 'Outro', label: 'Outro' },
+];
 
 export function PatientsListPage() {
   const toast = useToast();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const search = searchParams.get('search') ?? '';
+  const mainGoal = searchParams.get('mainGoal') ?? '';
+  const hasActivePlan = searchParams.get('hasActivePlan');
+  const createdAfter = searchParams.get('createdAfter') ?? '';
+
+  const [searchInput, setSearchInput] = useState(search);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [exporting, setExporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
+      setDebouncedSearch(searchInput);
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [searchInput]);
+
+  const setPage = useCallback(
+    (p: number) => {
+      const next = new URLSearchParams(searchParams);
+      next.set('page', String(p));
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const updateFilters = useCallback(
+    (updates: { search?: string; page?: number; mainGoal?: string; hasActivePlan?: boolean; createdAfter?: string }) => {
+      const next = new URLSearchParams(searchParams);
+      if (updates.search !== undefined) next.set('search', updates.search);
+      if (updates.page !== undefined) next.set('page', String(updates.page));
+      if (updates.mainGoal !== undefined) {
+        if (updates.mainGoal) next.set('mainGoal', updates.mainGoal);
+        else next.delete('mainGoal');
+      }
+      if (updates.hasActivePlan !== undefined) {
+        if (updates.hasActivePlan === true) next.set('hasActivePlan', 'true');
+        else if (updates.hasActivePlan === false) next.set('hasActivePlan', 'false');
+        else next.delete('hasActivePlan');
+      }
+      if (updates.createdAfter !== undefined) {
+        if (updates.createdAfter) next.set('createdAfter', updates.createdAfter);
+        else next.delete('createdAfter');
+      }
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  useEffect(() => {
+    const currentSearch = searchParams.get('search') ?? '';
+    if (debouncedSearch !== currentSearch) {
+      const next = new URLSearchParams(searchParams);
+      if (debouncedSearch) next.set('search', debouncedSearch);
+      else next.delete('search');
+      next.set('page', '1');
+      setSearchParams(next, { replace: true });
+    }
+  }, [debouncedSearch, searchParams, setSearchParams]);
+
+  const loadStartTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    loadStartTimeRef.current = performance.now();
+  }, [page, debouncedSearch, mainGoal, hasActivePlan, createdAfter]);
+
+  const hasActivePlanBool =
+    hasActivePlan === 'true' ? true : hasActivePlan === 'false' ? false : undefined;
 
   const { data, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: ['patients', page, debouncedSearch],
-    queryFn: () => listPatients({ page, limit: LIMIT, search: debouncedSearch || undefined }),
+    queryKey: [
+      'patients',
+      page,
+      debouncedSearch,
+      mainGoal || undefined,
+      hasActivePlanBool,
+      createdAfter || undefined,
+    ],
+    queryFn: () =>
+      listPatients({
+        page,
+        limit: LIST_PAGE_SIZE,
+        search: debouncedSearch || undefined,
+        mainGoal: mainGoal || undefined,
+        hasActivePlan: hasActivePlanBool,
+        createdAfter: createdAfter || undefined,
+      }),
   });
+
+  useEffect(() => {
+    if (!data || loadStartTimeRef.current == null) return;
+    const ms = Math.round(performance.now() - loadStartTimeRef.current);
+    const size = data.data?.length ?? 0;
+    const total = data.meta?.total ?? 0;
+    track({ name: 'list_loaded', listType: 'patients', ms, size, page });
+    if (debouncedSearch.trim()) {
+      track({ name: 'search_performed', listType: 'patients', success: total > 0 });
+    }
+    loadStartTimeRef.current = null;
+  }, [data, page, debouncedSearch]);
 
   const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar pacientes' : null;
   const fetchPatients = refetch;
@@ -116,8 +220,8 @@ export function PatientsListPage() {
         <div className="flex-1 max-w-sm">
           <Input
             placeholder="Buscar por nome…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             name="search"
             aria-label="Buscar pacientes"
           />
@@ -126,10 +230,49 @@ export function PatientsListPage() {
           <Button variant="outline" onClick={handleExportCSV} loading={exporting} disabled={exporting}>
             Export CSV
           </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            Importar CSV
+          </Button>
           <Link to="/patients/new">
             <Button>Novo paciente</Button>
           </Link>
         </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3 rounded-card border border-border-muted bg-surface-muted/40 px-4 py-3">
+        <Select
+          options={MAIN_GOAL_OPTIONS}
+          value={mainGoal}
+          onChange={(e) => {
+            updateFilters({ mainGoal: e.target.value, page: 1 });
+          }}
+          className="w-40"
+          aria-label="Meta principal"
+        />
+        <label className="flex items-center gap-2 text-body-sm text-content">
+          <input
+            type="checkbox"
+            checked={hasActivePlan === 'true'}
+            onChange={(e) => {
+              updateFilters({
+                hasActivePlan: e.target.checked ? true : undefined,
+                page: 1,
+              });
+            }}
+            className="rounded border-border text-primary focus:ring-primary"
+          />
+          Com plano ativo
+        </label>
+        <label className="flex items-center gap-2 text-body-sm text-content-muted">
+          Cadastrado desde
+          <input
+            type="date"
+            value={createdAfter}
+            onChange={(e) => updateFilters({ createdAfter: e.target.value || undefined, page: 1 })}
+            className="rounded-input border border-border bg-surface px-2 py-1.5 text-body-sm text-content"
+          />
+        </label>
       </div>
 
       {/* Soft error banner (data already loaded but re-fetch failed) */}
@@ -148,6 +291,15 @@ export function PatientsListPage() {
         </p>
       )}
 
+      {/* Live region: announce filter/pagination changes to screen readers */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {meta
+          ? `Página ${page} de ${meta.totalPages}. ${meta.total} paciente${meta.total !== 1 ? 's' : ''}.`
+          : loading
+            ? 'Carregando lista de pacientes.'
+            : ''}
+      </div>
+
       {/* Soft loading indicator (background refresh while data is shown) */}
       {loading && data && (
         <div className="flex justify-center py-2">
@@ -157,18 +309,20 @@ export function PatientsListPage() {
 
       {/* Empty state */}
       {!loading && patients.length === 0 && (
-        <Card>
-          <p className="text-content-muted">
-            {debouncedSearch
+        <EmptyState
+          title={
+            debouncedSearch
               ? `Nenhum paciente encontrado para "${debouncedSearch}".`
-              : 'Nenhum paciente cadastrado ainda.'}
-          </p>
-          {!debouncedSearch && (
-            <Link to="/patients/new">
-              <Button className="mt-4">Novo paciente</Button>
-            </Link>
-          )}
-        </Card>
+              : 'Nenhum paciente cadastrado ainda.'
+          }
+          action={
+            !debouncedSearch ? (
+              <Link to="/patients/new">
+                <Button>Novo paciente</Button>
+              </Link>
+            ) : undefined
+          }
+        />
       )}
 
       {/* Patient grid */}
@@ -218,30 +372,24 @@ export function PatientsListPage() {
             ))}
           </ul>
 
-          {/* Pagination */}
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                disabled={page <= 1 || loading}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-content-muted">
-                Página {page} de {meta.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                disabled={page >= meta.totalPages || loading}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={meta?.totalPages ?? 1}
+            onPageChange={setPage}
+            loading={loading}
+            label="lista de pacientes"
+          />
         </>
       )}
+
+      <ImportPatientsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {
+          refetch();
+          setImportOpen(false);
+        }}
+      />
     </div>
   );
 }

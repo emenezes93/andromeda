@@ -454,7 +454,7 @@ export class SessionController {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anamnese - ${session.template.name}</title>
+  <title>Fit Insight - ${session.template.name}</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
     h1 { color: #0ea5e9; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px; }
@@ -477,7 +477,7 @@ export class SessionController {
   </style>
 </head>
 <body>
-  <h1>Anamnese - ${session.template.name}</h1>
+  <h1>Fit Insight - ${session.template.name}</h1>
   <div class="meta">
     <p><strong>Data:</strong> ${new Date(session.createdAt).toLocaleString('pt-BR')}</p>
     <p><strong>Status:</strong> ${session.status === 'completed' ? 'Concluída' : 'Em andamento'}</p>

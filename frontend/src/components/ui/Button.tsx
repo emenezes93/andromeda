@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'tactile';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'tactile' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
 }
@@ -13,6 +13,7 @@ const variantClasses: Record<string, string> = {
   outline: 'border-2 border-primary text-primary bg-transparent hover:bg-primary-subtle',
   tactile:
     'bg-primary text-white hover:bg-primary-hover btn-texture btn-tactile shadow-soft',
+  danger: 'bg-error text-white hover:bg-error/90 active:opacity-95 focus-visible:ring-error',
 };
 
 const sizeClasses = {

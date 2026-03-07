@@ -8,9 +8,9 @@ async function swaggerPlugin(fastify: FastifyInstance): Promise<void> {
     openapi: {
       openapi: '3.0.3',
       info: {
-        title: 'Anamnese Inteligente PaaS API',
+        title: 'Fit Insight API',
         version: '2.0.0',
-        description: 'Multi-tenant Anamnese adaptativa e insights (IA mock)',
+        description: 'Multi-tenant Fit Insight: anamnese adaptativa e insights (IA)',
       },
       servers: [{ url: 'http://localhost:3000', description: 'Local' }],
       components: {

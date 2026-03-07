@@ -20,6 +20,14 @@ export const listProgressPhotosQuerySchema = paginationQuerySchema.extend({
   to: z.string().optional(),
 });
 
+/** P1.1 — Campos do formulário multipart (upload) */
+export const uploadProgressPhotoFieldsSchema = z.object({
+  patientId: z.string().min(1, 'patientId é obrigatório'),
+  takenAt: z.string().min(1, 'takenAt é obrigatório'),
+  notes: z.string().optional(),
+});
+
 export type CreateProgressPhotoBody = z.infer<typeof createProgressPhotoSchema>;
 export type UpdateProgressPhotoBody = z.infer<typeof updateProgressPhotoSchema>;
 export type ListProgressPhotosQuery = z.infer<typeof listProgressPhotosQuerySchema>;
+export type UploadProgressPhotoFields = z.infer<typeof uploadProgressPhotoFieldsSchema>;

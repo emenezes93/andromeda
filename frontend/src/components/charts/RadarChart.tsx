@@ -19,7 +19,7 @@ interface RadarChartProps {
   colors?: string[];
 }
 
-export function RadarChart({ data, maxValue = 100, colors = ['#0ea5e9'] }: RadarChartProps) {
+export function RadarChart({ data, maxValue = 100, colors = ['var(--color-primary)'] }: RadarChartProps) {
   if (!data.length) return null;
 
   const chartData = data.map((d) => ({

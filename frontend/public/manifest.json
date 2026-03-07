@@ -1,0 +1,18 @@
+{
+  "name": "Fit Insight",
+  "short_name": "Fit Insight",
+  "description": "Plataforma de anamnese inteligente: questionários adaptativos, insights em saúde e acompanhamento de pacientes.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0ea5e9",
+  "background_color": "#f0f9ff",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.svg?v=2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

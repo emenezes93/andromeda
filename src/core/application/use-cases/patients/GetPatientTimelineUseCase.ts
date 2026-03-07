@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { NotFoundError } from '@shared/errors/index.js';
 
-export type TimelineEventType = 'session' | 'evolution' | 'goal';
+export type TimelineEventType = 'session' | 'evolution' | 'goal' | 'training_execution' | 'diet_entry';
 export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'error';
 
 export interface TimelineEvent {
@@ -37,7 +37,7 @@ export class GetPatientTimelineUseCase {
     });
     if (!patient) throw new NotFoundError('Patient not found');
 
-    const [sessions, evolutions, goals] = await Promise.all([
+    const [sessions, evolutions, goals, executions, dietEntries] = await Promise.all([
       this.prisma.anamnesisSession.findMany({
         where: { patientId, tenantId, deletedAt: null },
         include: {
@@ -55,6 +55,17 @@ export class GetPatientTimelineUseCase {
       this.prisma.patientGoal.findMany({
         where: { patientId, tenantId, deletedAt: null },
         orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      this.prisma.trainingExecution.findMany({
+        where: { patientId, tenantId, deletedAt: null },
+        include: { plan: { select: { name: true } } },
+        orderBy: { executedAt: 'desc' },
+        take: limit,
+      }),
+      this.prisma.dietEntry.findMany({
+        where: { patientId, tenantId, deletedAt: null },
+        orderBy: { entryDate: 'desc' },
         take: limit,
       }),
     ]);
@@ -124,6 +135,43 @@ export class GetPatientTimelineUseCase {
         subtitle: `Meta: ${g.targetValue} ${g.unit}`,
         badge,
         badgeVariant,
+        linkTo: null,
+      });
+    }
+
+    for (const ex of executions) {
+      const title = ex.plan?.name ?? 'Treino';
+      const subtitle = ex.durationMinutes != null ? `${ex.durationMinutes} min` : null;
+      events.push({
+        id: ex.id,
+        type: 'training_execution',
+        date: ex.executedAt.toISOString(),
+        title: `Registrou treino (${title})`,
+        subtitle,
+        badge: ex.completed ? 'Concluído' : null,
+        badgeVariant: ex.completed ? 'success' : 'default',
+        linkTo: ex.trainingPlanId ? `/patients/${patientId}/training-plans/${ex.trainingPlanId}` : null,
+      });
+    }
+
+    const mealTypeLabels: Record<string, string> = {
+      breakfast: 'Café da manhã',
+      lunch: 'Almoço',
+      dinner: 'Jantar',
+      snack: 'Lanche',
+      other: 'Outro',
+    };
+    for (const d of dietEntries) {
+      const mealLabel = mealTypeLabels[d.mealType] ?? d.mealType;
+      const subtitle = d.totalCalories != null ? `${d.totalCalories} kcal` : null;
+      events.push({
+        id: d.id,
+        type: 'diet_entry',
+        date: new Date(d.entryDate).toISOString(),
+        title: `Registrou ${mealLabel.toLowerCase()}`,
+        subtitle,
+        badge: null,
+        badgeVariant: 'default',
         linkTo: null,
       });
     }

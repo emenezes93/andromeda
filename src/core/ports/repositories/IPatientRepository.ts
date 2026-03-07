@@ -39,7 +39,15 @@ export interface PatientUpdateData {
 export interface IPatientRepository {
   findAll(
     tenantId: string,
-    opts: { page: number; limit: number; search?: string }
+    opts: {
+      page: number;
+      limit: number;
+      search?: string;
+      mainGoal?: string;
+      hasActivePlan?: boolean;
+      createdAfter?: string;
+      createdBefore?: string;
+    }
   ): Promise<{ data: Patient[]; total: number }>;
   findById(id: string, tenantId: string): Promise<Patient | null>;
   findByCpf(cpf: string, tenantId: string): Promise<Patient | null>;

@@ -4,10 +4,12 @@ import type { TenantMember, TenantMembersResponse } from '@/types';
 export async function listUsers(params?: {
   page?: number;
   limit?: number;
+  role?: string;
 }): Promise<TenantMembersResponse> {
   const search = new URLSearchParams();
   if (params?.page != null) search.set('page', String(params.page));
   if (params?.limit != null) search.set('limit', String(params.limit));
+  if (params?.role != null && params.role !== '') search.set('role', params.role);
   const qs = search.toString();
   return apiFetch<TenantMembersResponse>(`/v1/users${qs ? `?${qs}` : ''}`);
 }

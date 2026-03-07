@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { EvolutionChart } from './EvolutionChart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -503,8 +504,8 @@ export function PatientEvolutionPage() {
           </div>
         )}
 
-        {evolutions.length > 0 && (
-          <div className="border-t border-border-muted px-4 py-2.5">
+{evolutions.length > 0 && (
+        <div className="border-t border-border-muted px-4 py-2.5">
             <p className="text-body-sm text-content-subtle">
               {evolutions.length} registro{evolutions.length !== 1 ? 's' : ''} · ordenados do
               mais recente ao mais antigo
@@ -512,6 +513,15 @@ export function PatientEvolutionPage() {
           </div>
         )}
       </Card>
+
+      {evolutions.length >= 2 && (
+        <Card padding="md">
+          <h3 className="mb-4 text-heading-sm font-semibold text-content">
+            Evolução comparativa
+          </h3>
+          <EvolutionChart evolutions={evolutions} />
+        </Card>
+      )}
 
       {/* ── Back ── */}
       <div className="pt-2">
