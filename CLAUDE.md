@@ -18,6 +18,14 @@ npm run start            # Production server (node dist/src/bootstrap/server.js)
 npm run test             # Run all tests once
 npm run test:unit        # Unit tests only — tests/unit/ (no DB required)
 npm run test:integration # Integration tests — tests/integration/ (requires DB)
+npm run test:e2e         # End-to-end tests — tests/e2e/
+npm run test:smoke       # Smoke tests — tests/smoke/
+npm run test:functional  # Functional tests — tests/functional/
+npm run test:regression  # Regression tests — tests/regression/
+npm run test:uat         # User acceptance tests — tests/uat/
+npm run test:performance # Performance tests — tests/performance/
+npm run test:security    # Security tests — tests/security/
+npm run test:all         # Runs unit, smoke, functional, regression, integration, security, uat
 npm run test:coverage    # With coverage report
 npm run test:watch       # Watch mode
 npx vitest run tests/integration/role-flows.integration.test.ts  # Single test file
@@ -56,7 +64,7 @@ npm run test             # Vitest run
 2. `src/http/plugins/swagger.ts` — OpenAPI docs at `/documentation`
 3. `src/http/middleware/tenant.ts` — Extracts `x-tenant-id` header, calls `setTenantId()` via `onRequest` hook
 4. `src/http/middleware/auth.ts` — JWT verification, decorates `request.user`. Skips: `/health`, `/ready`, `/v1/auth/*`, `/v1/patient-portal/*`, `/v1/billing/webhook`, `/v1/public`, `/documentation`
-5. `src/http/middleware/rateLimit.ts` — Global (60 req/min) + auth-specific (10 req/min) limits
+5. `src/http/middleware/rateLimit.ts` — Global (60 req/min) + auth-specific (10 req/min) limits; per-feature overrides via env vars
 6. `src/http/middleware/errorHandler.ts` — Maps AppError/ZodError to structured JSON with requestId
 
 ### Backend: core (hexagonal) vs modules (legacy)
@@ -64,16 +72,16 @@ npm run test             # Vitest run
 - **src/core/** — Hexagonal architecture for critical domains. Layers:
   - `domain/entities/` — Pure business objects (no framework deps)
   - `application/use-cases/` — Orchestration; depends only on port interfaces
-  - `ports/` — Repository and service interfaces (contracts)
+  - `ports/` — Repository and service interfaces (contracts); 12 repository + 7 service interfaces
   - `infrastructure/` — Concrete implementations (Prisma repos, JWT, bcrypt, insight generators)
-  - `infrastructure/di/Container.ts` — **Dependency injection container**: instantiates all 13+ repos, 10+ services, 15+ use cases, and 11 HTTP controllers. Decorated on Fastify as `app.container`.
+  - `infrastructure/di/Container.ts` — **Dependency injection container**: instantiates all 12 repos, 10+ services, 48 use cases, and 11 HTTP controllers. Decorated on Fastify as `app.container`.
   - `presentation/controllers/` — HTTP handlers; each controller's `registerRoutes(app)` registers Fastify routes
 
   Domains in core: auth, users, tenants, patients, anamnesis (templates + sessions), insights, audit, stats, goals, quota
 
 - **src/modules/** — Legacy Fastify "route → service → schema" modules. Use for maintenance and new features not yet migrated. Migration to core is optional and incremental.
 
-  Modules: `health`, `auth` (legacy), `billing`, `patient-portal`, `patients-legacy` (evolutions), `progress-photos`, `scheduled-questionnaires`, `training-plans`, `training-executions`
+  Modules: `health`, `auth` (2FA routes), `billing`, `diet`, `patient-portal`, `patients-legacy` (evolutions), `progress-photos`, `scheduled-questionnaires`, `training-plans`, `training-executions`
 
 - **Env source:** Use only `src/config/env.ts` (never `src/plugins/env.ts`).
 
@@ -120,7 +128,7 @@ Two-phase question selection:
 Controlled by `AI_MODE` env var; `Container.ts` selects the implementation:
 - `ruleBased` (default) — Deterministic risk scoring from answer tags
 - `llmMock` — Deterministic varied output using answer hash (no external API calls)
-- `llm` — Real OpenAI or Anthropic; requires `AI_PROVIDER` + `AI_API_KEY`; optional fallback provider
+- `llm` — Real OpenAI or Anthropic; requires `AI_PROVIDER` + `AI_API_KEY`; optional fallback provider via `AI_FALLBACK_PROVIDER` + `AI_FALLBACK_API_KEY`
 
 Optional Redis caching: `RedisInsightCache` if `REDIS_URL` is set, else `NoopInsightCache`.
 
@@ -128,7 +136,14 @@ Optional Redis caching: `RedisInsightCache` if `REDIS_URL` is set, else `NoopIns
 Optional Stripe integration; enabled when `STRIPE_SECRET_KEY` is set:
 - Stripe webhook verification (`/v1/billing/webhook` skips auth middleware)
 - Subscription tiers tracked on `Tenant` model (`stripeCustomerId`, `subscriptionStatus`, `planTier`)
+- Pricing tiers: `STRIPE_PRICE_ID`, `STRIPE_PRICE_ID_SEMIANNUAL`, `STRIPE_PRICE_ID_ANNUAL`
 - AI cost alerts: `aiCostLimitUsd` + `aiCostAlertThreshold` on Tenant
+
+### Diet Module (src/modules/diet/)
+Legacy module for nutrition tracking:
+- `DietPlan` — Named plans per patient with daily targets (calories, macros)
+- `DietEntry` — Daily food entries with macro breakdown and hydration tracking
+- Linked to patient and tenant for full RLS isolation
 
 ### Shared Utilities (src/shared/)
 - `errors/AppError.ts` — AppError hierarchy: `BadRequestError (400)`, `UnauthorizedError (401)`, `ForbiddenError (403)`, `NotFoundError (404)`, `ConflictError (409)`, `UnprocessableEntityError (422)`
@@ -156,15 +171,35 @@ Optional Stripe integration; enabled when `STRIPE_SECRET_KEY` is set:
 - Badge variants: `default`, `primary`, `success`, `warning`, `error` — see `frontend/src/components/ui/Badge.tsx`
 - `SessionStatusBadge` — `frontend/src/components/ui/SessionStatusBadge.tsx`
 
+### Feature Modules (frontend/src/features/)
+Organized by domain: `ai`, `audit`, `auth`, `billing`, `dashboard`, `diet`, `goals`, `insights`, `onboarding`, `patients`, `scheduled-questionnaires`, `sessions`, `templates`, `tenants`, `terms`, `training-plans`, `users`
+
+### Internationalization (frontend/src/i18n/)
+i18n support is present. Use locale keys from `frontend/src/i18n/` — do not hardcode user-visible strings.
+
 ### Routing (frontend/src/routes/index.tsx)
 React Router v6 with 30+ routes, all lazy-loaded. `ProtectedRoute` enforces auth; `PageLayout` wraps all authenticated pages with sidebar + responsive hamburger. Public routes: `/login`, `/fill/:token`, `/onboarding`.
+
+### Accessibility
+Frontend uses `@axe-core/react` and `vitest-axe` for accessibility testing. New UI components should be tested for a11y.
 
 ## Testing
 
 - Framework: Vitest with `vitest.setup.ts` pre-loading env vars (`DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=test`)
-- Unit tests: `tests/unit/` (no DB required)
-- Integration tests: `tests/integration/` — use `buildApp()` + `app.inject()` pattern (no HTTP server needed)
+- Shared test helpers in `tests/helpers/`
 - Backend path alias: `@` maps to `./src`
+
+| Directory | Requires DB | Description |
+|---|---|---|
+| `tests/unit/` | No | Pure unit tests, no I/O |
+| `tests/integration/` | Yes | `buildApp()` + `app.inject()` pattern |
+| `tests/e2e/` | Yes | Full end-to-end flows |
+| `tests/smoke/` | No | Sanity checks for critical paths |
+| `tests/functional/` | Yes | Feature-level behavioral tests |
+| `tests/regression/` | Yes | Prevents regressions for known bugs |
+| `tests/security/` | Yes | Auth, RLS, permission boundary tests |
+| `tests/uat/` | Yes | User acceptance tests |
+| `tests/performance/` | Yes | Load and latency tests |
 
 ## Code Style
 
@@ -177,7 +212,17 @@ React Router v6 with 30+ routes, all lazy-loaded. `ProtectedRoute` enforces auth
 
 Copy `.env.example` to `.env`. Key vars: `DATABASE_URL`, `JWT_SECRET` (min 32 chars), `AI_MODE`. See `src/config/env.ts` for the full Zod validation schema.
 
-Optional vars: `REDIS_URL` (enables BullMQ queue + insight cache), `STRIPE_SECRET_KEY` (enables billing), `AI_API_KEY` + `AI_PROVIDER` (required when `AI_MODE=llm`).
+**Optional vars:**
+- `REDIS_URL` — Enables BullMQ queue + insight cache
+- `STRIPE_SECRET_KEY` — Enables billing; pair with `STRIPE_PRICE_ID`, `STRIPE_PRICE_ID_SEMIANNUAL`, `STRIPE_PRICE_ID_ANNUAL`
+- `AI_API_KEY` + `AI_PROVIDER` — Required when `AI_MODE=llm`
+- `AI_MODEL` — Override default model name
+- `AI_FALLBACK_PROVIDER` + `AI_FALLBACK_API_KEY` + `AI_FALLBACK_MODEL` — Secondary AI provider on failure
+- `DATABASE_POOL_SIZE` — Prisma connection pool size (1–100)
+- `RATE_LIMIT_TEMPLATES` — Template endpoint rate limit (default: 30/min)
+- `RATE_LIMIT_SESSIONS` — Session endpoint rate limit (default: 30/min)
+- `RATE_LIMIT_AI` — AI endpoint rate limit (default: 10/min)
+- `FRONTEND_URL` — Frontend URL for links/redirects in emails
 
 ## CI/CD
 
@@ -189,6 +234,8 @@ Optional vars: `REDIS_URL` (enables BullMQ queue + insight cache), `STRIPE_SECRE
 | `.github/workflows/pr-checks.yml` | PR to main / `workflow_dispatch` | Fast feedback: lint + typecheck + unit tests (parallel, ~2 min) + PR title validation |
 | `.github/workflows/release.yml` | tag push | Semantic release |
 | `.github/workflows/pages.yml` | push to main | Deploy docs/website to GitHub Pages |
+| `.github/workflows/claude.yml` | issue/PR comments mentioning @claude | Claude Code GitHub Action integration |
+| `.github/workflows/stale.yml` | scheduled | Marks stale issues and PRs |
 | `.github/dependabot.yml` | weekly (Monday 09h BRT) | Auto-update npm (backend + frontend) and Actions |
 
 ### PR Title Convention
