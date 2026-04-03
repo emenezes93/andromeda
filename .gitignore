@@ -47,3 +47,7 @@ uploads
 *.tsbuildinfo
 vite.config.d.ts
 vite.config.js
+
+# Website local browser profile / audit screenshots (do not commit)
+website/.chrome-headless/
+website/tmp-*.png

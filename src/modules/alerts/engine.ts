@@ -79,7 +79,6 @@ export async function runAlertEngine(prisma: PrismaClient): Promise<{ created: n
       executionsPrev7d,
       executionsLast5d,
       activePlans,
-      _dietEntriesLast7d,
       activeDietPlans,
       goals,
       evolutions,
@@ -121,22 +120,13 @@ export async function runAlertEngine(prisma: PrismaClient): Promise<{ created: n
         select: { patientId: true, planJson: true },
         orderBy: { startDate: 'desc' },
       }),
-      prisma.dietEntry.findMany({
-        where: {
-          patientId: { in: patientIds },
-          tenantId,
-          deletedAt: null,
-          entryDate: { gte: sevenDaysAgo },
-        },
-        select: { patientId: true, entryDate: true },
-      }),
       prisma.dietPlan.findMany({
         where: { patientId: { in: patientIds }, tenantId, active: true, deletedAt: null },
         select: { patientId: true },
       }),
       prisma.patientGoal.findMany({
         where: { patientId: { in: patientIds }, tenantId, deletedAt: null },
-        select: { patientId: true, title: true, targetValue: true, unit: true, achievedAt: true, targetDate: true },
+        select: { id: true, patientId: true, title: true, targetValue: true, unit: true, achievedAt: true, targetDate: true },
       }),
       prisma.patientEvolution.findMany({
         where: { patientId: { in: patientIds }, tenantId },
@@ -230,15 +220,15 @@ export async function runAlertEngine(prisma: PrismaClient): Promise<{ created: n
       }
     }
 
-    const goalDueSoon = new Map<string, { title: string }>();
-    const goalAchieved = new Map<string, { title: string }>();
+    const goalDueSoon = new Map<string, { id: string; title: string }>();
+    const goalAchieved = new Map<string, { id: string; title: string }>();
     for (const g of goals) {
       if (g.achievedAt) {
-        goalAchieved.set(g.patientId, { title: g.title });
+        goalAchieved.set(g.patientId, { id: g.id, title: g.title });
       } else {
         const target = new Date(g.targetDate);
         if (target >= now && target <= fourteenDaysFromNow) {
-          goalDueSoon.set(g.patientId, { title: g.title });
+          goalDueSoon.set(g.patientId, { id: g.id, title: g.title });
         }
       }
     }
@@ -356,7 +346,7 @@ export async function runAlertEngine(prisma: PrismaClient): Promise<{ created: n
           ALERT_TYPES.goal_due_soon,
           'medium',
           `${p.fullName}: meta "${goalDue.title}" vence em breve.`,
-          { goalTitle: goalDue.title }
+          { goalId: goalDue.id, goalTitle: goalDue.title }
         );
       }
       if (goalAch) {
@@ -365,7 +355,7 @@ export async function runAlertEngine(prisma: PrismaClient): Promise<{ created: n
           ALERT_TYPES.goal_achieved,
           'info',
           `${p.fullName}: meta "${goalAch.title}" atingida!`,
-          { goalTitle: goalAch.title }
+          { goalId: goalAch.id, goalTitle: goalAch.title }
         );
       }
       if (dropoutRisk >= 70) {

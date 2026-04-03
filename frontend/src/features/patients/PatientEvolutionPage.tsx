@@ -343,7 +343,7 @@ export function PatientEvolutionPage() {
     getPatient(id)
       .then(setPatient)
       .catch((err) =>
-        setPatientError(err instanceof Error ? err.message : 'Erro ao carregar paciente'),
+        setPatientError(err instanceof Error ? err.message : 'Erro ao carregar aluno'),
       )
       .finally(() => setLoadingPatient(false));
   }, [id]);
@@ -360,7 +360,7 @@ export function PatientEvolutionPage() {
   // ── Guards ──────────────────────────────────────────────────────────────
 
   if (!id) {
-    return <p className="text-content-muted">ID do paciente não informado.</p>;
+    return <p className="text-content-muted">ID do aluno não informado.</p>;
   }
 
   if (loadingPatient) {
@@ -374,7 +374,7 @@ export function PatientEvolutionPage() {
   if (patientError || !patient) {
     return (
       <Card className="border-error bg-error-light" padding="md">
-        <p className="text-error">{patientError ?? 'Paciente não encontrado.'}</p>
+        <p className="text-error">{patientError ?? 'Aluno não encontrado.'}</p>
         <Link to="/patients" className="mt-4 inline-block">
           <Button variant="secondary">Voltar à lista</Button>
         </Link>
@@ -526,7 +526,7 @@ export function PatientEvolutionPage() {
       {/* ── Back ── */}
       <div className="pt-2">
         <Link to={`/patients/${id}`}>
-          <Button variant="secondary">Voltar ao paciente</Button>
+          <Button variant="secondary">Voltar ao aluno</Button>
         </Link>
       </div>
     </div>

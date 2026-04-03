@@ -10,6 +10,7 @@ export interface UsageSummary {
   patients: { current: number; max: number | null };
   sessionsThisMonth: { current: number; max: number | null };
   aiInsightsEnabled: boolean;
+  aiInsightsThisMonth: { current: number; max: number | null };
 }
 
 export interface IQuotaService {

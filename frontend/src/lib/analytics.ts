@@ -1,5 +1,3 @@
-import { posthogClient } from './posthog';
-
 export type AnalyticsEvent =
   | { name: 'onboarding_started' }
   | { name: 'onboarding_step_view'; stepId: string; stepIndex: number }
@@ -37,7 +35,7 @@ export type AnalyticsEvent =
   | { name: 'patient_created'; patientId: string }
   | { name: 'training_plan_created'; planId: string; patientId: string }
   | { name: 'evolution_recorded'; patientId: string }
-  | { name: 'report_exported'; format: 'pdf' | 'print'; patientId: string }
+  | { name: 'report_exported'; format: 'html' | 'print'; patientId: string }
   | { name: 'exercise_added_from_library'; exerciseId: string }
   | { name: 'plan_duplicated'; sourceId: string; targetPatientId: string }
   | { name: 'alert_action_clicked'; alertType: string; alertId: string }
@@ -58,15 +56,79 @@ export type FunnelStep =
   | 'questionnaire_complete';
 
 const isDev = import.meta.env.DEV;
+type PosthogClient = {
+  capture: (event: string, properties?: Record<string, unknown>) => void;
+  identify: (userId: string, traits?: Record<string, unknown>) => void;
+  reset: () => void;
+};
+
+let posthogClientPromise: Promise<PosthogClient | null> | null = null;
+let posthogLoadScheduled = false;
+const queuedCallbacks: Array<(client: PosthogClient) => void> = [];
+
+function getPosthogClient(): Promise<PosthogClient | null> {
+  if (!posthogClientPromise) {
+    posthogClientPromise = import('./posthog')
+      .then((module) => module.posthogClient as PosthogClient | null)
+      .catch(() => null)
+      .then((client) => {
+        if (client) {
+          const pending = [...queuedCallbacks];
+          queuedCallbacks.length = 0;
+          pending.forEach((callback) => callback(client));
+        } else {
+          queuedCallbacks.length = 0;
+        }
+        return client;
+      });
+  }
+  return posthogClientPromise;
+}
+
+function schedulePosthogLoad(): void {
+  if (posthogClientPromise || posthogLoadScheduled) return;
+  posthogLoadScheduled = true;
+
+  const load = () => {
+    posthogLoadScheduled = false;
+    void getPosthogClient();
+  };
+
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    (
+      window as Window & {
+        requestIdleCallback: (
+          callback: IdleRequestCallback,
+          options?: IdleRequestOptions,
+        ) => number;
+      }
+    ).requestIdleCallback(() => load(), { timeout: 2000 });
+    return;
+  }
+
+  setTimeout(load, 1200);
+}
+
+function withPosthog(callback: (client: PosthogClient) => void, urgent = false): void {
+  if (urgent) {
+    void getPosthogClient().then((client) => {
+      if (client) callback(client);
+    });
+    return;
+  }
+
+  queuedCallbacks.push(callback);
+  schedulePosthogLoad();
+}
 
 export function track(event: AnalyticsEvent): void {
   if (isDev) {
     // eslint-disable-next-line no-console
     console.debug('[analytics]', event.name, event);
   }
-  if (posthogClient) {
-    posthogClient.capture(event.name, event as Record<string, unknown>);
-  }
+  withPosthog((client) => {
+    client.capture(event.name, event as Record<string, unknown>);
+  });
 }
 
 export function trackFunnel(step: FunnelStep, props?: Record<string, unknown>): void {
@@ -75,19 +137,19 @@ export function trackFunnel(step: FunnelStep, props?: Record<string, unknown>): 
     // eslint-disable-next-line no-console
     console.debug('[analytics funnel]', payload);
   }
-  if (posthogClient) {
-    posthogClient.capture('funnel_step', payload);
-  }
+  withPosthog((client) => {
+    client.capture('funnel_step', payload);
+  });
 }
 
 export function identifyUser(userId: string, traits: Record<string, unknown>): void {
-  if (posthogClient) {
-    posthogClient.identify(userId, traits);
-  }
+  withPosthog((client) => {
+    client.identify(userId, traits);
+  }, true);
 }
 
 export function resetAnalytics(): void {
-  if (posthogClient) {
-    posthogClient.reset();
-  }
+  withPosthog((client) => {
+    client.reset();
+  }, true);
 }

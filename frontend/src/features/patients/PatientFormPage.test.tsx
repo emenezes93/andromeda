@@ -35,9 +35,9 @@ describe('PatientFormPage', () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toHaveLength(0);
   });
 
-  it('renders form with "Dados do paciente" card and section headings', () => {
+  it('renders form with "Dados do aluno" card and section headings', () => {
     const { getByRole } = renderPatientForm();
-    expect(getByRole('heading', { name: /dados do paciente/i })).toBeInTheDocument();
+    expect(getByRole('heading', { name: /dados do aluno/i })).toBeInTheDocument();
     expect(getByRole('heading', { name: 'Dados pessoais' })).toBeInTheDocument();
     expect(getByRole('heading', { name: 'Objetivo e queixa' })).toBeInTheDocument();
     expect(getByRole('heading', { name: 'Observações' })).toBeInTheDocument();

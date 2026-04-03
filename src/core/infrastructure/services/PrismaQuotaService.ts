@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { getLimits } from '@config/planLimits.js';
 import type { IQuotaService, QuotaCheckResult, UsageSummary } from '@ports/services/IQuotaService.js';
-import { ForbiddenError } from '@shared/errors/index.js';
+import { UnprocessableEntityError } from '@shared/errors/index.js';
 
 function effectivePlanTier(tenant: { planTier: string | null; trialEndsAt: Date | null } | null): string {
   if (!tenant) return 'free';
@@ -54,13 +54,30 @@ export class PrismaQuotaService implements IQuotaService {
   async checkAiInsightQuota(tenantId: string): Promise<QuotaCheckResult> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
     const limits = getLimits(effectivePlanTier(tenant));
+    if (!limits.aiInsightsEnabled) {
+      return {
+        allowed: false,
+        current: 0,
+        max: null,
+        message: 'Insights de IA não estão disponíveis no plano gratuito. Faça upgrade para acessar.',
+      };
+    }
+    if (limits.maxAiInsightsPerMonth === null) {
+      return { allowed: true, current: 0, max: null };
+    }
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const current = await this.prisma.aiInsight.count({
+      where: { tenantId, createdAt: { gte: startOfMonth } },
+    });
+    const allowed = current < limits.maxAiInsightsPerMonth;
     return {
-      allowed: limits.aiInsightsEnabled,
-      current: 0,
-      max: null,
-      message: limits.aiInsightsEnabled
+      allowed,
+      current,
+      max: limits.maxAiInsightsPerMonth,
+      message: allowed
         ? undefined
-        : 'Insights de IA não estão disponíveis no plano gratuito. Faça upgrade para acessar.',
+        : `Limite de ${limits.maxAiInsightsPerMonth} insights de IA por mês atingido. Faça upgrade para continuar.`,
     };
   }
 
@@ -70,10 +87,13 @@ export class PrismaQuotaService implements IQuotaService {
     const limits = getLimits(planTier);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const [patientCount, sessionCount] = await Promise.all([
+    const [patientCount, sessionCount, insightCount] = await Promise.all([
       this.prisma.patient.count({ where: { tenantId, deletedAt: null } }),
       this.prisma.anamnesisSession.count({
         where: { tenantId, createdAt: { gte: startOfMonth }, deletedAt: null },
+      }),
+      this.prisma.aiInsight.count({
+        where: { tenantId, createdAt: { gte: startOfMonth } },
       }),
     ]);
     return {
@@ -81,12 +101,13 @@ export class PrismaQuotaService implements IQuotaService {
       patients: { current: patientCount, max: limits.maxPatients },
       sessionsThisMonth: { current: sessionCount, max: limits.maxSessionsPerMonth },
       aiInsightsEnabled: limits.aiInsightsEnabled,
+      aiInsightsThisMonth: { current: insightCount, max: limits.maxAiInsightsPerMonth },
     };
   }
 }
 
 export function assertQuota(result: QuotaCheckResult): void {
   if (!result.allowed) {
-    throw new ForbiddenError(result.message ?? 'Quota exceeded');
+    throw new UnprocessableEntityError(result.message ?? 'Quota exceeded');
   }
 }

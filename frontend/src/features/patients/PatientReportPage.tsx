@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pdf } from '@react-pdf/renderer';
 import { getPatient, listEvolutions } from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listGoals } from '@/api/goals';
@@ -11,7 +10,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { track } from '@/lib/analytics';
-import { PatientReportPdf } from './PatientReportPdf';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -37,6 +35,25 @@ function formatDateTime(value: string | null | undefined): string {
   });
 }
 
+function escapeHtml(value: string | number | null | undefined): string {
+  return String(value ?? '—')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function downloadTextFile(filename: string, content: string, type: string): void {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Stat card (simple metric)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,7 +74,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 export function PatientReportPage() {
   const { id } = useParams<{ id: string }>();
-  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingHtml, setExportingHtml] = useState(false);
 
   const { data: patient, isLoading: loadingPatient } = useQuery({
     queryKey: ['report-patient', id],
@@ -89,7 +106,7 @@ export function PatientReportPage() {
     enabled: !!id,
   });
 
-  if (!id) return <p className="text-content-muted">ID do paciente não informado.</p>;
+  if (!id) return <p className="text-content-muted">ID do aluno não informado.</p>;
 
   const loading =
     loadingPatient || loadingGoals || loadingSessions || loadingEvolutions || loadingExecutions;
@@ -130,30 +147,168 @@ export function PatientReportPage() {
 
   const printedAt = formatDateTime(now.toISOString());
 
-  const handleExportPdf = async () => {
+  const handleExportHtml = async () => {
     if (!patient) return;
-    setExportingPdf(true);
+    setExportingHtml(true);
     try {
-      const tenantName = localStorage.getItem('tenantName') ?? 'Clínica';
-      const blob = await pdf(
-        <PatientReportPdf
-          patient={patient}
-          goals={goals}
-          sessions={sessions}
-          evolutions={evolutions ?? []}
-          executions={executionsLast30}
-          tenantName={tenantName}
-        />
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `relatorio-${patient.fullName.replace(/\s+/g, '-').toLowerCase()}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      track({ name: 'report_exported', format: 'pdf', patientId: patient.id });
+      const tenantName = localStorage.getItem('tenantName') ?? 'Fit Insight';
+      const html = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Relatório - ${escapeHtml(patient.fullName)}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+      h1, h2, h3 { margin: 0 0 12px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      p, li { line-height: 1.5; }
+      .muted { color: #6b7280; }
+      .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
+      .value { font-size: 24px; font-weight: 700; color: #2563eb; }
+      .label { font-size: 12px; color: #6b7280; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 14px; }
+      th { background: #f9fafb; }
+      ul { padding-left: 20px; }
+      @media print {
+        body { margin: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>${escapeHtml(tenantName)}</h1>
+      <p class="muted">Relatório do aluno: <strong>${escapeHtml(patient.fullName)}</strong></p>
+      <p class="muted">Gerado em ${escapeHtml(printedAt)}</p>
+    </header>
+
+    <section>
+      <h2>Dados do aluno</h2>
+      <p><strong>Nome:</strong> ${escapeHtml(patient.fullName)}</p>
+      <p><strong>Data de nascimento:</strong> ${escapeHtml(formatDate(patient.birthDate))}</p>
+      <p><strong>Email:</strong> ${escapeHtml(patient.email)}</p>
+      <p><strong>Objetivo principal:</strong> ${escapeHtml(patient.mainGoal)}</p>
+    </section>
+
+    <section>
+      <h2>Resumo</h2>
+      <div class="grid">
+        <div class="card"><div class="value">${completedSessions.length}</div><div class="label">Avaliações realizadas</div></div>
+        <div class="card"><div class="value">${achievedGoals.length}</div><div class="label">Metas concluídas</div></div>
+        <div class="card"><div class="value">${completedExecutions.length}</div><div class="label">Treinos nos últimos 30 dias</div></div>
+        <div class="card"><div class="value">${evolutions.length}</div><div class="label">Evoluções registradas</div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Metas</h2>
+      ${
+        goals.length === 0
+          ? '<p class="muted">Nenhuma meta cadastrada.</p>'
+          : `<ul>${goals
+              .map((goal) => {
+                const status =
+                  goal.achievedAt != null
+                    ? `Concluída em ${formatDate(goal.achievedAt)}`
+                    : goal.targetDate && new Date(goal.targetDate) < now
+                      ? 'Vencida'
+                      : 'Em andamento';
+                return `<li><strong>${escapeHtml(goal.title)}</strong> · ${escapeHtml(
+                  goal.type.replace('_', ' '),
+                )} · ${escapeHtml(goal.targetValue)} ${escapeHtml(goal.unit)} · ${escapeHtml(status)}</li>`;
+              })
+              .join('')}</ul>`
+      }
+    </section>
+
+    <section>
+      <h2>Evolução corporal</h2>
+      ${
+        evolutions.length === 0
+          ? '<p class="muted">Nenhuma evolução registrada.</p>'
+          : `<table>
+              <thead>
+                <tr><th>Data</th><th>Peso</th><th>IMC</th><th>Cintura</th><th>% Gordura</th></tr>
+              </thead>
+              <tbody>
+                ${evolutions
+                  .slice(0, 10)
+                  .map(
+                    (evolution) => `<tr>
+                      <td>${escapeHtml(formatDate(evolution.recordedAt))}</td>
+                      <td>${escapeHtml(evolution.weightKg)}</td>
+                      <td>${escapeHtml(evolution.bmi)}</td>
+                      <td>${escapeHtml(evolution.waistCm)}</td>
+                      <td>${escapeHtml(evolution.bodyFatPercent)}</td>
+                    </tr>`,
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+      }
+    </section>
+
+    <section>
+      <h2>Treinos recentes</h2>
+      ${
+        executionsLast30.length === 0
+          ? '<p class="muted">Nenhum treino registrado nos últimos 30 dias.</p>'
+          : `<table>
+              <thead>
+                <tr><th>Data</th><th>Duração</th><th>Status</th><th>Notas</th></tr>
+              </thead>
+              <tbody>
+                ${executionsLast30
+                  .map(
+                    (execution) => `<tr>
+                      <td>${escapeHtml(formatDate(execution.executedAt))}</td>
+                      <td>${escapeHtml(execution.durationMinutes != null ? `${execution.durationMinutes} min` : '—')}</td>
+                      <td>${execution.completed ? 'Concluído' : 'Parcial'}</td>
+                      <td>${escapeHtml(execution.notes)}</td>
+                    </tr>`,
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+      }
+    </section>
+
+    <section>
+      <h2>Avaliações recentes</h2>
+      ${
+        sessions.length === 0
+          ? '<p class="muted">Nenhuma avaliação encontrada.</p>'
+          : `<table>
+              <thead>
+                <tr><th>Data</th><th>Template</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                ${sessions
+                  .slice(0, 15)
+                  .map(
+                    (session) => `<tr>
+                      <td>${escapeHtml(formatDate(session.createdAt))}</td>
+                      <td>${escapeHtml(session.template?.name ?? 'Template')}</td>
+                      <td>${escapeHtml(session.status)}</td>
+                    </tr>`,
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+      }
+    </section>
+  </body>
+</html>`;
+      downloadTextFile(
+        `relatorio-${patient.fullName.replace(/\s+/g, '-').toLowerCase()}.html`,
+        html,
+        'text/html;charset=utf-8',
+      );
+      track({ name: 'report_exported', format: 'html', patientId: patient.id });
     } finally {
-      setExportingPdf(false);
+      setExportingHtml(false);
     }
   };
 
@@ -179,7 +334,7 @@ export function PatientReportPage() {
           data-no-print
         >
           <div>
-            <h2 className="text-heading font-semibold text-content">Relatório do paciente</h2>
+            <h2 className="text-heading font-semibold text-content">Relatório do aluno</h2>
             {patient && (
               <p className="mt-0.5 text-body-sm text-content-muted">{patient.fullName}</p>
             )}
@@ -188,11 +343,11 @@ export function PatientReportPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportPdf}
-              disabled={exportingPdf}
-              loading={exportingPdf}
+              onClick={handleExportHtml}
+              disabled={exportingHtml}
+              loading={exportingHtml}
             >
-              Exportar PDF
+              Baixar HTML
             </Button>
             <Button
               variant="secondary"
@@ -211,7 +366,7 @@ export function PatientReportPage() {
             </Link>
             <Link to={`/patients/${id}`}>
               <Button variant="outline" size="sm">
-                Voltar ao paciente
+                Voltar ao aluno
               </Button>
             </Link>
           </div>
@@ -219,10 +374,10 @@ export function PatientReportPage() {
 
         {/* Print-only header */}
         <div className="print-header">
-          <h1>Relatório do paciente</h1>
+          <h1>Relatório do aluno</h1>
           {patient && (
             <p>
-              Paciente: <strong>{patient.fullName}</strong>
+              Aluno: <strong>{patient.fullName}</strong>
             </p>
           )}
           <p className="print-meta">Gerado em {printedAt}</p>
@@ -231,7 +386,7 @@ export function PatientReportPage() {
 
         {/* Patient summary card */}
         {patient && (
-          <Card title="Dados do paciente" padding="md">
+          <Card title="Dados do aluno" padding="md">
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <dt className="text-body-sm font-medium text-content-muted">Nome completo</dt>

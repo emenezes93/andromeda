@@ -14,7 +14,7 @@ function renderLogin() {
 describe('LoginPage', () => {
   it('renders title and tagline', () => {
     renderLogin();
-    expect(screen.getByRole('heading', { name: /anamnese inteligente/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /fit insight/i })).toBeInTheDocument();
     expect(screen.getByText(/questionários adaptativos e insights em saúde/i)).toBeInTheDocument();
   });
 

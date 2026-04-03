@@ -49,7 +49,7 @@ export function StudentsOverviewCard() {
             <Skeleton height={32} className="w-full" />
           </div>
         ) : students.length === 0 ? (
-          <p className="text-body-sm text-content-muted">Nenhum paciente ativo.</p>
+          <p className="text-body-sm text-content-muted">Nenhum aluno ativo.</p>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -78,7 +78,7 @@ export function StudentsOverviewCard() {
                     >
                       <td className="py-2.5 pr-3">
                         <Link
-                          to={`/patients/${row.patientId}/hub`}
+                          to={`/patients/${row.patientId}`}
                           className="text-body font-medium text-primary hover:underline"
                         >
                           {row.fullName}

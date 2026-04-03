@@ -22,6 +22,7 @@ export function NewSessionPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedTemplate = templates.find((template) => template.id === templateId) ?? null;
 
   useEffect(() => {
     listTemplates({ limit: 100 })
@@ -99,17 +100,45 @@ export function NewSessionPage() {
   return (
     <Card title="Nova avaliação">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <PatientSearchSelect
-          patients={patients}
-          value={patientId || preselectedPatientId || ''}
-          onChange={(id) => setPatientId(id)}
-          placeholder="Digite ao menos 2 letras para buscar..."
-        />
-        {patient && (
-          <p className="text-body-sm text-content-muted">
-            Avaliação será vinculada a {patient.fullName}
-          </p>
+        {(patient || selectedTemplate) && (
+          <div className="rounded-card border border-primary/20 bg-primary-subtle/30 p-4">
+            <h3 className="text-body font-semibold text-content">Resumo da avaliação</h3>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-body-sm text-content-muted">Aluno</p>
+                <p className="text-body font-medium text-content">
+                  {patient?.fullName ?? 'Selecione um aluno para vincular a avaliação'}
+                </p>
+              </div>
+              <div>
+                <p className="text-body-sm text-content-muted">Template</p>
+                <p className="text-body font-medium text-content">
+                  {selectedTemplate?.name ?? 'Selecione um template para começar'}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-body-sm text-content-muted">
+              {patient
+                ? 'Depois da avaliação, você poderá transformar o insight em meta, treino ou plano alimentar.'
+                : 'Vincular um aluno agora reduz retrabalho e mantém avaliação, prescrição e acompanhamento no mesmo fluxo.'}
+            </p>
+          </div>
         )}
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-content-muted">Aluno</label>
+          <PatientSearchSelect
+            patients={patients}
+            value={patientId || preselectedPatientId || ''}
+            onChange={(id) => setPatientId(id)}
+            placeholder="Digite ao menos 2 letras para buscar..."
+          />
+          {patient && (
+            <p className="text-body-sm text-content-muted">
+              A avaliação será vinculada a <strong>{patient.fullName}</strong>.
+            </p>
+          )}
+        </div>
         <div>
           <label htmlFor="new-session-template" className="mb-1.5 block text-sm font-medium text-content-muted">Template</label>
           <select
@@ -130,7 +159,7 @@ export function NewSessionPage() {
         {error && <p className="text-body-sm text-error">{error}</p>}
         <div className="flex gap-3">
           <Button type="submit" loading={creating} disabled={!templateId}>
-            Iniciar avaliação
+            {patient ? 'Iniciar avaliação do aluno' : 'Iniciar avaliação'}
           </Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/sessions')}>
             Cancelar

@@ -54,7 +54,7 @@ const STEPS: Step[] = [
     id: 'template',
     title: 'Crie seu primeiro template',
     description:
-      'Templates são questionários de anamnese que você aplica aos seus pacientes. Crie um agora para começar.',
+      'Templates são questionários de anamnese e avaliação inicial que você aplica aos seus alunos. Crie um agora para começar.',
     actionLabel: 'Criar template',
     actionPath: '/templates/new',
     icon: (
@@ -65,10 +65,10 @@ const STEPS: Step[] = [
   },
   {
     id: 'patient',
-    title: 'Cadastre um paciente',
+    title: 'Cadastre seu primeiro aluno',
     description:
-      'Adicione seus pacientes para vincular sessões e acompanhar a evolução ao longo do tempo.',
-    actionLabel: 'Cadastrar paciente',
+      'Adicione seus alunos para vincular avaliações, planos e acompanhar a evolução ao longo do tempo.',
+    actionLabel: 'Cadastrar aluno',
     actionPath: '/patients/new',
     icon: (
       <svg className="size-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -78,9 +78,9 @@ const STEPS: Step[] = [
   },
   {
     id: 'session',
-    title: 'Inicie uma avaliação de saúde',
+    title: 'Inicie uma avaliação inicial',
     description:
-      'Vincule um template a um paciente e inicie o questionário adaptativo com insights de IA.',
+      'Vincule um template a um aluno e inicie a avaliação adaptativa com insights para decidir o próximo passo.',
     actionLabel: 'Iniciar avaliação',
     actionPath: '/sessions/new',
     icon: (
@@ -93,25 +93,12 @@ const STEPS: Step[] = [
     id: 'training',
     title: 'Crie um plano de treino',
     description:
-      'Associe planos de treino personalizados aos seus pacientes e registre execuções para acompanhar a aderência.',
+      'Associe planos de treino personalizados aos seus alunos e acompanhe a aderência no app mobile.',
     actionLabel: 'Criar plano de treino',
     actionPath: '/training-plans/new',
     icon: (
       <svg className="size-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 6.5h11M6.5 17.5h11M3 10v4M21 10v4M5 8v8M19 8v8" />
-      </svg>
-    ),
-  },
-  {
-    id: 'first_patient',
-    title: 'Cadastre seu primeiro aluno',
-    description:
-      'Adicione seu primeiro aluno para vincular avaliações, planos de treino e acompanhar a evolução.',
-    actionLabel: 'Cadastrar aluno',
-    actionPath: '/patients/new',
-    icon: (
-      <svg className="size-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
       </svg>
     ),
   },
@@ -215,13 +202,13 @@ function ChecklistStep({ onFinish }: { onFinish: () => void }) {
       loading: loadingTmpl,
     },
     {
-      label: 'Cadastrar um paciente',
+      label: 'Cadastrar um aluno',
       done: (ptData?.meta.total ?? 0) >= 1,
       href: '/patients/new',
       loading: loadingPt,
     },
     {
-      label: 'Realizar uma avaliação completa',
+      label: 'Realizar uma avaliação inicial',
       done: (sessData?.meta.total ?? 0) >= 1,
       href: '/sessions/new',
       loading: loadingSess,
@@ -322,20 +309,57 @@ const ESTIMATED_MINUTES = 2;
 export function OnboardingWizardPage() {
   const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
-  const step = STEPS[stepIndex];
+  const { data: templatesData, isLoading: loadingTemplates } = useQuery({
+    queryKey: ['onboarding-templates-list'],
+    queryFn: () => listTemplates({ page: 1, limit: 5 }),
+  });
+  const { data: patientsData, isLoading: loadingPatients } = useQuery({
+    queryKey: ['onboarding-patients-count'],
+    queryFn: () => listPatients({ page: 1, limit: 1 }),
+  });
+  const { data: sessionsData, isLoading: loadingSessions } = useQuery({
+    queryKey: ['onboarding-sessions-count'],
+    queryFn: () => listSessions({ page: 1, limit: 1, status: 'completed' }),
+  });
+  const { data: plansData, isLoading: loadingPlans } = useQuery({
+    queryKey: ['onboarding-training-plans-count'],
+    queryFn: () => listTrainingPlans({ page: 1, limit: 1 }),
+  });
+
+  const templatesCount = templatesData?.meta.total ?? 0;
+  const patientsCount = patientsData?.meta.total ?? 0;
+  const completedSessionsCount = sessionsData?.meta.total ?? 0;
+  const trainingPlansCount = plansData?.meta.total ?? 0;
+
+  const steps = [
+    STEPS[0],
+    templatesCount > 0 ? STEPS[1] : STEPS[2],
+    ...(patientsCount === 0 ? [STEPS[3]] : []),
+    ...(completedSessionsCount === 0 ? [STEPS[4]] : []),
+    ...(trainingPlansCount === 0 ? [STEPS[5]] : []),
+    STEPS[6],
+  ];
+
+  const step = steps[Math.min(stepIndex, steps.length - 1)];
   const isChecklist = step.id === 'checklist';
   const isLast = isChecklist;
+  const loadingSetup =
+    loadingTemplates || loadingPatients || loadingSessions || loadingPlans;
 
   // Retomar de onde parou; instrumentar início (R1)
   useEffect(() => {
     const saved = getOnboardingStep();
-    if (saved > 0 && saved < STEPS.length) {
+    if (saved > 0 && saved < steps.length) {
       setStepIndex(saved);
       track({ name: 'onboarding_resume', fromStepIndex: saved });
     } else if (saved === 0) {
       track({ name: 'onboarding_started' });
     }
-  }, []);
+  }, [steps.length]);
+
+  useEffect(() => {
+    setStepIndex((current) => Math.min(current, steps.length - 1));
+  }, [steps.length]);
 
   useEffect(() => {
     setOnboardingStep(stepIndex);
@@ -360,7 +384,7 @@ export function OnboardingWizardPage() {
     if (step.actionPath) {
       navigate(step.actionPath);
     }
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
   const handleSkipStep = () => {
@@ -369,7 +393,7 @@ export function OnboardingWizardPage() {
       return;
     }
     track({ name: 'onboarding_step_skip', stepId: step.id, stepIndex });
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
   const handleSkipAll = () => {
@@ -391,7 +415,7 @@ export function OnboardingWizardPage() {
       </div>
 
       <div className="w-full max-w-lg space-y-6">
-        <StepProgress total={STEPS.length} current={stepIndex} />
+        <StepProgress total={steps.length} current={stepIndex} />
 
         <div className="rounded-2xl border border-border-muted bg-surface/95 p-8 shadow-soft text-center space-y-6">
           <div className="flex justify-center">{step.icon}</div>
@@ -401,13 +425,17 @@ export function OnboardingWizardPage() {
             <p className="text-body text-content-muted leading-relaxed">{step.description}</p>
           </div>
 
-          {isChecklist ? (
+          {loadingSetup ? (
+            <div className="flex justify-center py-6">
+              <span className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : isChecklist ? (
             <ChecklistStep onFinish={handleFinish} />
           ) : step.id === 'templates_ready' ? (
             <TemplatesReadyStep
               onContinue={() => {
                 track({ name: 'onboarding_step_complete', stepId: step.id, stepIndex });
-                setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+                setStepIndex((i) => Math.min(i + 1, steps.length - 1));
               }}
             />
           ) : (
@@ -423,7 +451,7 @@ export function OnboardingWizardPage() {
         </div>
 
         <p className="text-center text-body-sm text-content-subtle">
-          Passo {stepIndex + 1} de {STEPS.length}
+          Passo {stepIndex + 1} de {steps.length}
           {stepIndex === 0 && (
             <span className="ml-1.5 text-content-muted"> • ~{ESTIMATED_MINUTES} min</span>
           )}

@@ -25,7 +25,7 @@ export function PatientSearchSelect({
   onChange,
   placeholder = 'Buscar por nome...',
   id = 'patient-search',
-  label = 'Paciente (opcional)',
+  label = 'Aluno (opcional)',
   disabled = false,
 }: PatientSearchSelectProps) {
   const [query, setQuery] = useState('');
@@ -88,7 +88,7 @@ export function PatientSearchSelect({
               <div className="px-3 py-2 text-body-sm text-content-muted">
                 {query.trim().length < 2
                   ? 'Digite ao menos 2 caracteres'
-                  : 'Nenhum paciente encontrado'}
+                  : 'Nenhum aluno encontrado'}
               </div>
             ) : (
               filteredPatients.map((patient) => (

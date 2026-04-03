@@ -136,7 +136,7 @@ export async function alertsRoutes(fastify: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const tenantId = requireTenant(request);
       requireAuth(request);
-      Guards.sessions(request.user!.role);
+      Guards.readOnly(request.user!.role);
 
       const { id } = request.params;
 

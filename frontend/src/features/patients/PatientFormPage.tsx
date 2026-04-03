@@ -134,7 +134,7 @@ export function PatientFormPage() {
         });
       })
       .catch((err) => {
-        setFetchError(err instanceof Error ? err.message : 'Erro ao carregar paciente');
+        setFetchError(err instanceof Error ? err.message : 'Erro ao carregar aluno');
       })
       .finally(() => setLoadingData(false));
   }, [id, isEditMode, reset]);
@@ -143,7 +143,7 @@ export function PatientFormPage() {
     if (!isEditMode && !data.consentAccepted) {
       setError('consentAccepted', {
         message:
-          'É necessário aceitar a Política de Privacidade e Termos de Uso para cadastrar o paciente.',
+          'É necessário aceitar a Política de Privacidade e Termos de Uso para cadastrar o aluno.',
       });
       return;
     }
@@ -154,20 +154,20 @@ export function PatientFormPage() {
         queryClient.invalidateQueries({ queryKey: ['patients'] });
         queryClient.invalidateQueries({ queryKey: ['patient', id] });
         track({ name: 'form_submit_success', formId: 'patient', action: 'update' });
-        toast.success('Paciente salvo com sucesso.');
+        toast.success('Aluno salvo com sucesso.');
         navigate(`/patients/${id}`);
       } else {
         const created = await createPatient(body);
         queryClient.invalidateQueries({ queryKey: ['patients'] });
         track({ name: 'form_submit_success', formId: 'patient', action: 'create' });
         track({ name: 'patient_created', patientId: created.id });
-        toast.success('Paciente salvo com sucesso.');
+        toast.success('Aluno salvo com sucesso.');
         navigate(`/patients/${created.id}`);
       }
     } catch (err) {
       track({ name: 'form_submit_error', formId: 'patient', action: isEditMode ? 'update' : 'create' });
       setError('root', {
-        message: err instanceof Error ? err.message : 'Erro ao salvar paciente',
+        message: err instanceof Error ? err.message : 'Erro ao salvar aluno',
       });
     }
   };
@@ -194,13 +194,13 @@ export function PatientFormPage() {
   }
 
   const breadcrumbItems = [
-    { label: 'Pacientes', to: '/patients' },
+    { label: 'Alunos', to: '/patients' },
     ...(isEditMode && id
       ? [
-          { label: fullName.trim() || 'Paciente', to: `/patients/${id}` },
+          { label: fullName.trim() || 'Aluno', to: `/patients/${id}` },
           { label: 'Editar' },
         ]
-      : [{ label: 'Novo paciente' }]),
+      : [{ label: 'Novo aluno' }]),
   ];
 
   return (
@@ -208,7 +208,7 @@ export function PatientFormPage() {
       <div className="space-y-6">
         <Breadcrumbs items={breadcrumbItems} />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-          <Card title="Dados do paciente">
+          <Card title="Dados do aluno">
             <div className="space-y-8">
               {!isEditMode && (
                 <section aria-labelledby="patient-form-consent-heading">
@@ -233,7 +233,7 @@ export function PatientFormPage() {
                         >
                           Política de Privacidade e Termos de Uso
                         </a>
-                        , e autorizo o tratamento dos dados do paciente conforme descrito (LGPD).
+                        , e autorizo o tratamento dos dados do aluno conforme descrito (LGPD).
                       </span>
                     </label>
                     {errors.consentAccepted && (
@@ -340,7 +340,7 @@ export function PatientFormPage() {
                 label="E-mail"
                 type="email"
                 {...register('email')}
-                placeholder="paciente@email.com"
+                placeholder="aluno@email.com"
                 autoComplete="email"
                 error={errors.email?.message}
               />
@@ -424,7 +424,7 @@ export function PatientFormPage() {
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" loading={isSubmitting}>
-              {isEditMode ? 'Salvar alterações' : 'Criar paciente'}
+              {isEditMode ? 'Salvar alterações' : 'Criar aluno'}
             </Button>
             <Button
               type="button"

@@ -57,6 +57,19 @@ A API sobe em **http://localhost:3000**.
 - Health: http://localhost:3000/health  
 - Documentação Swagger: http://localhost:3000/documentation  
 
+### 5.1 Subir o worker de jobs em paralelo
+
+Para desenvolvimento mais próximo de produção, rode o worker em outro terminal:
+
+```bash
+npm run dev:worker
+```
+
+Se quiser separar os papéis localmente:
+
+- terminal da API/web: `BACKGROUND_JOBS_ENABLED=false npm run dev`
+- terminal do worker: `BACKGROUND_JOBS_ENABLED=true npm run dev:worker`
+
 ### 6. Testar login (exemplo)
 
 ```bash
@@ -97,8 +110,10 @@ npm run prisma:seed
 | Comando | Descrição |
 |---------|-----------|
 | `npm run dev` | API em modo desenvolvimento (tsx watch) |
+| `npm run dev:worker` | Worker de jobs em modo desenvolvimento |
 | `npm run build` | Compila TypeScript → `dist/` |
 | `npm run start` | Roda a API em produção (`node dist/bootstrap/server.js`) |
+| `npm run start:worker` | Roda o worker de jobs em produção |
 | `npm run prisma:studio` | Abre interface visual do banco |
 | `npm run test` | Roda testes (Vitest) |
 

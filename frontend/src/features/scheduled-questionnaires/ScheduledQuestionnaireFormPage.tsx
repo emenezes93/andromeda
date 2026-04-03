@@ -242,11 +242,11 @@ export function ScheduledQuestionnaireFormPage() {
             )}
           </div>
 
-          {/* Paciente (opcional) */}
+          {/* Aluno (opcional) */}
           <div>
             <label htmlFor="sq-patient" className="mb-1.5 block text-body-sm font-medium text-content-muted">
-              Paciente{' '}
-              <span className="text-content-subtle font-normal">(vazio = todos os pacientes)</span>
+              Aluno{' '}
+              <span className="text-content-subtle font-normal">(vazio = todos os alunos)</span>
             </label>
             <select
               id="sq-patient"
@@ -255,7 +255,7 @@ export function ScheduledQuestionnaireFormPage() {
               disabled={loadingData}
               className={selectClass()}
             >
-              <option value="">Todos os pacientes do tenant</option>
+              <option value="">Todos os alunos do studio</option>
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.fullName}

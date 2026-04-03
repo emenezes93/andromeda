@@ -130,3 +130,19 @@ export async function importPatientsCSV(
     body: JSON.stringify({ rows }),
   });
 }
+
+export interface InvitePatientResponse {
+  inviteLink: string;
+  whatsappLink: string;
+  emailSent: boolean;
+}
+
+export async function invitePatient(
+  id: string,
+  sendEmail?: boolean
+): Promise<InvitePatientResponse> {
+  return apiFetch<InvitePatientResponse>(`/v1/patients/${id}/invite`, {
+    method: 'POST',
+    body: JSON.stringify({ sendEmail: sendEmail ?? false }),
+  });
+}

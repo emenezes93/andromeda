@@ -10,7 +10,7 @@ import swaggerPlugin from '@http/plugins/swagger.js';
 import errorHandlerPlugin from '@http/middleware/errorHandler.js';
 import { registerSchemas } from '../schemas/index.js';
 import { healthRoutes } from '../modules/health/routes.js';
-// Legacy routes - sendo migrados para arquitetura hexagonal
+// Legacy routes — preferir novos fluxos em src/core; legado mantido até migração incremental.
 import { billingRoutes } from '../modules/billing/routes.js';
 import { patientPortalRoutes } from '../modules/patient-portal/routes.js';
 import { scheduledQuestionnairesRoutes } from '../modules/scheduled-questionnaires/routes.js';
@@ -20,6 +20,8 @@ import { progressPhotosRoutes } from '../modules/progress-photos/routes.js';
 import { dietRoutes } from '../modules/diet/routes.js';
 import { exercisesRoutes } from '../modules/exercises/routes.js';
 import { alertsRoutes } from '../modules/alerts/routes.js';
+import { patientInviteRoutes } from '../modules/patient-invite/routes.js';
+import { adherenceRoutes } from '../modules/stats/adherence-routes.js';
 import { twoFactorRoutes } from '../modules/auth/routes.js';
 // New hexagonal architecture
 import { Container } from '@core/infrastructure/di/Container.js';
@@ -130,6 +132,8 @@ export async function buildApp() {
   await app.register(dietRoutes);
   await app.register(exercisesRoutes);
   await app.register(alertsRoutes);
+  await app.register(adherenceRoutes);
+  await app.register(patientInviteRoutes);
 
   return app;
 }

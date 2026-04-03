@@ -13,7 +13,7 @@ export interface HelpArticle {
 
 export const HELP_CATEGORIES = [
   { id: 'conta', label: 'Conta e login' },
-  { id: 'pacientes', label: 'Pacientes' },
+  { id: 'pacientes', label: 'Alunos' },
   { id: 'avaliacoes', label: 'Avaliações e questionários' },
   { id: 'planos', label: 'Planos (dieta, treino, agendamentos)' },
   { id: 'relatorios', label: 'Relatórios e IA' },
@@ -38,22 +38,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
   {
     id: 'cadastrar-paciente',
     category: 'pacientes',
-    title: 'Como cadastrar um paciente',
-    body: 'No menu, vá em Pacientes e clique em "Novo paciente". Preencha pelo menos o nome completo. Os demais campos são opcionais e podem ser preenchidos depois. Ao salvar, o paciente ficará disponível para vincular a avaliações e planos.',
-    tags: ['paciente', 'cadastro', 'novo'],
+    title: 'Como cadastrar um aluno',
+    body: 'No menu, vá em Alunos e clique em "Novo aluno". Preencha pelo menos o nome completo. Os demais campos são opcionais e podem ser preenchidos depois. Ao salvar, o aluno ficará disponível para vincular a avaliações e planos.',
+    tags: ['aluno', 'cadastro', 'novo'],
   },
   {
     id: 'buscar-paciente',
     category: 'pacientes',
-    title: 'Como encontrar um paciente na lista',
-    body: 'Na lista de Pacientes, use o campo de busca no topo para filtrar por nome. A lista é paginada; você pode navegar pelas páginas com os botões "Anterior" e "Próxima". Os filtros são aplicados no servidor para manter a lista rápida.',
-    tags: ['paciente', 'busca', 'lista', 'filtro'],
+    title: 'Como encontrar um aluno na lista',
+    body: 'Na lista de Alunos, use o campo de busca no topo para filtrar por nome. A lista é paginada; você pode navegar pelas páginas com os botões "Anterior" e "Próxima". Os filtros são aplicados no servidor para manter a lista rápida.',
+    tags: ['aluno', 'busca', 'lista', 'filtro'],
   },
   {
     id: 'iniciar-avaliacao',
     category: 'avaliacoes',
     title: 'Como iniciar uma avaliação (questionário)',
-    body: 'Vá em Avaliações e clique em "Nova avaliação". Escolha o template do questionário e o paciente (se aplicável). Após criar, você pode abrir o questionário pelo link "Continuar" na lista ou no dashboard, em Próximas ações.',
+    body: 'Vá em Avaliações e clique em "Nova avaliação". Escolha o template do questionário e o aluno (se aplicável). Após criar, você pode abrir o questionário pelo link "Continuar" na lista ou no dashboard, em Próximas ações.',
     tags: ['avaliação', 'questionário', 'sessão', 'template'],
   },
   {
@@ -67,7 +67,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     id: 'sessao-em-andamento',
     category: 'avaliacoes',
     title: 'O que significa "sessão em andamento"?',
-    body: 'É uma avaliação que foi iniciada mas ainda não foi finalizada. O paciente ou o profissional pode continuar de onde parou acessando a sessão e seguindo o fluxo do questionário até a assinatura final.',
+    body: 'É uma avaliação que foi iniciada mas ainda não foi finalizada. O aluno ou o profissional pode continuar de onde parou acessando a sessão e seguindo o fluxo do questionário até a assinatura final.',
     tags: ['sessão', 'status', 'andamento'],
   },
   {
@@ -81,7 +81,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     id: 'relatorio-insights',
     category: 'relatorios',
     title: 'Como ver os insights e relatórios de uma avaliação?',
-    body: 'Após concluir um questionário (incluindo a assinatura), acesse a sessão e abra "Insights" ou o relatório do paciente. Os insights são gerados com base nas respostas e podem variar conforme a configuração de IA do tenant.',
+    body: 'Após concluir um questionário (incluindo a assinatura), acesse a sessão e abra "Insights" ou o relatório do aluno. Os insights são gerados com base nas respostas e podem variar conforme a configuração de IA do tenant.',
     tags: ['relatório', 'insights', 'sessão', 'IA'],
   },
   {
@@ -124,7 +124,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     id: 'r1-proximas-acoes',
     category: 'conta',
     title: 'O que são Próximas Ações?',
-    body: 'O painel "Próximas ações" no topo do dashboard mostra até 5 tarefas sugeridas para você fazer agora: por exemplo, continuar um questionário em andamento, avaliar um paciente que não tem sessão recente, criar seu primeiro template ou iniciar uma avaliação. Cada item é um link direto para a tela correspondente. Se não houver nada pendente, você verá "Você está em dia!". Use esse painel para ir direto ao que importa sem procurar no menu.',
+    body: 'O painel "Próximas ações" no topo do dashboard mostra até 5 tarefas sugeridas para você fazer agora: por exemplo, continuar um questionário em andamento, avaliar um aluno que não tem sessão recente, criar seu primeiro template ou iniciar uma avaliação. Cada item é um link direto para a tela correspondente. Se não houver nada pendente, você verá "Você está em dia!". Use esse painel para ir direto ao que importa sem procurar no menu.',
     tags: ['dashboard', 'próximas ações', 'tarefas', 'foco'],
   },
   // R2 — Encontrabilidade: mapeamento "onde estava → onde está"

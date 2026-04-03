@@ -26,7 +26,7 @@ export function PatientTimelinePage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (!id) return <p className="text-content-muted">ID do paciente não informado.</p>;
+  if (!id) return <p className="text-content-muted">ID do aluno não informado.</p>;
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ export function PatientTimelinePage() {
       <Card className="border-error bg-error-light" padding="md">
         <p className="text-error">{error}</p>
         <Link to={`/patients/${id}`} className="mt-4 inline-block">
-          <Button variant="secondary">Voltar ao paciente</Button>
+          <Button variant="secondary">Voltar ao aluno</Button>
         </Link>
       </Card>
     );
@@ -104,7 +104,7 @@ export function PatientTimelinePage() {
               <Button size="sm">Nova avaliação</Button>
             </Link>
             <Link to={`/patients/${id}`}>
-              <Button variant="secondary" size="sm">Voltar ao paciente</Button>
+              <Button variant="secondary" size="sm">Voltar ao aluno</Button>
             </Link>
           </div>
         </div>
@@ -114,7 +114,7 @@ export function PatientTimelinePage() {
           <h1>Prontuário completo</h1>
           {patient && (
             <p>
-              Paciente: <strong>{patient.fullName}</strong>
+              Aluno: <strong>{patient.fullName}</strong>
             </p>
           )}
           <p className="print-meta">Exportado em {printedAt}</p>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogPanel, TransitionChild } from '@headlessui/react';
@@ -26,20 +26,32 @@ import {
   IconHelp,
 } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { AlertsBell } from '@/components/ui/AlertsBell';
 import { useTranslation } from '@/hooks/useTranslation';
 import { track } from '@/lib/analytics';
+
+const AlertsBell = lazy(() =>
+  import('@/components/ui/AlertsBell').then((m) => ({ default: m.AlertsBell })),
+);
 
 interface PageLayoutProps {
   children: React.ReactNode;
   title?: string;
 }
 
+/** Classe para itens do menu principal — WCAG 2.5.5: min 44px; estado ativo com borda esquerda (BRANDING 9.2) */
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `min-h-touch flex items-center gap-3 rounded-button px-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+  `min-h-touch flex items-center gap-3 rounded-button py-2.5 pr-3 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
     isActive
-      ? 'bg-primary-subtle text-primary'
-      : 'text-content-muted hover:bg-primary-subtle hover:text-content'
+      ? 'bg-primary-subtle text-primary border-l-4 border-l-primary pl-2'
+      : 'text-content-muted hover:bg-primary-subtle hover:text-content border-l-4 border-l-transparent pl-3'
+  }`;
+
+/** Classe para itens de submenu — indentação e borda sutil para hierarquia */
+const navSubLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `min-h-touch flex items-center gap-3 rounded-button border-l-2 pl-4 pr-3 py-2.5 text-body-sm font-medium transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+    isActive
+      ? 'bg-primary-subtle text-primary border-l-primary'
+      : 'border-l-transparent text-content-muted hover:bg-surface-muted hover:text-content hover:border-l-primary/40'
   }`;
 
 const REFRESH_INTERVAL_MS = 12 * 60 * 1000; // 12 min — token expires in 15 min
@@ -172,8 +184,10 @@ export function PageLayout({ children, title }: PageLayoutProps) {
 
   const renderSidebarContent = (origin: 'sidebar' | 'mobile') => (
     <>
-      {/* Logo */}
-      <div className="flex h-14 items-center gap-2 border-b border-border-muted px-4">
+      {/* Logo — em mobile, padding à direita para não sobrepor o botão fechar */}
+      <div
+        className={`flex h-14 shrink-0 items-center gap-2 border-b border-border-muted px-4 ${origin === 'mobile' ? 'pr-12' : ''}`}
+      >
         <Link
           to="/"
           onClick={onNavClick('/', origin)}
@@ -187,8 +201,11 @@ export function PageLayout({ children, title }: PageLayoutProps) {
       </div>
 
       {/* Nav — Fase 2: 6 itens orientados a tarefas + tooltips + submenus Planos e Relatórios */}
-      <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Navegação principal">
-        <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
+      <nav
+        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-3"
+        aria-label="Navegação principal"
+      >
+        <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle" role="presentation">
           Uso diário
         </p>
         <NavLink to="/" end className={navLinkClass} title={t.nav.tooltipInicio} onClick={onNavClick('/', origin)}>
@@ -223,13 +240,13 @@ export function PageLayout({ children, title }: PageLayoutProps) {
               <IconDiet />
               {t.nav.taskPlanos}
             </span>
-            <IconChevronDown className={`size-4 transition-transform ${planosExpanded ? 'rotate-180' : ''}`} />
+            <IconChevronDown className={`size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${planosExpanded ? 'rotate-180' : ''}`} aria-hidden />
           </button>
-          <div id="nav-planos" className="ml-6 mt-0.5 flex flex-col gap-0.5" hidden={!planosExpanded}>
-            <NavLink to="/diet-plans" className={navLinkClass} onClick={onNavClick('/diet-plans', origin)}>{t.nav.planosDieta}</NavLink>
-            <NavLink to="/training-plans" className={navLinkClass} onClick={onNavClick('/training-plans', origin)}>{t.nav.planosTreino}</NavLink>
-            <NavLink to="/exercises" className={navLinkClass} onClick={onNavClick('/exercises', origin)}>{t.nav.planosExercicios}</NavLink>
-            <NavLink to="/scheduled-questionnaires" className={navLinkClass} onClick={onNavClick('/scheduled-questionnaires', origin)}>{t.nav.planosAgendamentos}</NavLink>
+          <div id="nav-planos" className="mt-0.5 flex flex-col gap-0.5" hidden={!planosExpanded} role="group" aria-label={t.nav.taskPlanos}>
+            <NavLink to="/diet-plans" className={navSubLinkClass} onClick={onNavClick('/diet-plans', origin)}>{t.nav.planosDieta}</NavLink>
+            <NavLink to="/training-plans" className={navSubLinkClass} onClick={onNavClick('/training-plans', origin)}>{t.nav.planosTreino}</NavLink>
+            <NavLink to="/exercises" className={navSubLinkClass} onClick={onNavClick('/exercises', origin)}>{t.nav.planosExercicios}</NavLink>
+            <NavLink to="/scheduled-questionnaires" className={navSubLinkClass} onClick={onNavClick('/scheduled-questionnaires', origin)}>{t.nav.planosAgendamentos}</NavLink>
           </div>
         </div>
         <div>
@@ -248,18 +265,18 @@ export function PageLayout({ children, title }: PageLayoutProps) {
               <IconAudit />
               {t.nav.taskRelatorios}
             </span>
-            <IconChevronDown className={`size-4 transition-transform ${relatoriosExpanded ? 'rotate-180' : ''}`} />
+            <IconChevronDown className={`size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${relatoriosExpanded ? 'rotate-180' : ''}`} aria-hidden />
           </button>
-          <div id="nav-relatorios" className="ml-6 mt-0.5 flex flex-col gap-0.5" hidden={!relatoriosExpanded}>
-            <NavLink to="/audit" className={navLinkClass} onClick={onNavClick('/audit', origin)}>{t.nav.relatoriosHistorico}</NavLink>
-            <NavLink to="/ai/usage" className={navLinkClass} onClick={onNavClick('/ai/usage', origin)}>{t.nav.relatoriosUsoIa}</NavLink>
+          <div id="nav-relatorios" className="mt-0.5 flex flex-col gap-0.5" hidden={!relatoriosExpanded} role="group" aria-label={t.nav.taskRelatorios}>
+            <NavLink to="/audit" className={navSubLinkClass} onClick={onNavClick('/audit', origin)}>{t.nav.relatoriosHistorico}</NavLink>
+            <NavLink to="/ai/usage" className={navSubLinkClass} onClick={onNavClick('/ai/usage', origin)}>{t.nav.relatoriosUsoIa}</NavLink>
           </div>
         </div>
         <NavLink to="/help" className={navLinkClass} title="Central de ajuda e FAQ" onClick={onNavClick('/help', origin)}>
           <IconHelp />
           {t.nav.help}
         </NavLink>
-        <p className="mt-3 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle">
+        <p className="mt-4 pt-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-content-subtle" role="presentation">
           Administração
         </p>
         {isAdminOrOwner && (
@@ -289,34 +306,35 @@ export function PageLayout({ children, title }: PageLayoutProps) {
       </nav>
 
       {/* User / Logout — mesmo bloco para sidebar e mobile */}
-      <div className="border-t border-border-muted p-3">
+      <div className="shrink-0 border-t border-border-muted p-3">
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-            <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center">
-                <AlertsBell />
-              </div>
-              <button
-                type="button"
-                onClick={() => setLocale(locale === 'pt-BR' ? 'en-US' : 'pt-BR')}
-                className="flex h-9 min-w-9 items-center justify-center rounded-button text-xs font-semibold text-content-muted hover:bg-surface-muted hover:text-content transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Alternar idioma"
-                title={locale === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
-              >
-                {locale === 'pt-BR' ? 'EN' : 'PT'}
-              </button>
-              <ThemeToggle />
-            </div>
+          <Badge variant="primary">{user?.role ? roleLabel(user.role) : '—'}</Badge>
+          <div className="flex items-center gap-1.5">
+            <Suspense fallback={<span className="block size-10 rounded-button" aria-hidden />}>
+              <AlertsBell />
+            </Suspense>
+            <button
+              type="button"
+              onClick={() => setLocale(locale === 'pt-BR' ? 'en-US' : 'pt-BR')}
+              className="flex min-h-touch min-w-touch items-center justify-center rounded-button text-xs font-semibold text-content-muted hover:bg-surface-muted hover:text-content transition-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label={locale === 'pt-BR' ? 'Mudar para inglês' : 'Switch to Portuguese'}
+              title={locale === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
+            >
+              {locale === 'pt-BR' ? 'EN' : 'PT'}
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
-        <p className="truncate px-2 py-1 text-body-sm text-content-subtle" title={user?.email}>
-          {user?.email}
+        <p className="truncate px-2 py-1 text-body-sm text-content-subtle" title={user?.email ?? undefined}>
+          {user?.email ?? '—'}
         </p>
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="mt-1 w-full justify-start gap-2"
+          className="mt-2 min-h-touch w-full justify-start gap-2"
+          aria-label={t.sidebar.logout}
         >
-          <IconLogout />
+          <IconLogout className="size-5 shrink-0" aria-hidden />
           {t.sidebar.logout}
         </Button>
       </div>
@@ -326,7 +344,10 @@ export function PageLayout({ children, title }: PageLayoutProps) {
   return (
     <div className="flex min-h-screen bg-surface-calm">
       {/* ── DESKTOP SIDEBAR ── */}
-      <aside className="hidden lg:flex w-sidebar flex-col border-r border-border bg-surface shadow-card flex-shrink-0">
+      <aside
+        className="hidden lg:flex w-sidebar flex-col border-r border-border bg-surface shadow-card flex-shrink-0"
+        aria-label="Barra lateral"
+      >
         {renderSidebarContent('sidebar')}
       </aside>
 
@@ -335,7 +356,7 @@ export function PageLayout({ children, title }: PageLayoutProps) {
         open={sidebarOpen}
         as="div"
         className="lg:hidden"
-        onClose={(open) => setSidebarOpen(open)}
+        onClose={() => setSidebarOpen(false)}
       >
         <TransitionChild
           enter="ease-out duration-200"
@@ -359,15 +380,16 @@ export function PageLayout({ children, title }: PageLayoutProps) {
           leaveTo="-translate-x-full opacity-0"
         >
           <DialogPanel
-            className="fixed inset-y-0 left-0 z-50 flex w-sidebar flex-col border-r border-border bg-surface shadow-card"
-            aria-label="Sidebar mobile"
+            className="fixed inset-y-0 left-0 z-50 flex w-sidebar max-w-[85vw] flex-col border-r border-border bg-surface shadow-card"
+            aria-label="Menu de navegação"
           >
             <button
-              className="absolute right-3 top-3.5 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              type="button"
+              className="absolute right-3 top-3.5 flex min-h-touch min-w-[44px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               onClick={() => setSidebarOpen(false)}
               aria-label={t.sidebar.closeMenu}
             >
-              <IconX />
+              <IconX className="size-5" />
             </button>
             {renderSidebarContent('mobile')}
           </DialogPanel>
@@ -380,7 +402,8 @@ export function PageLayout({ children, title }: PageLayoutProps) {
         <header className="flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-4 lg:hidden">
           <div className="flex items-center gap-3">
             <button
-              className="flex min-h-touch min-w-[40px] items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              type="button"
+              className="flex min-h-touch min-w-touch items-center justify-center rounded-button text-content-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               onClick={() => setSidebarOpen(true)}
               aria-label={t.sidebar.openMenu}
               aria-expanded={sidebarOpen}
@@ -395,7 +418,9 @@ export function PageLayout({ children, title }: PageLayoutProps) {
             </Link>
           </div>
           <div className="flex items-center gap-1">
-            <AlertsBell />
+            <Suspense fallback={<span className="block size-10 rounded-button" aria-hidden />}>
+              <AlertsBell />
+            </Suspense>
             <ThemeToggle />
           </div>
         </header>

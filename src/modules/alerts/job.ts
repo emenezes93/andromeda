@@ -9,7 +9,7 @@ import { sendDailyAlertsEmails } from './email.js';
  * Runs the alert engine once at 08:00 every day (and once on startup for testing).
  * After the engine, sends daily summary email to tenants with emailAlertsEnabled (if SMTP configured).
  */
-export function startAlertsJob(prisma: PrismaClient, logger: FastifyBaseLogger): void {
+export function startAlertsJob(prisma: PrismaClient, logger: FastifyBaseLogger): () => void {
   const run = async () => {
     try {
       logger.info('[Alerts] Executando motor de alertas...');
@@ -25,7 +25,8 @@ export function startAlertsJob(prisma: PrismaClient, logger: FastifyBaseLogger):
   };
 
   void run();
-  cron.schedule('0 8 * * *', run);
+  const task = cron.schedule('0 8 * * *', run);
 
   logger.info('[Alerts] Job de alertas iniciado (executa ao subir e todo dia às 08:00)');
+  return () => task.stop();
 }

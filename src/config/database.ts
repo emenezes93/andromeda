@@ -30,6 +30,7 @@ export function createPrismaClient(
     'ScheduledQuestionnaire',
     'PatientGoal',
     'TrainingPlan',
+    'TrainingExecution',
     'ProgressPhoto',
   ];
 

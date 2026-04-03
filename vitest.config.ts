@@ -7,6 +7,8 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['vitest.setup.ts'],
     include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts'],
+    /** Load/perf scenarios: run explicitly via `npm run test:performance` */
+    exclude: ['tests/performance/**', '**/node_modules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],

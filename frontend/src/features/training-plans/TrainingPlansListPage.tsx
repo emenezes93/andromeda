@@ -140,7 +140,7 @@ export function TrainingPlansListPage() {
       {patientIdFilter && (
         <div className="rounded-card border border-primary/30 bg-primary-subtle/30 px-4 py-2.5">
           <p className="text-body-sm text-content">
-            Filtrando planos do paciente selecionado.{' '}
+            Filtrando planos do aluno selecionado.{' '}
             <Link to="/training-plans" className="font-medium text-primary hover:underline">
               Ver todos
             </Link>
@@ -204,7 +204,7 @@ export function TrainingPlansListPage() {
                     </div>
 
                     <p className="mt-2 text-sm text-content-muted">
-                      <span className="font-medium text-content-subtle">Paciente:</span>{' '}
+                      <span className="font-medium text-content-subtle">Aluno:</span>{' '}
                       {plan.patientName}
                     </p>
 

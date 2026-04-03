@@ -1,17 +1,27 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getInsights, generateInsights } from '@/api/ai';
 import { getSession, exportSession } from '@/api/sessions';
-import type { AiInsight, Session } from '@/types';
+import { getUsageSummary } from '@/api/quota';
+import { getSubscription } from '@/api/billing';
+import type { AiInsight, Session, PlanUsageSummary } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { RisksBarChart, type RiskItem, RadarChart, type RadarDataPoint } from '@/components/charts';
+import type { RiskItem } from '@/components/charts/RisksBarChart';
+import type { RadarDataPoint } from '@/components/charts/RadarChart';
 import { BreathworkCircle } from '@/components/animations';
 import { AnswerAnalysis } from './components/AnswerAnalysis';
 import { PatientDataIntegration } from './components/PatientDataIntegration';
 import { SkeletonDetail } from '@/components/ui/SkeletonCard';
+
+const RisksBarChart = lazy(() =>
+  import('@/components/charts/RisksBarChart').then((m) => ({ default: m.RisksBarChart }))
+);
+const RadarChart = lazy(() =>
+  import('@/components/charts/RadarChart').then((m) => ({ default: m.RadarChart }))
+);
 
 // Define direção de cada métrica: 'higher_worse' → risco cresce com o valor
 // 'higher_better' → risco diminui com o valor (inverte a escala de cores)
@@ -68,13 +78,15 @@ export function SessionInsightsPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<'json' | 'pdf' | null>(null);
+  const [quota, setQuota] = useState<PlanUsageSummary | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
     setLoading(true);
     setError(null);
-    Promise.allSettled([getInsights(id), getSession(id)])
-      .then(([insightResult, sessionResult]) => {
+    Promise.allSettled([getInsights(id), getSession(id), getUsageSummary(), getSubscription()])
+      .then(([insightResult, sessionResult, quotaResult, subscriptionResult]) => {
         if (insightResult.status === 'fulfilled') setInsight(insightResult.value);
         else {
           setInsight(null);
@@ -89,6 +101,13 @@ export function SessionInsightsPage() {
           }
         }
         if (sessionResult.status === 'fulfilled') setSession(sessionResult.value);
+        if (quotaResult.status === 'fulfilled') setQuota(quotaResult.value);
+        if (subscriptionResult.status === 'fulfilled') {
+          const trialActive =
+            !!subscriptionResult.value.trialEndsAt &&
+            new Date(subscriptionResult.value.trialEndsAt) > new Date();
+          setIsTrial(trialActive || quotaResult.status === 'fulfilled' && quotaResult.value.planTier === 'trial');
+        }
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -102,6 +121,14 @@ export function SessionInsightsPage() {
     generateInsights(id)
       .then(setInsight)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Erro ao gerar'))
+      .finally(async () => {
+        try {
+          const usage = await getUsageSummary();
+          setQuota(usage);
+        } catch {
+          // noop
+        }
+      })
       .finally(() => setGenerating(false));
   };
 
@@ -154,6 +181,10 @@ export function SessionInsightsPage() {
     return { kpiItems: items, riskChartData: chartData, radarData, overallScore };
   }, [insight?.risksJson]);
 
+  const aiInsightsCurrent = quota?.aiInsightsThisMonth?.current ?? 0;
+  const aiInsightsMax = quota?.aiInsightsThisMonth?.max ?? null;
+  const trialLimitReached = Boolean(isTrial && aiInsightsMax !== null && aiInsightsCurrent >= aiInsightsMax);
+
   if (!id) return <p className="text-content-muted">Sessão não informada.</p>;
 
   if (loading && !insight) {
@@ -174,12 +205,28 @@ export function SessionInsightsPage() {
   if (!insight) {
     return (
       <Card title="Insights">
+        {isTrial && aiInsightsMax !== null && (
+          <div className="mb-3 inline-flex items-center rounded-button border border-primary/30 bg-primary-subtle px-3 py-1 text-body-sm font-medium text-primary">
+            {aiInsightsCurrent}/{aiInsightsMax} insights usados
+          </div>
+        )}
         <p className="text-content-muted">
           Nenhum insight gerado para esta sessão. Gere agora com base nas respostas.
         </p>
-        <Button className="mt-4" variant="tactile" onClick={handleGenerate} loading={generating}>
-          Gerar insights
-        </Button>
+        {trialLimitReached ? (
+          <div className="mt-4 rounded-card border border-warning bg-warning-light p-4">
+            <p className="text-warning">
+              Limite de insights IA atingido. Faça upgrade para continuar.
+            </p>
+            <Link to="/subscription" className="mt-3 inline-block">
+              <Button variant="tactile">Fazer upgrade</Button>
+            </Link>
+          </div>
+        ) : (
+          <Button className="mt-4" variant="tactile" onClick={handleGenerate} loading={generating}>
+            Gerar insights
+          </Button>
+        )}
         <Link to={`/sessions/${id}`} className="ml-3 inline-block">
           <Button variant="secondary">Voltar à sessão</Button>
         </Link>
@@ -190,12 +237,25 @@ export function SessionInsightsPage() {
   const recommendations = Array.isArray(insight.recommendationsJson)
     ? insight.recommendationsJson
     : [];
+  const primaryRecommendation = recommendations[0] ?? null;
+  const highestRisk = kpiItems.length
+    ? [...kpiItems].sort((a, b) => {
+        const aScore = a.direction === 'higher_better' ? 100 - a.value : a.value;
+        const bScore = b.direction === 'higher_better' ? 100 - b.value : b.value;
+        return bScore - aScore;
+      })[0]
+    : null;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-content">Insights da sessão</h2>
+          {isTrial && aiInsightsMax !== null && (
+            <div className="mt-1 inline-flex items-center rounded-button border border-primary/30 bg-primary-subtle px-3 py-1 text-body-sm font-medium text-primary">
+              {aiInsightsCurrent}/{aiInsightsMax} insights usados
+            </div>
+          )}
           {session?.signatureAgreedAt && session?.signatureName && (
             <p className="mt-0.5 text-body-sm text-content-muted">
               Assinado por {session.signatureName} em{' '}
@@ -227,6 +287,38 @@ export function SessionInsightsPage() {
           </Link>
         </div>
       </div>
+
+      {(highestRisk || primaryRecommendation) && (
+        <Card title="Próxima decisão recomendada" padding="md" className="border-l-4 border-l-primary">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-2">
+              {highestRisk && (
+                <p className="text-body text-content">
+                  Prioridade atual do aluno: <strong>{highestRisk.label}</strong> com score{' '}
+                  <strong>{highestRisk.value}/100</strong>.
+                </p>
+              )}
+              {primaryRecommendation && (
+                <p className="text-body-sm text-content-muted leading-relaxed">
+                  {primaryRecommendation}
+                </p>
+              )}
+            </div>
+            {session?.patientId && (
+              <div className="flex flex-wrap gap-2">
+                <Link to={`/goals/new?patientId=${session.patientId}&sessionId=${id}`}>
+                  <Button size="sm">Criar meta</Button>
+                </Link>
+                <Link to={`/patients/${session.patientId}`}>
+                  <Button variant="secondary" size="sm">
+                    Abrir painel do aluno
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Score Geral */}
       {overallScore !== null && (
@@ -284,10 +376,14 @@ export function SessionInsightsPage() {
         <div className="space-y-4">
           <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Indicadores de Risco (Barras)" padding="md">
-              <RisksBarChart data={riskChartData} maxValue={100} />
+              <Suspense fallback={<SkeletonDetail />}>
+                <RisksBarChart data={riskChartData} maxValue={100} />
+              </Suspense>
             </Card>
             <Card title="Perfil de Risco (Radar)" padding="md">
-              <RadarChart data={radarData} maxValue={100} />
+              <Suspense fallback={<SkeletonDetail />}>
+                <RadarChart data={radarData} maxValue={100} />
+              </Suspense>
             </Card>
           </div>
 
@@ -380,10 +476,17 @@ export function SessionInsightsPage() {
               </Button>
             </Link>
             <Link
-              to={`/training-plans/new?patientId=${session.patientId}`}
+              to={`/training-plans/new?patientId=${session.patientId}&sessionId=${id}`}
             >
               <Button variant="secondary" size="sm">
-                Ajustar plano treino
+                Prescrever treino
+              </Button>
+            </Link>
+            <Link
+              to={`/diet-plans/new?patientId=${session.patientId}&sessionId=${id}`}
+            >
+              <Button variant="secondary" size="sm">
+                Prescrever dieta
               </Button>
             </Link>
             <Link

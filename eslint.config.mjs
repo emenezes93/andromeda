@@ -6,7 +6,8 @@ import prettier from 'eslint-config-prettier';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.ts'],
+    /** Backend API only — frontend/website/mobile-app use their own ESLint configs */
+    files: ['src/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -43,6 +44,12 @@ export default [
   },
   prettier,
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'frontend/**',
+      'website/**',
+      'mobile-app/**',
+    ],
   },
 ];

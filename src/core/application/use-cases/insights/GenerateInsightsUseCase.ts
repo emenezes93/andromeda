@@ -5,7 +5,7 @@ import type { IInsightGenerator } from '@ports/services/IInsightGenerator.js';
 import type { IInsightCache } from '@ports/services/IInsightCache.js';
 import type { IAuditService } from '@ports/services/IAuditService.js';
 import type { IQuotaService } from '@ports/services/IQuotaService.js';
-import { NotFoundError, ForbiddenError } from '@shared/errors/index.js';
+import { NotFoundError, UnprocessableEntityError } from '@shared/errors/index.js';
 import type { Insight } from '@domain/entities/Insight.js';
 import { generateAnswersHash } from '@shared/utils/answersHash.js';
 import type { TemplateSchemaJson } from '@shared/types/index.js';
@@ -36,7 +36,11 @@ export class GenerateInsightsUseCase {
   async execute(request: GenerateInsightsRequest): Promise<Insight> {
     if (this.quotaService) {
       const quota = await this.quotaService.checkAiInsightQuota(request.tenantId);
-      if (!quota.allowed) throw new ForbiddenError(quota.message ?? 'AI insights not available on this plan');
+      if (!quota.allowed) {
+        throw new UnprocessableEntityError(
+          quota.message ?? 'AI insights not available on this plan'
+        );
+      }
     }
     const session = await this.sessionRepository.findById(
       request.sessionId,

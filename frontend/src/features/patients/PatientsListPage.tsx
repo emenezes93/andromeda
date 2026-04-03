@@ -164,7 +164,7 @@ export function PatientsListPage() {
     loadStartTimeRef.current = null;
   }, [data, page, debouncedSearch]);
 
-  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar pacientes' : null;
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Erro ao carregar alunos' : null;
   const fetchPatients = refetch;
 
   const handleExportCSV = useCallback(() => {
@@ -223,7 +223,7 @@ export function PatientsListPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             name="search"
-            aria-label="Buscar pacientes"
+            aria-label="Buscar alunos"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -234,7 +234,7 @@ export function PatientsListPage() {
             Importar CSV
           </Button>
           <Link to="/patients/new">
-            <Button>Novo paciente</Button>
+            <Button>Novo aluno</Button>
           </Link>
         </div>
       </div>
@@ -286,17 +286,17 @@ export function PatientsListPage() {
       {meta && (
         <p className="text-sm text-content-muted">
           {meta.total === 0
-            ? 'Nenhum paciente encontrado'
-            : `${meta.total} paciente${meta.total !== 1 ? 's' : ''}`}
+            ? 'Nenhum aluno encontrado'
+            : `${meta.total} aluno${meta.total !== 1 ? 's' : ''}`}
         </p>
       )}
 
       {/* Live region: announce filter/pagination changes to screen readers */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {meta
-          ? `Página ${page} de ${meta.totalPages}. ${meta.total} paciente${meta.total !== 1 ? 's' : ''}.`
+          ? `Página ${page} de ${meta.totalPages}. ${meta.total} aluno${meta.total !== 1 ? 's' : ''}.`
           : loading
-            ? 'Carregando lista de pacientes.'
+            ? 'Carregando lista de alunos.'
             : ''}
       </div>
 
@@ -312,13 +312,13 @@ export function PatientsListPage() {
         <EmptyState
           title={
             debouncedSearch
-              ? `Nenhum paciente encontrado para "${debouncedSearch}".`
-              : 'Nenhum paciente cadastrado ainda.'
+              ? `Nenhum aluno encontrado para "${debouncedSearch}".`
+              : 'Nenhum aluno cadastrado ainda.'
           }
           action={
             !debouncedSearch ? (
               <Link to="/patients/new">
-                <Button>Novo paciente</Button>
+                <Button>Novo aluno</Button>
               </Link>
             ) : undefined
           }
@@ -377,7 +377,7 @@ export function PatientsListPage() {
             totalPages={meta?.totalPages ?? 1}
             onPageChange={setPage}
             loading={loading}
-            label="lista de pacientes"
+            label="lista de alunos"
           />
         </>
       )}

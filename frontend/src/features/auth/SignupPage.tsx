@@ -18,7 +18,7 @@ const schema = z.object({
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
   tenantName: z
     .string()
-    .min(2, 'Nome da clínica/empresa deve ter no mínimo 2 caracteres')
+    .min(2, 'Nome do studio/equipe deve ter no mínimo 2 caracteres')
     .max(100, 'Máximo 100 caracteres'),
 });
 
@@ -90,7 +90,7 @@ export function SignupPage() {
           </p>
           <h2 className="text-heading-sm font-semibold text-content">Criar conta</h2>
           <p className="mt-0.5 text-body-sm text-content-muted">
-            Nome completo, e-mail, senha e nome da clínica ou empresa.
+            Nome completo, e-mail, senha e o nome do seu studio, equipe ou marca profissional.
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
@@ -123,7 +123,7 @@ export function SignupPage() {
             </div>
             <div className="login-enter login-enter-stagger-3">
               <Input
-                label="Nome da clínica/empresa"
+                label="Nome do studio/equipe"
                 type="text"
                 autoComplete="organization"
                 error={errors.tenantName?.message}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getStoredUser } from '@/stores/authStore';
@@ -10,7 +10,7 @@ import { listGoals } from '@/api/goals';
 import { listTrainingPlans } from '@/api/training-plans';
 import { getDashboardStats } from '@/api/stats';
 import { getSubscription } from '@/api/billing';
-import { StudentsOverviewCard } from '@/features/dashboard/StudentsOverviewCard';
+import { AdherenceOverview } from '@/features/dashboard/AdherenceOverview';
 import { AnalyticsDashboardCard } from '@/features/dashboard/AnalyticsDashboardCard';
 import type { Session } from '@/types';
 import { Card } from '@/components/ui/Card';
@@ -19,16 +19,19 @@ import { Select } from '@/components/ui/Select';
 import { SessionStatusBadge } from '@/components/ui/SessionStatusBadge';
 import { IconSessions, IconTemplates, IconPatients, IconGoals } from '@/components/icons';
 import { Skeleton } from '@/components/ui/Skeleton';
-import {
-  SessionsByDayChart,
-  SessionsByTemplateChart,
-  type DayCount,
-  type TemplateCount,
-} from '@/components/charts';
-import { AchievementsCard } from '@/components/gamification/AchievementsCard';
+import type { DayCount } from '@/components/charts/SessionsByDayChart';
+import type { TemplateCount } from '@/components/charts/SessionsByTemplateChart';
 import { PlanUsageCard } from '@/components/ui/PlanUsageCard';
-import { NotificationsWidget } from '@/components/ui/NotificationsWidget';
 import { track } from '@/lib/analytics';
+
+const SessionsByDayChart = lazy(() =>
+  import('@/components/charts/SessionsByDayChart').then((m) => ({ default: m.SessionsByDayChart }))
+);
+const SessionsByTemplateChart = lazy(() =>
+  import('@/components/charts/SessionsByTemplateChart').then((m) => ({
+    default: m.SessionsByTemplateChart,
+  }))
+);
 
 const MAX_NEXT_ACTIONS = 5;
 
@@ -78,17 +81,12 @@ export function DashboardPage() {
 
   const { data: patientsData, isLoading: loadingPatients } = useQuery({
     queryKey: ['dashboard-patients'],
-    queryFn: () => listPatients({ page: 1, limit: 500 }),
+    queryFn: () => listPatients({ page: 1, limit: 1 }),
   });
 
   const { data: goalsData, isLoading: loadingGoals } = useQuery({
     queryKey: ['dashboard-goals'],
     queryFn: () => listGoals({ limit: 1 }),
-  });
-
-  const { data: goalsListData } = useQuery({
-    queryKey: ['dashboard-goals-list'],
-    queryFn: () => listGoals({ limit: 50 }),
   });
 
   const { data: trainingPlansData } = useQuery({
@@ -99,11 +97,6 @@ export function DashboardPage() {
   const { data: subscription } = useQuery({
     queryKey: ['billing-subscription'],
     queryFn: getSubscription,
-  });
-
-  const { data: sessionsForAttention } = useQuery({
-    queryKey: ['dashboard-sessions-recent'],
-    queryFn: () => listSessions({ page: 1, limit: 1000 }),
   });
 
   const { data: inProgressSessionsData } = useQuery({
@@ -117,9 +110,10 @@ export function DashboardPage() {
   const totalSessions = stats?.totals.sessions ?? null;
   const totalTemplates = stats?.totals.templates ?? null;
   const totalPatients = patientsData?.meta.total ?? null;
-  const completedCount = stats?.totals.completed ?? null;
   const byDay = stats?.byDay ?? {};
   const byTemplate = stats?.byTemplate ?? [];
+  const pendingQuestionnaires = stats?.alerts.pendingQuestionnaires ?? [];
+  const highRiskList = stats?.alerts.highRiskList ?? [];
 
   const byDayFormatted: DayCount[] = useMemo(() => {
     return Object.entries(byDay)
@@ -141,40 +135,6 @@ export function DashboardPage() {
     }));
   }, [byTemplate]);
 
-  const completedThisWeek = useMemo(() => {
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return Object.entries(byDay).reduce((acc, [date, count]) => {
-      const d = new Date(date);
-      if (d >= weekAgo && d <= now) return acc + count;
-      return acc;
-    }, 0);
-  }, [byDay]);
-
-  const patientsNeedingAttention = useMemo(() => {
-    const patients = patientsData?.data ?? [];
-    const sessionsList = sessionsForAttention?.data ?? [];
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const patientIdsWithRecentSession = new Set(
-      sessionsList
-        .filter((s) => s.createdAt && new Date(s.createdAt) >= cutoff && s.patientId)
-        .map((s) => s.patientId!)
-    );
-    return patients.filter((p) => !patientIdsWithRecentSession.has(p.id));
-  }, [patientsData?.data, sessionsForAttention?.data]);
-
-  const goalsExpiringSoon = useMemo(() => {
-    const goals = goalsListData?.data ?? [];
-    const now = new Date();
-    const inDays = 14;
-    const cutoff = new Date(now.getTime() + inDays * 24 * 60 * 60 * 1000);
-    return goals.filter((g) => {
-      const d = new Date(g.targetDate);
-      return d >= now && d <= cutoff;
-    });
-  }, [goalsListData?.data]);
-
   const totalTrainingPlans = trainingPlansData?.meta?.total ?? 0;
 
   const nextActions = useMemo((): NextAction[] => {
@@ -188,38 +148,26 @@ export function DashboardPage() {
         type: 'session_continue',
       });
     });
-    patientsNeedingAttention.slice(0, MAX_NEXT_ACTIONS - actions.length).forEach((p) => {
+    pendingQuestionnaires.slice(0, MAX_NEXT_ACTIONS - actions.length).forEach((pending) => {
       if (actions.length >= MAX_NEXT_ACTIONS) return;
       actions.push({
-        id: `patient-${p.id}`,
-        label: `Avaliar: ${p.fullName}`,
-        href: `/patients/${p.id}`,
+        id: `pending-${pending.sessionId}`,
+        label: `Retomar ${pending.templateName}${pending.patientName ? ` — ${pending.patientName}` : ''}`,
+        href: `/sessions/${pending.sessionId}`,
         type: 'patient_attention',
       });
     });
-    const firstForEvolution = patientsNeedingAttention.find(
-      (p) => !actions.some((a) => a.id === `patient-${p.id}`)
-    );
-    if (firstForEvolution && actions.length < MAX_NEXT_ACTIONS) {
+    const highestRisk = highRiskList.find((item) => item.patientId);
+    if (highestRisk && actions.length < MAX_NEXT_ACTIONS) {
       actions.push({
-        id: `evolution-${firstForEvolution.id}`,
-        label: `Registrar evolução de ${firstForEvolution.fullName}`,
-        href: `/patients/${firstForEvolution.id}/evolution`,
+        id: `risk-${highestRisk.sessionId}`,
+        label: `Aluno em risco: ${highestRisk.patientName ?? 'ver detalhes'} (${highestRisk.dropoutRisk}%)`,
+        href: highestRisk.patientId
+          ? `/patients/${highestRisk.patientId}`
+          : `/sessions/${highestRisk.sessionId}/insights`,
         type: 'pending_evolution',
       });
     }
-    const patientsMap = new Map((patientsData?.data ?? []).map((p) => [p.id, p]));
-    goalsExpiringSoon.slice(0, 2).forEach((g) => {
-      if (actions.length >= MAX_NEXT_ACTIONS) return;
-      const patientName = patientsMap.get(g.patientId)?.fullName ?? 'aluno';
-      const daysLeft = Math.ceil((new Date(g.targetDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-      actions.push({
-        id: `goal-${g.id}`,
-        label: `Meta de ${patientName} vence em ${daysLeft} dias`,
-        href: `/goals/${g.id}/edit`,
-        type: 'goal_expiring',
-      });
-    });
     if (actions.length < MAX_NEXT_ACTIONS && totalTrainingPlans === 0) {
       actions.push({
         id: 'first-training-plan',
@@ -239,7 +187,7 @@ export function DashboardPage() {
     if (actions.length < MAX_NEXT_ACTIONS && (totalPatients ?? 0) === 0) {
       actions.push({
         id: 'first-patient',
-        label: 'Cadastrar seu primeiro paciente',
+        label: 'Cadastrar seu primeiro aluno',
         href: '/patients/new',
         type: 'first_patient',
       });
@@ -263,9 +211,8 @@ export function DashboardPage() {
     return actions.slice(0, MAX_NEXT_ACTIONS);
   }, [
     inProgressSessions,
-    patientsNeedingAttention,
-    goalsExpiringSoon,
-    patientsData?.data,
+    pendingQuestionnaires,
+    highRiskList,
     totalTrainingPlans,
     totalTemplates,
     totalPatients,
@@ -350,7 +297,31 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Estado vazio: 0 templates, 0 pacientes, 0 sessões */}
+      {(stats?.alerts.pendingQuestionnairesCount ?? 0) > 0 || (stats?.alerts.highRiskCount ?? 0) > 0 ? (
+        <Card padding="md" className="border-l-4 border-l-warning">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-heading-sm font-semibold text-content">Foco de hoje</h2>
+              <p className="mt-1 text-body-sm text-content-muted">
+                {stats?.alerts.pendingQuestionnairesCount ?? 0} avaliação(ões) pendente(s) e{' '}
+                {stats?.alerts.highRiskCount ?? 0} aluno(s) com risco elevado.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/sessions">
+                <Button size="sm">Ver avaliações</Button>
+              </Link>
+              <Link to="/patients">
+                <Button variant="secondary" size="sm">
+                  Ver alunos
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      {/* Estado vazio: 0 templates, 0 alunos, 0 avaliações */}
       {!loading && isEmptyState && (
         <Card padding="md" className="border-primary/20 bg-primary-subtle/30">
           <div className="flex flex-col items-center text-center">
@@ -536,60 +507,22 @@ export function DashboardPage() {
 
       <AnalyticsDashboardCard periodDays={periodDays} />
 
-      {/* Meus alunos (semana) — aderência treino/dieta + atenção, link para hub */}
-      <StudentsOverviewCard />
-
-      {/* Pacientes que precisam de atenção (sem avaliação em 30+ dias) */}
-      {patientsNeedingAttention.length > 0 && (
-        <Card title="Pacientes que precisam de atenção" padding="md" className="border-l-4 border-l-warning">
-          <p className="text-body-sm text-content-muted mb-3">
-            Sem avaliação nos últimos 30 dias. Vale uma nova consulta ou lembrete.
-          </p>
-          <ul className="space-y-1.5">
-            {patientsNeedingAttention.slice(0, 10).map((p) => (
-              <li key={p.id}>
-                <Link
-                  to={`/patients/${p.id}`}
-                  className="text-body font-medium text-primary hover:underline"
-                >
-                  {p.fullName}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {patientsNeedingAttention.length > 10 && (
-            <p className="mt-2 text-body-sm text-content-muted">
-              + {patientsNeedingAttention.length - 10} outros
-            </p>
-          )}
-          <Link to="/patients" className="mt-3 inline-block">
-            <Button variant="secondary" size="sm">
-              Ver todos os pacientes
-            </Button>
-          </Link>
-        </Card>
-      )}
-
-      {/* Alertas / Notificações */}
-      <NotificationsWidget />
+      <AdherenceOverview />
 
       {/* Uso do plano */}
       <PlanUsageCard />
 
-      {/* Conquistas (gamificação) */}
-      <AchievementsCard
-        completedTotal={completedCount}
-        completedThisWeek={completedThisWeek}
-        loading={loading}
-      />
-
       {/* Gráficos interativos */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title={t.dashboard.sessionsByDay} padding="md">
-          <SessionsByDayChart data={byDayFormatted} loading={loading} />
+          <Suspense fallback={<Skeleton height={320} />}>
+            <SessionsByDayChart data={byDayFormatted} loading={loading} />
+          </Suspense>
         </Card>
         <Card title={t.dashboard.sessionsByTemplate} padding="md">
-          <SessionsByTemplateChart data={byTemplateFormatted} loading={loading} />
+          <Suspense fallback={<Skeleton height={320} />}>
+            <SessionsByTemplateChart data={byTemplateFormatted} loading={loading} />
+          </Suspense>
         </Card>
       </div>
 

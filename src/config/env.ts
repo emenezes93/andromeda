@@ -45,6 +45,7 @@ const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().email().optional().or(z.literal('')),
+    BACKGROUND_JOBS_ENABLED: z.coerce.boolean().default(true),
   })
   .refine((data) => data.AI_MODE !== 'llm' || (!!data.AI_PROVIDER && !!data.AI_API_KEY), {
     message: 'AI_PROVIDER and AI_API_KEY are required when AI_MODE=llm',

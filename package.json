@@ -1,13 +1,15 @@
 {
-  "name": "anamnese-paas-v2",
+  "name": "fit-insight-api",
   "version": "2.0.0",
   "description": "Multi-tenant Fit Insight - API base",
   "type": "module",
   "main": "dist/src/bootstrap/server.js",
   "scripts": {
     "dev": "tsx watch src/bootstrap/server.ts",
+    "dev:worker": "tsx watch src/bootstrap/worker.ts",
     "build": "tsc && tsc-alias -p tsconfig.json --resolve-full-paths",
     "start": "node dist/src/bootstrap/server.js",
+    "start:worker": "node dist/src/bootstrap/worker.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",

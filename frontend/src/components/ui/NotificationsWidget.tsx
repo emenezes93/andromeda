@@ -77,20 +77,34 @@ export function NotificationsWidget() {
   const staleSessions = notifications.filter((n) => n.type === 'stale_session');
 
   return (
-    <div className="rounded-card border border-warning/40 bg-warning/5 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning text-white text-xs font-bold">
-          {notifications.length}
-        </span>
-        <h3 className="text-body-sm font-semibold text-content">
-          {notifications.length === 1 ? '1 alerta' : `${notifications.length} alertas`} pendentes
-        </h3>
+    <section
+      className="rounded-card border border-warning/50 bg-warning-subtle p-4 shadow-card"
+      aria-labelledby="notifications-widget-title"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning text-sm font-bold text-white"
+            aria-hidden
+          >
+            {notifications.length}
+          </span>
+          <h2 id="notifications-widget-title" className="text-heading-sm font-semibold text-content">
+            {notifications.length === 1 ? '1 alerta pendente' : `${notifications.length} alertas pendentes`}
+          </h2>
+        </div>
+        <Link
+          to="/settings/notifications"
+          className="text-body-sm font-medium text-primary hover:underline"
+        >
+          Configurar notificações
+        </Link>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="mt-4 space-y-4">
         {overdueGoals.length > 0 && (
           <li>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-content-muted">
+            <p className="mb-2 text-body-sm font-semibold text-content-muted">
               Metas vencidas ({overdueGoals.length})
             </p>
             <ul className="space-y-1">
@@ -98,16 +112,16 @@ export function NotificationsWidget() {
                 <li key={n.id}>
                   <Link
                     to={n.href}
-                    className="flex items-start justify-between gap-2 rounded-button px-2 py-1.5 hover:bg-warning/10 transition-calm"
+                    className="flex items-center justify-between gap-3 rounded-button border border-transparent px-3 py-2 text-left transition-calm hover:border-warning/30 hover:bg-warning/10"
                   >
                     <span className="text-body-sm font-medium text-content">{n.title}</span>
-                    <span className="shrink-0 text-xs text-content-muted">{n.detail}</span>
+                    <span className="shrink-0 text-body-xs text-content-muted">{n.detail}</span>
                   </Link>
                 </li>
               ))}
               {overdueGoals.length > 3 && (
-                <li className="px-2 text-xs text-content-muted">
-                  +{overdueGoals.length - 3} metas vencidas adicionais
+                <li className="px-3 text-body-xs text-content-muted">
+                  +{overdueGoals.length - 3} metas vencidas
                 </li>
               )}
             </ul>
@@ -116,7 +130,7 @@ export function NotificationsWidget() {
 
         {staleSessions.length > 0 && (
           <li>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-content-muted">
+            <p className="mb-2 text-body-sm font-semibold text-content-muted">
               Avaliações incompletas ({staleSessions.length})
             </p>
             <ul className="space-y-1">
@@ -124,22 +138,22 @@ export function NotificationsWidget() {
                 <li key={n.id}>
                   <Link
                     to={n.href}
-                    className="flex items-start justify-between gap-2 rounded-button px-2 py-1.5 hover:bg-warning/10 transition-calm"
+                    className="flex items-center justify-between gap-3 rounded-button border border-transparent px-3 py-2 text-left transition-calm hover:border-warning/30 hover:bg-warning/10"
                   >
                     <span className="text-body-sm font-medium text-content">{n.title}</span>
-                    <span className="shrink-0 text-xs text-content-muted">{n.detail}</span>
+                    <span className="shrink-0 text-body-xs text-content-muted">{n.detail}</span>
                   </Link>
                 </li>
               ))}
               {staleSessions.length > 3 && (
-                <li className="px-2 text-xs text-content-muted">
-                  +{staleSessions.length - 3} sessões incompletas adicionais
+                <li className="px-3 text-body-xs text-content-muted">
+                  +{staleSessions.length - 3} avaliações incompletas
                 </li>
               )}
             </ul>
           </li>
         )}
       </ul>
-    </div>
+    </section>
   );
 }

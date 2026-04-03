@@ -141,7 +141,7 @@ export function SessionDetailPage() {
                 onClick={handleGenerateLink}
                 loading={loadingLink}
               >
-                Gerar link para o paciente
+                Gerar link para o aluno
               </Button>
             </>
           )}
@@ -172,10 +172,10 @@ export function SessionDetailPage() {
       </div>
 
       {!isComplete && fillUrl && (
-        <Card title="Link para o paciente preencher" padding="md">
+        <Card title="Link para o aluno preencher" padding="md">
           <p className="text-body-sm text-content-muted">
             Este link permite preenchimento sem login. Guarde com segurança e envie apenas ao
-            paciente.
+            aluno.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <code className="flex-1 min-w-0 truncate rounded-button bg-surface-muted px-3 py-2 text-body-sm text-content">
@@ -197,7 +197,7 @@ export function SessionDetailPage() {
 
       {/* Respostas */}
       {questions.length > 0 ? (
-        <Card title="Respostas do paciente">
+        <Card title="Respostas do aluno">
           {!hasAnswers ? (
             <p className="text-content-muted">
               Nenhuma resposta registrada ainda.{' '}

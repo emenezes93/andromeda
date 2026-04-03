@@ -601,7 +601,7 @@ export function TrainingPlanDetailPage() {
           </div>
           <div className="mt-1 flex flex-wrap gap-3 text-body-sm text-content-muted">
             <span>
-              <span className="font-medium text-content-subtle">Paciente:</span>{' '}
+              <span className="font-medium text-content-subtle">Aluno:</span>{' '}
               <Link
                 to={`/patients/${plan.patientId}`}
                 className="text-primary hover:underline"
@@ -881,15 +881,15 @@ export function TrainingPlanDetailPage() {
             Duplicar plano
           </DialogTitle>
           <p className="mt-1 text-body-sm text-content-muted">
-            Crie uma cópia deste plano para outro paciente. A estrutura e os exercícios serão mantidos.
+            Crie uma cópia deste plano para outro aluno. A estrutura e os exercícios serão mantidos.
           </p>
           <form onSubmit={handleDuplicateSubmit} className="mt-4 space-y-4">
             <PatientSearchSelect
               patients={patients}
               value={duplicatePatientId}
               onChange={setDuplicatePatientId}
-              label="Paciente"
-              placeholder="Buscar paciente..."
+              label="Aluno"
+              placeholder="Buscar aluno..."
             />
             <Input
               label="Nome do plano"

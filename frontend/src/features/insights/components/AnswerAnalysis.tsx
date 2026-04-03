@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
 import type { Session, QuestionSchema } from '@/types';
 import { Card } from '@/components/ui/Card';
-import { PieChart } from '@/components/charts';
 import { Badge } from '@/components/ui/Badge';
+
+const PieChart = lazy(() =>
+  import('@/components/charts/PieChart').then((m) => ({ default: m.PieChart }))
+);
 
 interface AnswerAnalysisProps {
   session: Session;
@@ -99,7 +102,9 @@ export function AnswerAnalysis({ session }: AnswerAnalysisProps) {
 
       <Card title="Distribuição por Tipo" padding="md">
         {analysis.typeDistribution.length > 0 ? (
-          <PieChart data={analysis.typeDistribution} innerRadius={40} outerRadius={70} />
+          <Suspense fallback={<div className="h-[220px] animate-pulse rounded-card bg-surface-muted" />}>
+            <PieChart data={analysis.typeDistribution} innerRadius={40} outerRadius={70} />
+          </Suspense>
         ) : (
           <p className="text-body-sm text-content-muted">Sem dados disponíveis</p>
         )}

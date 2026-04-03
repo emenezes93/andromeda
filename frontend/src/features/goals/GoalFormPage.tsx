@@ -25,7 +25,7 @@ const GOAL_TYPES: { value: GoalType; label: string }[] = [
 
 const goalSchema = z
   .object({
-    patientId: z.string().min(1, 'Selecione um paciente.'),
+    patientId: z.string().min(1, 'Selecione um aluno.'),
     type: z.enum(['weight_loss', 'muscle_gain', 'performance', 'health', 'other']),
     title: z.string().min(1, 'Título é obrigatório.'),
     description: z.string(),
@@ -210,7 +210,7 @@ export function GoalFormPage() {
                 htmlFor="goal-patient"
                 className="mb-1.5 block text-body-sm font-medium text-content-muted"
               >
-                Paciente <span className="text-error">*</span>
+                Aluno <span className="text-error">*</span>
               </label>
               <select
                 id="goal-patient"
@@ -219,7 +219,7 @@ export function GoalFormPage() {
                 className={selectClass(!!errors.patientId)}
               >
                 <option value="">
-                  {loadingPatients ? 'Carregando…' : 'Selecione um paciente'}
+                  {loadingPatients ? 'Carregando…' : 'Selecione um aluno'}
                 </option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>

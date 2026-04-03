@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createDietPlan, updateDietPlan, getDietPlan } from '@/api/diet';
 import { listPatients } from '@/api/patients';
+import { getSession } from '@/api/sessions';
 import type { CreateDietPlanBody } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -63,10 +64,16 @@ export function DietPlanFormPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const isEditing = !!id;
+  const sourceSessionId = searchParams.get('sessionId') ?? '';
 
-  const [form, setForm] = useState<FormState>({ ...emptyForm, patientId: searchParams.get('patientId') ?? '' });
+  const [form, setForm] = useState<FormState>({
+    ...emptyForm,
+    patientId: searchParams.get('patientId') ?? '',
+    basedOnSessionId: sourceSessionId,
+  });
   const [isDirty, setIsDirty] = useState(false);
   const { showConfirmModal, confirmLeave, cancelLeave, message } = useUnsavedChanges(isDirty);
+  const [sourceSessionLabel, setSourceSessionLabel] = useState<string | null>(null);
 
   // Buscar plano existente em modo edição
   const { data: existing } = useQuery({
@@ -95,7 +102,26 @@ export function DietPlanFormPage() {
     }
   }, [existing]);
 
-  // Pacientes para select
+  useEffect(() => {
+    if (isEditing || !sourceSessionId) return;
+    getSession(sourceSessionId)
+      .then((session) => {
+        const labelParts = [session.patient?.fullName, session.template?.name].filter(Boolean);
+        setSourceSessionLabel(labelParts.length > 0 ? labelParts.join(' • ') : null);
+        setForm((current) => ({
+          ...current,
+          patientId: current.patientId || session.patientId || '',
+          basedOnSessionId: current.basedOnSessionId || sourceSessionId,
+          name: current.name || (session.patient?.fullName ? `Plano alimentar - ${session.patient.fullName}` : 'Plano alimentar'),
+          description:
+            current.description ||
+            `Plano alimentar criado a partir da avaliação ${session.template?.name ?? 'mais recente'}${session.patient?.fullName ? ` de ${session.patient.fullName}` : ''}.`,
+        }));
+      })
+      .catch(() => setSourceSessionLabel(null));
+  }, [isEditing, sourceSessionId]);
+
+  // Alunos para select
   const { data: patientsData } = useQuery({
     queryKey: ['patients-select'],
     queryFn: () => listPatients({ limit: 100 }),
@@ -136,7 +162,7 @@ export function DietPlanFormPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.patientId) {
-      toast.error('Selecione um paciente.');
+      toast.error('Selecione um aluno.');
       return;
     }
     if (!form.name.trim()) {
@@ -165,13 +191,27 @@ export function DietPlanFormPage() {
   return (
     <>
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Paciente + Nome */}
+      {!isEditing && sourceSessionId && (
+        <Card padding="md" className="border border-primary/20 bg-primary-subtle/30">
+          <h2 className="text-body font-semibold text-content">Plano com base em avaliação</h2>
+          <p className="mt-1 text-body-sm text-content-muted">
+            {sourceSessionLabel
+              ? `Você está criando este plano a partir da avaliação ${sourceSessionLabel}.`
+              : 'Você está criando este plano a partir de uma avaliação recente do aluno.'}
+          </p>
+          <p className="mt-2 text-body-sm text-content-muted">
+            O aluno, o vínculo da avaliação e a descrição inicial já foram sugeridos.
+          </p>
+        </Card>
+      )}
+
+      {/* Aluno + Nome */}
       <Card padding="md">
         <h2 className="mb-4 text-body font-semibold text-content">Informações Básicas</h2>
         <div className="space-y-4">
           <div>
             <label className="mb-1.5 block text-body-sm font-medium text-content">
-              Paciente <span className="text-error">*</span>
+              Aluno <span className="text-error">*</span>
             </label>
             <select
               className="w-full rounded-input border border-border bg-surface px-3 py-2 text-body text-content focus:border-primary focus:outline-none"
@@ -179,7 +219,7 @@ export function DietPlanFormPage() {
               onChange={(e) => update('patientId', e.target.value)}
               disabled={isEditing}
             >
-              <option value="">Selecione um paciente…</option>
+              <option value="">Selecione um aluno…</option>
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>{p.fullName}</option>
               ))}
@@ -214,7 +254,7 @@ export function DietPlanFormPage() {
       <Card padding="md">
         <h2 className="mb-2 text-body font-semibold text-content">Metas Diárias</h2>
         <p className="mb-4 text-body-sm text-content-muted">
-          Defina os objetivos nutricionais diários do paciente.
+          Defina os objetivos nutricionais diários do aluno.
         </p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div>

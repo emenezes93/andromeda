@@ -1,99 +1,59 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Andromeda – Fit Insight</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/style.css" />
-</head>
-<body>
-  <header class="header">
-    <div class="container">
-      <a href="#" class="logo">Andromeda</a>
-      <nav class="nav">
-        <a href="#sobre">Sobre</a>
-        <a href="#recursos">Recursos</a>
-        <a href="#stack">Stack</a>
-        <a href="#contato">Contato</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h1 class="hero-title">Fit <span class="accent">Insight</span></h1>
-        <p class="hero-subtitle">
-          API multi-tenant para questionários de saúde adaptativos, insights com IA e auditoria completa.
-        </p>
-        <div class="hero-actions">
-          <a href="https://github.com/emenezes93/andromeda" class="btn btn-primary" target="_blank" rel="noopener">Ver no GitHub</a>
-          <a href="#sobre" class="btn btn-secondary">Saiba mais</a>
-        </div>
-      </div>
-      <div class="hero-bg" aria-hidden="true"></div>
-    </section>
-
-    <section id="sobre" class="section">
-      <div class="container">
-        <h2>Sobre o projeto</h2>
-        <p class="lead">
-          Plataforma backend para criação e gestão de questionários de saúde adaptativos,
-          com geração de insights automáticos (regras ou LLM), gestão de pacientes e evoluções,
-          e auditoria de todas as ações.
-        </p>
-      </div>
-    </section>
-
-    <section id="recursos" class="section section-alt">
-      <div class="container">
-        <h2>Recursos</h2>
-        <ul class="feature-list">
-          <li><strong>Templates de questionários</strong> — Criação e versionamento de formulários de anamnese</li>
-          <li><strong>Lógica condicional</strong> — Perguntas que aparecem conforme respostas anteriores</li>
-          <li><strong>Insights com IA</strong> — Modo por regras ou LLM para resumos e riscos</li>
-          <li><strong>Multi-tenant</strong> — Isolamento por tenant com RLS no PostgreSQL</li>
-          <li><strong>Pacientes e evoluções</strong> — Cadastro, metas e acompanhamento</li>
-          <li><strong>Auditoria</strong> — Registro de todas as operações para compliance</li>
-        </ul>
-      </div>
-    </section>
-
-    <section id="stack" class="section">
-      <div class="container">
-        <h2>Stack</h2>
-        <div class="stack-grid">
-          <span class="stack-tag">Node.js 20+</span>
-          <span class="stack-tag">TypeScript</span>
-          <span class="stack-tag">Fastify</span>
-          <span class="stack-tag">PostgreSQL</span>
-          <span class="stack-tag">Prisma</span>
-          <span class="stack-tag">Vitest</span>
-          <span class="stack-tag">Docker</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="contato" class="section section-alt">
-      <div class="container">
-        <h2>Contato</h2>
-        <p>
-          Código aberto no GitHub. Para dúvidas ou contribuições, abra uma
-          <a href="https://github.com/emenezes93/andromeda/issues" target="_blank" rel="noopener">issue</a>
-          ou um
-          <a href="https://github.com/emenezes93/andromeda/pulls" target="_blank" rel="noopener">pull request</a>.
-        </p>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <p>&copy; Andromeda – Fit Insight</p>
-    </div>
-  </footer>
-</body>
+<!doctype html>
+<html lang="pt-BR" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fit Insight | Software para Personal Trainers e Nutricionistas</title>
+    <meta
+      name="description"
+      content="Software para personal trainers e nutricionistas centralizarem avaliação, prescrição e acompanhamento com mais velocidade, clareza e aderência."
+    />
+    <meta
+      name="keywords"
+      content="software para nutricionistas, software para personal trainer, anamnese digital, acompanhamento de pacientes, prescrição de treino, plataforma para nutricionistas"
+    />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:title" content="Fit Insight | Software para Personal Trainers e Nutricionistas" />
+    <meta property="og:description" content="Avaliação, prescrição e acompanhamento em um único sistema para profissionais de saúde e performance." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fit Insight | Software para Personal Trainers e Nutricionistas" />
+    <meta name="twitter:description" content="Centralize avaliação, prescrição e acompanhamento com mais velocidade e clareza." />
+    <meta name="twitter:image" content="/og-image.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Fit Insight",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Software para personal trainers e nutricionistas centralizarem avaliação, prescrição e acompanhamento.",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Grátis",
+            "price": "0",
+            "priceCurrency": "BRL"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "49",
+            "priceCurrency": "BRL"
+          }
+        ]
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body class="antialiased bg-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

@@ -241,12 +241,12 @@ const router = createBrowserRouter([
   { path: '/sessions/:id/flow', element: withLayout('Anamnese', <AnamnesisFlowPage />) },
   { path: '/sessions/:id/insights', element: withLayout('Insights', <SessionInsightsPage />) },
   // Patients (specific before dynamic)
-  { path: '/patients', element: withLayout('Pacientes', <PatientsListPage />) },
-  { path: '/patients/new', element: withLayout('Novo paciente', <PatientFormPage />) },
-  { path: '/patients/:id/edit', element: withLayout('Editar paciente', <PatientFormPage />) },
+  { path: '/patients', element: withLayout('Alunos', <PatientsListPage />) },
+  { path: '/patients/new', element: withLayout('Novo aluno', <PatientFormPage />) },
+  { path: '/patients/:id/edit', element: withLayout('Editar aluno', <PatientFormPage />) },
   { path: '/patients/:id/evolution', element: withLayout('Evolução', <PatientEvolutionPage />) },
-  { path: '/patients/:id/timeline', element: withLayout('Histórico do Paciente', <PatientTimelinePage />) },
-  { path: '/patients/:id/hub', element: withLayout('Hub do Paciente', <PatientHubPage />) },
+  { path: '/patients/:id/timeline', element: withLayout('Histórico do Aluno', <PatientTimelinePage />) },
+  { path: '/patients/:id/hub', element: withLayout('Painel do Aluno', <PatientHubPage />) },
   { path: '/patients/:id/report', element: withLayout('Relatório', <PatientReportPage />) },
   { path: '/patients/:id', element: withLayout(undefined, <PatientDetailPage />) },
   // Goals

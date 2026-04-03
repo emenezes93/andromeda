@@ -16,6 +16,25 @@ export interface DashboardStats {
     templateName: string;
     count: number;
   }>;
+  alerts: {
+    pendingQuestionnairesCount: number;
+    pendingQuestionnaires: Array<{
+      sessionId: string;
+      patientId: string | null;
+      patientName: string | null;
+      templateName: string;
+      createdAt: string;
+      daysPending: number;
+    }>;
+    highRiskCount: number;
+    highRiskList: Array<{
+      sessionId: string;
+      patientId: string | null;
+      patientName: string | null;
+      dropoutRisk: number;
+      insightCreatedAt: string;
+    }>;
+  };
 }
 
 export interface TemplateReport {

@@ -111,8 +111,10 @@ andromeda/
 ```bash
 # Desenvolvimento
 npm run dev              # Servidor em modo watch
+npm run dev:worker       # Worker de jobs em modo watch
 npm run build            # Compila TypeScript → dist/
 npm run start            # Executa versão compilada
+npm run start:worker     # Executa o worker compilado
 
 # Banco de Dados
 npm run prisma:generate      # Regenera Prisma Client
@@ -192,6 +194,25 @@ RATE_LIMIT_AUTH=10       # req/min no /auth/login
 ```
 
 Veja `src/config/env.ts` para o schema completo de validação.
+
+### Operação Web x Worker
+
+Para escalar com segurança, separe processos HTTP e jobs em background:
+
+- `web`: atende API/HTTP e deve rodar com `BACKGROUND_JOBS_ENABLED=false`
+- `worker`: executa alertas, scheduler e cleanup e deve rodar com `BACKGROUND_JOBS_ENABLED=true`
+
+Exemplo:
+
+```bash
+# API / web
+BACKGROUND_JOBS_ENABLED=false npm run start
+
+# Worker / jobs
+BACKGROUND_JOBS_ENABLED=true npm run start:worker
+```
+
+Em ambiente com múltiplas réplicas web, mantenha apenas o worker com jobs habilitados para evitar duplicidade de processamento.
 
 ---
 

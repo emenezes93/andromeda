@@ -1,9 +1,13 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import { getPatient, listEvolutions } from '@/api/patients';
 import type { Patient, PatientEvolution } from '@/types';
 import { Card } from '@/components/ui/Card';
-import { LineChart, type LineDataPoint } from '@/components/charts';
+import type { LineDataPoint } from '@/components/charts/LineChart';
 import { Skeleton } from '@/components/ui/Skeleton';
+
+const LineChart = lazy(() =>
+  import('@/components/charts/LineChart').then((m) => ({ default: m.LineChart }))
+);
 
 interface PatientDataIntegrationProps {
   patientId: string | null | undefined;
@@ -129,7 +133,9 @@ export function PatientDataIntegration({ patientId }: PatientDataIntegrationProp
 
       {evolutionChartData.length > 1 && (
         <Card title="Evolução do Peso" padding="md">
-          <LineChart data={evolutionChartData} yAxisLabel="Peso (kg)" color="var(--color-primary)" />
+          <Suspense fallback={<Skeleton height={280} />}>
+            <LineChart data={evolutionChartData} yAxisLabel="Peso (kg)" color="var(--color-primary)" />
+          </Suspense>
         </Card>
       )}
     </div>

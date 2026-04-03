@@ -2,7 +2,9 @@
  * Utilitários para calcular próximas execuções de agendamentos
  */
 import type { PrismaClient } from '@prisma/client';
+import crypto from 'node:crypto';
 import { createPatientNotification } from '../patient-notifications/service.js';
+import { auditLog } from '@shared/utils/audit.js';
 
 export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
 
@@ -96,14 +98,13 @@ export async function processScheduledQuestionnaires(
   logger: { error(data: unknown, msg: string): void }
 ): Promise<number> {
   const now = new Date();
-  const cutoff = new Date(now.getTime() + 60 * 60 * 1000); // 1 hora no futuro (tolerância)
 
   const scheduled = await prisma.scheduledQuestionnaire.findMany({
     where: {
       active: true,
       deletedAt: null,
       nextRunAt: {
-        lte: cutoff,
+        lte: now,
         not: null,
       },
       OR: [
@@ -125,6 +126,7 @@ export async function processScheduledQuestionnaires(
 
       const emitNotificationAndAlert = async (
         sessionId: string,
+        fillToken: string | null,
         patientId: string,
         patientName: string | null
       ) => {
@@ -143,6 +145,7 @@ export async function processScheduledQuestionnaires(
             type: 'questionnaire_session_created',
             metadata: {
               sessionId,
+              fillToken,
               questionnaireId: schedule.templateId,
               questionnaireName: templateName,
               dueAt: schedule.nextRunAt?.toISOString() ?? null,
@@ -188,6 +191,7 @@ export async function processScheduledQuestionnaires(
             templateId: schedule.templateId,
             patientId: schedule.patientId,
             status: 'in_progress',
+            fillToken: crypto.randomBytes(16).toString('hex'),
           },
         });
         created++;
@@ -197,8 +201,22 @@ export async function processScheduledQuestionnaires(
         });
         await emitNotificationAndAlert(
           session.id,
+          session.fillToken,
           schedule.patientId,
           patient?.fullName ?? null
+        );
+        await auditLog(
+          prisma,
+          schedule.tenantId,
+          'questionnaire_session_auto_created',
+          'anamnesis_session',
+          session.id,
+          null,
+          {
+            scheduledQuestionnaireId: schedule.id,
+            templateId: schedule.templateId,
+            patientId: schedule.patientId,
+          }
         );
       } else {
         const patients = await prisma.patient.findMany({
@@ -213,10 +231,29 @@ export async function processScheduledQuestionnaires(
               templateId: schedule.templateId,
               patientId: patient.id,
               status: 'in_progress',
+              fillToken: crypto.randomBytes(16).toString('hex'),
             },
           });
           created++;
-          await emitNotificationAndAlert(session.id, patient.id, patient.fullName);
+          await emitNotificationAndAlert(
+            session.id,
+            session.fillToken,
+            patient.id,
+            patient.fullName
+          );
+          await auditLog(
+            prisma,
+            schedule.tenantId,
+            'questionnaire_session_auto_created',
+            'anamnesis_session',
+            session.id,
+            null,
+            {
+              scheduledQuestionnaireId: schedule.id,
+              templateId: schedule.templateId,
+              patientId: patient.id,
+            }
+          );
         }
       }
 

@@ -311,6 +311,7 @@ export interface PlanUsageSummary {
   patients: { current: number; max: number | null };
   sessionsThisMonth: { current: number; max: number | null };
   aiInsightsEnabled: boolean;
+  aiInsightsThisMonth: { current: number; max: number | null };
 }
 
 export interface AuditLog {

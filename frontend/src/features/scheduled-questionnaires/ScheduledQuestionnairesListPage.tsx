@@ -196,7 +196,7 @@ export function ScheduledQuestionnairesListPage() {
               <thead>
                 <tr className="border-b border-border-muted bg-surface-muted">
                   <th className="px-4 py-3 font-medium text-content-muted">Template</th>
-                  <th className="px-4 py-3 font-medium text-content-muted">Paciente</th>
+                  <th className="px-4 py-3 font-medium text-content-muted">Aluno</th>
                   <th className="px-4 py-3 font-medium text-content-muted">Frequência</th>
                   <th className="px-4 py-3 font-medium text-content-muted">Próximo envio</th>
                   <th className="px-4 py-3 font-medium text-content-muted">Último envio</th>
@@ -220,7 +220,7 @@ export function ScheduledQuestionnairesListPage() {
                           {item.patientName}
                         </Link>
                       ) : (
-                        <span className="italic text-content-subtle">Todos os pacientes</span>
+                        <span className="italic text-content-subtle">Todos os alunos</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-content">

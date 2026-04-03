@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { createTrainingPlan, updateTrainingPlan, getTrainingPlan } from '@/api/training-plans';
 import { listPatients } from '@/api/patients';
+import { getSession } from '@/api/sessions';
 import type { CreateTrainingPlanBody, PatientWithCount } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -227,6 +228,7 @@ export function TrainingPlanFormPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get('patientId') ?? '';
+  const sourceSessionId = searchParams.get('sessionId') ?? '';
   const toast = useToast();
 
   const [step, setStep] = useState<Step>(isEditMode ? 'exercises' : 'level');
@@ -246,6 +248,7 @@ export function TrainingPlanFormPage() {
   const [loadingPlan, setLoadingPlan] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sourceSessionLabel, setSourceSessionLabel] = useState<string | null>(null);
 
   // Per-day add exercise forms
   const [showAddForm, setShowAddForm] = useState<Record<string, boolean>>({});
@@ -264,6 +267,23 @@ export function TrainingPlanFormPage() {
       .catch(() => setPatients([]))
       .finally(() => setLoadingPatients(false));
   }, []);
+
+  useEffect(() => {
+    if (isEditMode || !sourceSessionId) return;
+    getSession(sourceSessionId)
+      .then((session) => {
+        const labelParts = [session.patient?.fullName, session.template?.name].filter(Boolean);
+        setSourceSessionLabel(labelParts.length > 0 ? labelParts.join(' • ') : null);
+        setDetails((prev) => ({
+          ...prev,
+          patientId: prev.patientId || session.patientId || '',
+          description:
+            prev.description ||
+            `Plano criado a partir da avaliação ${session.template?.name ?? 'mais recente'}${session.patient?.fullName ? ` de ${session.patient.fullName}` : ''}.`,
+        }));
+      })
+      .catch(() => setSourceSessionLabel(null));
+  }, [isEditMode, sourceSessionId]);
 
   // Load plan in edit mode
   useEffect(() => {
@@ -442,7 +462,7 @@ export function TrainingPlanFormPage() {
 
   function validateDetails(): boolean {
     const errs: Record<string, string> = {};
-    if (!details.patientId) errs.patientId = 'Selecione um paciente.';
+    if (!details.patientId) errs.patientId = 'Selecione um aluno.';
     if (!details.name.trim()) errs.name = 'Nome é obrigatório.';
     if (!details.startDate) errs.startDate = 'Data de início é obrigatória.';
     if (details.endDate && details.endDate < details.startDate) {
@@ -531,13 +551,27 @@ export function TrainingPlanFormPage() {
         </div>
       </div>
 
+      {!isEditMode && sourceSessionId && (
+        <div className="rounded-card border border-primary/20 bg-primary-subtle/30 p-4">
+          <h3 className="text-body font-semibold text-content">Plano com base em avaliação</h3>
+          <p className="mt-1 text-body-sm text-content-muted">
+            {sourceSessionLabel
+              ? `Você está montando este treino a partir da avaliação ${sourceSessionLabel}.`
+              : 'Você está montando este treino a partir de uma avaliação recente do aluno.'}
+          </p>
+          <p className="mt-2 text-body-sm text-content-muted">
+            O aluno e a descrição inicial já foram sugeridos para reduzir retrabalho.
+          </p>
+        </div>
+      )}
+
       {/* ------------------------------------------------------------------ */}
       {/* Step: Level                                                         */}
       {/* ------------------------------------------------------------------ */}
       {step === 'level' && (
         <div className="space-y-5">
           <div>
-            <h3 className="text-lg font-semibold text-content">Escolha o nível do paciente</h3>
+            <h3 className="text-lg font-semibold text-content">Escolha o nível do aluno</h3>
             <p className="mt-1 text-body-sm text-content-muted">
               Selecione um template pronto ou comece do zero. Você poderá personalizar cada
               exercício no próximo passo.
@@ -811,15 +845,20 @@ export function TrainingPlanFormPage() {
                   </span>
                 </p>
               )}
+              {sourceSessionId && (
+                <p className="mt-2 text-body-sm text-content-muted">
+                  Este plano está sendo preparado logo após uma avaliação para acelerar a decisão do treinador.
+                </p>
+              )}
             </div>
 
-            {/* Paciente */}
+            {/* Aluno */}
             <div>
               <label
                 htmlFor="plan-patient"
                 className="mb-1.5 block text-body-sm font-medium text-content-muted"
               >
-                Paciente <span className="text-error">*</span>
+                Aluno <span className="text-error">*</span>
               </label>
               <select
                 id="plan-patient"
@@ -831,7 +870,7 @@ export function TrainingPlanFormPage() {
                 }`}
               >
                 <option value="">
-                  {loadingPatients ? 'Carregando pacientes…' : 'Selecione um paciente'}
+                  {loadingPatients ? 'Carregando alunos…' : 'Selecione um aluno'}
                 </option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>

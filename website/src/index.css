@@ -1,0 +1,346 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0ea5e9;
+  --color-primary-hover: #0284c7;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #0f172a;
+}
+
+/* ── Skip link (a11y) ── */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: #0ea5e9;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  clip: rect(0, 0, 0, 0);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  clip: auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  outline: none;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #0ea5e9;
+}
+
+/* ── Section padding (design system) ── */
+.section-default {
+  padding-top: 6.5rem;
+  padding-bottom: 6.5rem;
+}
+@media (min-width: 640px) {
+  .section-default {
+    padding-top: 7.5rem;
+    padding-bottom: 7.5rem;
+  }
+}
+.section-tight {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+}
+@media (min-width: 640px) {
+  .section-tight {
+    padding-top: 4.5rem;
+    padding-bottom: 4.5rem;
+  }
+}
+
+/* ── Dot grid / noise (tokens) ── */
+.bg-dot-grid {
+  background-image: radial-gradient(#0f172a 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.035;
+}
+.bg-noise {
+  background-image: radial-gradient(white 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.04;
+}
+
+/* ── Animated mesh gradient (Stripe-inspired) ── */
+@keyframes mesh-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 0%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 100%;
+  }
+}
+
+.mesh-gradient {
+  background: linear-gradient(
+    135deg,
+    #0ea5e9 0%,
+    #38bdf8 15%,
+    #818cf8 30%,
+    #8b5cf6 45%,
+    #0ea5e9 60%,
+    #06b6d4 75%,
+    #8b5cf6 90%,
+    #0ea5e9 100%
+  );
+  background-size: 400% 400%;
+  animation: mesh-shift 16s ease-in-out infinite;
+}
+
+.mesh-gradient-subtle {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.08) 0%,
+    rgba(139, 92, 246, 0.06) 30%,
+    rgba(14, 165, 233, 0.04) 50%,
+    rgba(139, 92, 246, 0.08) 70%,
+    rgba(14, 165, 233, 0.06) 100%
+  );
+  background-size: 400% 400%;
+  animation: mesh-shift 20s ease-in-out infinite;
+}
+
+/* ── Gradient text ── */
+.text-gradient {
+  background: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #0ea5e9 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: mesh-shift 8s ease-in-out infinite;
+}
+
+.text-gradient-static {
+  background: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Scroll-triggered reveal ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px) scale(0.98);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+.reveal-clip {
+  clip-path: inset(15% 0 15% 0);
+  opacity: 0;
+  transition: clip-path 1s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-clip.visible {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+}
+
+/* ── Hero stagger ── */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-enter {
+  animation: hero-enter 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-enter-1 { animation-delay: 0s; }
+.hero-enter-2 { animation-delay: 0.12s; opacity: 0; }
+.hero-enter-3 { animation-delay: 0.24s; opacity: 0; }
+.hero-enter-4 { animation-delay: 0.36s; opacity: 0; }
+
+/* ── Hover lift ── */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Monospace label ── */
+.label-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ── Soft label (amigável, para métricas e cards) ── */
+.label-soft {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ── Bento card hover (tokens) ── */
+.bento-card {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s ease,
+              border-color 0.3s ease;
+}
+.bento-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06);
+  border-color: #94a3b8;
+}
+
+.bento-card-icon {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bento-card:hover .bento-card-icon {
+  transform: scale(1.05);
+}
+
+/* ── Nav link underline (minimal) ── */
+.nav-link-underline {
+  position: relative;
+}
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-link-underline:hover::after {
+  width: 100%;
+}
+
+/* ── Logo / subtle hover scale ── */
+.hover-scale-subtle {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hover-scale-subtle:hover {
+  transform: scale(1.02);
+}
+
+/* ── Float subtle (Hero metrics) ── */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+/* ── Preferência por menos movimento (a11y) ── */
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gradient,
+  .mesh-gradient-subtle {
+    animation: none;
+    background-position: 50% 50%;
+  }
+  .text-gradient {
+    animation: none;
+    background-position: 0% 50%;
+  }
+  .float-subtle {
+    animation: none;
+  }
+  .hero-enter,
+  .hero-enter-1,
+  .hero-enter-2,
+  .hero-enter-3,
+  .hero-enter-4 {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .reveal-clip {
+    clip-path: none;
+    opacity: 1;
+    transition: none;
+  }
+  .hover-scale-subtle:hover {
+    transform: none;
+  }
+  .nav-link-underline:hover::after {
+    width: 0;
+  }
+  .bento-card:hover .bento-card-icon {
+    transform: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}

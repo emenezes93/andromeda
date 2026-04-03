@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPatient, listEvolutions, createEvolution } from '@/api/patients';
+import {
+  getPatient,
+  getPatientHubSummary,
+  listEvolutions,
+  createEvolution,
+  invitePatient,
+} from '@/api/patients';
 import { listSessions } from '@/api/sessions';
 import { listTrainingPlans } from '@/api/training-plans';
 import {
@@ -19,6 +25,7 @@ import {
 import { listGoals, updateGoal, deleteGoal } from '@/api/goals';
 import { track } from '@/lib/analytics';
 import type {
+  PatientHubSummaryResponse,
   TrainingExecution,
   ProgressPhoto,
   TrainingExecutionListResponse,
@@ -45,6 +52,32 @@ function formatDate(value: string | null | undefined): string {
   const d = new Date(value);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatRelativeDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'Hoje';
+  if (diffDays === 1) return 'Ontem';
+  if (diffDays < 7) return `${diffDays} dias`;
+  return formatDate(value);
+}
+
+function riskLabel(value: number | null | undefined): string {
+  if (value == null) return '—';
+  if (value >= 70) return 'Alto';
+  if (value >= 40) return 'Médio';
+  return 'Baixo';
+}
+
+function riskVariant(value: number | null | undefined): 'default' | 'warning' | 'error' {
+  if (value == null) return 'default';
+  if (value >= 70) return 'error';
+  if (value >= 40) return 'warning';
+  return 'default';
 }
 
 function genderLabel(gender: string | null | undefined): string {
@@ -100,6 +133,228 @@ function TextCard({ title, text }: TextCardProps) {
   );
 }
 
+function OperationalSummary({
+  patientId,
+  summary,
+}: {
+  patientId: string;
+  summary: PatientHubSummaryResponse;
+}) {
+  const dropoutRisk = summary.lastInsight?.risks.dropoutRisk ?? null;
+  const lastEvolutionAgeDays = summary.lastEvolution
+    ? Math.floor((Date.now() - new Date(summary.lastEvolution.recordedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const priorityAction = (() => {
+    if (summary.alerts.some((alert) => alert.severity === 'high')) {
+      return {
+        title: 'Intervir agora',
+        description: 'Existem alertas de alta prioridade. Revise o insight e ajuste a condução do aluno.',
+        href: summary.lastInsight
+          ? `/sessions/${summary.lastInsight.sessionId}/insights`
+          : `/sessions/new?patientId=${patientId}`,
+        cta: summary.lastInsight ? 'Revisar insight' : 'Iniciar avaliação',
+      };
+    }
+
+    if (!summary.lastInsight) {
+      return {
+        title: 'Gerar diagnóstico inicial',
+        description: 'Ainda não há insight recente para orientar treino, metas ou rotina de acompanhamento.',
+        href: `/sessions/new?patientId=${patientId}`,
+        cta: 'Nova avaliação',
+      };
+    }
+
+    if ((dropoutRisk ?? 0) >= 70) {
+      return {
+        title: 'Reduzir risco de desistência',
+        description: 'O risco de desistência está alto. Crie uma intervenção logo após a avaliação.',
+        href: `/goals/new?patientId=${patientId}&sessionId=${summary.lastInsight.sessionId}`,
+        cta: 'Criar meta de adesão',
+      };
+    }
+
+    if (lastEvolutionAgeDays == null || lastEvolutionAgeDays >= 21) {
+      return {
+        title: 'Atualizar evolução corporal',
+        description: 'O acompanhamento corporal está desatualizado. Atualize medidas antes do próximo ajuste.',
+        href: `/patients/${patientId}/evolution`,
+        cta: 'Registrar evolução',
+      };
+    }
+
+    if (summary.training7d.executionsCount === 0 || summary.training7d.adherencePercent < 60) {
+      return {
+        title: 'Ajustar rotina de treino',
+        description: 'A aderência recente está baixa. Ajuste o treino com base na avaliação mais recente.',
+        href: `/training-plans/new?patientId=${patientId}${summary.lastInsight ? `&sessionId=${summary.lastInsight.sessionId}` : ''}`,
+        cta: 'Ajustar treino',
+      };
+    }
+
+    return {
+      title: 'Refinar estratégia nutricional',
+      description: 'Use o contexto atual do aluno para prescrever ou ajustar o plano alimentar.',
+      href: `/diet-plans/new?patientId=${patientId}${summary.lastInsight ? `&sessionId=${summary.lastInsight.sessionId}` : ''}`,
+      cta: 'Prescrever dieta',
+    };
+  })();
+
+  return (
+    <div className="space-y-4">
+      <Card title="Resumo operacional" padding="md" className="border-l-4 border-l-primary">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-card border border-border-muted bg-surface-muted/40 p-4">
+            <p className="text-body-sm font-medium text-content-muted">Saúde</p>
+            {summary.lastInsight ? (
+              <>
+                <p className="mt-1 text-body text-content">
+                  Dropout: <strong>{summary.lastInsight.risks.dropoutRisk ?? 0}%</strong>
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge variant={riskVariant(dropoutRisk)}>{riskLabel(dropoutRisk)}</Badge>
+                  <Link
+                    to={`/sessions/${summary.lastInsight.sessionId}/insights`}
+                    className="text-body-sm font-medium text-primary hover:underline"
+                  >
+                    Ver insight
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-body-sm text-content-muted">Sem insight recente.</p>
+            )}
+          </div>
+
+          <div className="rounded-card border border-border-muted bg-surface-muted/40 p-4">
+            <p className="text-body-sm font-medium text-content-muted">Corpo</p>
+            {summary.lastEvolution ? (
+              <>
+                <p className="mt-1 text-body text-content">
+                  {summary.lastEvolution.weightKg != null
+                    ? `${summary.lastEvolution.weightKg} kg`
+                    : 'Sem peso recente'}
+                </p>
+                <p className="mt-1 text-body-sm text-content-muted">
+                  Última evolução: {formatRelativeDate(summary.lastEvolution.recordedAt)}
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-body-sm text-content-muted">Sem evolução registrada.</p>
+            )}
+          </div>
+
+          <div className="rounded-card border border-border-muted bg-surface-muted/40 p-4">
+            <p className="text-body-sm font-medium text-content-muted">Treino</p>
+            <p className="mt-1 text-body text-content">
+              {summary.training7d.adherencePercent}% de aderência
+            </p>
+            <p className="mt-1 text-body-sm text-content-muted">
+              Último treino: {formatRelativeDate(summary.training7d.lastExecutedAt)}
+            </p>
+          </div>
+
+          <div className="rounded-card border border-border-muted bg-surface-muted/40 p-4">
+            <p className="text-body-sm font-medium text-content-muted">Dieta</p>
+            <p className="mt-1 text-body text-content">
+              Streak: {summary.diet.streak} dia{summary.diet.streak !== 1 ? 's' : ''}
+            </p>
+            <p className="mt-1 text-body-sm text-content-muted">
+              Macro aderência: {summary.diet.macroAdherencePercent}%
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Card title="Próxima melhor ação" padding="md" className="lg:col-span-2 border-l-4 border-l-warning">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-body font-semibold text-content">{priorityAction.title}</p>
+              <p className="mt-1 text-body-sm text-content-muted">{priorityAction.description}</p>
+            </div>
+            <Link to={priorityAction.href}>
+              <Button className="w-full justify-center lg:w-auto">{priorityAction.cta}</Button>
+            </Link>
+          </div>
+        </Card>
+
+        <Card title="Prioridades do acompanhamento" padding="md">
+          <div className="space-y-3">
+            {summary.alerts.length > 0 ? (
+              <ul className="space-y-2">
+                {summary.alerts.slice(0, 4).map((alert, index) => (
+                  <li
+                    key={`${alert.type}-${index}`}
+                    className="rounded-button border border-border-muted bg-surface-muted/40 px-3 py-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-body-sm text-content">{alert.message}</p>
+                      <Badge
+                        variant={
+                          alert.severity === 'high'
+                            ? 'error'
+                            : alert.severity === 'medium'
+                              ? 'warning'
+                              : 'default'
+                        }
+                      >
+                        {alert.severity}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-body-sm text-content-muted">
+                Nenhum alerta aberto. O aluno está sem pendências críticas agora.
+              </p>
+            )}
+
+            {summary.goalsWithOrigin.length > 0 && (
+              <div className="rounded-card border border-primary/20 bg-primary-subtle/20 p-3">
+                <p className="text-body-sm font-medium text-content">
+                  {summary.goalsWithOrigin.length} meta(s) surgiram de avaliações anteriores.
+                </p>
+                <p className="mt-1 text-body-sm text-content-muted">
+                  Use isso para manter continuidade entre diagnóstico e execução.
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card title="Ações recomendadas" padding="md">
+          <div className="flex flex-col gap-2">
+            <Link to={priorityAction.href}>
+              <Button className="w-full justify-center">{priorityAction.cta}</Button>
+            </Link>
+            <Link to={`/sessions/new?patientId=${patientId}`}>
+              <Button variant="secondary" className="w-full justify-center">Nova avaliação</Button>
+            </Link>
+            <Link to={`/patients/${patientId}/evolution`}>
+              <Button variant="secondary" className="w-full justify-center">
+                Registrar evolução
+              </Button>
+            </Link>
+            <Link to={`/training-plans/new?patientId=${patientId}${summary.lastInsight ? `&sessionId=${summary.lastInsight.sessionId}` : ''}`}>
+              <Button variant="secondary" className="w-full justify-center">
+                Ajustar treino
+              </Button>
+            </Link>
+            <Link to={`/diet-plans/new?patientId=${patientId}${summary.lastInsight ? `&sessionId=${summary.lastInsight.sessionId}` : ''}`}>
+              <Button variant="secondary" className="w-full justify-center">
+                Prescrever dieta
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 type TabId = 'dados' | 'sessoes' | 'treinos' | 'metas' | 'execucoes' | 'fotos';
 
 const textareaClass =
@@ -128,8 +383,16 @@ export function PatientDetailPage() {
   const patient = patientQuery.data ?? null;
   const loadingPatient = patientQuery.isLoading;
   const patientError = patientQuery.error
-    ? (patientQuery.error instanceof Error ? patientQuery.error.message : 'Erro ao carregar paciente')
+    ? (patientQuery.error instanceof Error ? patientQuery.error.message : 'Erro ao carregar aluno')
     : null;
+
+  const hubSummaryQuery = useQuery({
+    queryKey: ['patient-hub-summary', id],
+    queryFn: () => getPatientHubSummary(id!),
+    enabled: !!id,
+  });
+  const hubSummary = hubSummaryQuery.data ?? null;
+  const loadingHubSummary = hubSummaryQuery.isLoading;
 
   const sessionsQuery = useQuery({
     queryKey: ['patient-sessions', id],
@@ -232,6 +495,29 @@ export function PatientDetailPage() {
   });
   const [submittingEvo, setSubmittingEvo] = useState(false);
 
+  // ── Invite ──────────────────────────────────────────────────────────
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState<{
+    inviteLink: string;
+    whatsappLink: string;
+  } | null>(null);
+  const [inviting, setInviting] = useState(false);
+
+  const handleInvite = async () => {
+    if (!id) return;
+    setInviting(true);
+    try {
+      const res = await invitePatient(id);
+      setInviteData(res);
+      setShowInviteModal(true);
+      toast.success('Convite gerado com sucesso!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao gerar convite');
+    } finally {
+      setInviting(false);
+    }
+  };
+
   // ── Submit handlers ────────────────────────────────────────────────────
 
   async function handleQuickEvoSubmit(e: React.FormEvent) {
@@ -329,7 +615,7 @@ export function PatientDetailPage() {
   // ── Guards ──────────────────────────────────────────────────────────────
 
   if (!id) {
-    return <p className="text-content-muted">ID do paciente não informado.</p>;
+    return <p className="text-content-muted">ID do aluno não informado.</p>;
   }
 
   if (loadingPatient) {
@@ -343,7 +629,7 @@ export function PatientDetailPage() {
   if (patientError || !patient) {
     return (
       <Card className="border-error bg-error-light" padding="md">
-        <p className="text-error">{patientError ?? 'Paciente não encontrado.'}</p>
+        <p className="text-error">{patientError ?? 'Aluno não encontrado.'}</p>
         <Link to="/patients" className="mt-4 inline-block">
           <Button variant="secondary">Voltar à lista</Button>
         </Link>
@@ -367,7 +653,7 @@ export function PatientDetailPage() {
     <div className="space-y-6">
       <Breadcrumbs
         items={[
-          { label: 'Pacientes', to: '/patients' },
+          { label: 'Alunos', to: '/patients' },
           { label: patient.fullName },
         ]}
         className="mb-1"
@@ -379,6 +665,9 @@ export function PatientDetailPage() {
           <Badge variant={genderVariant(patient.gender)}>{genderLabel(patient.gender)}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleInvite} disabled={inviting}>
+            {inviting ? 'Gerando...' : 'Convidar aluno para o app'}
+          </Button>
           <Link to={`/sessions/new?patientId=${id}`}>
             <Button size="sm">Nova avaliação</Button>
           </Link>
@@ -414,10 +703,10 @@ export function PatientDetailPage() {
                 <MenuItem>
                   {({ focus }) => (
                     <Link
-                      to={`/patients/${id}/hub`}
+                      to={`/patients/${id}`}
                       className={`block px-4 py-2 text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
                     >
-                      Hub do paciente
+                      Painel do aluno
                     </Link>
                   )}
                 </MenuItem>
@@ -429,6 +718,16 @@ export function PatientDetailPage() {
                     >
                       🥗 Dieta
                     </Link>
+                  )}
+                </MenuItem>
+                <MenuItem>
+                  {({ focus }) => (
+                    <button
+                      className={`block w-full px-4 py-2 text-left text-body-sm ${focus ? 'bg-surface-muted' : ''} text-content`}
+                      onClick={handleInvite}
+                    >
+                      Convidar aluno para o app
+                    </button>
                   )}
                 </MenuItem>
                 <MenuItem>
@@ -446,6 +745,16 @@ export function PatientDetailPage() {
           </Menu>
         </div>
       </div>
+
+      {loadingHubSummary ? (
+        <Card padding="md">
+          <div className="flex justify-center py-4">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        </Card>
+      ) : hubSummary ? (
+        <OperationalSummary patientId={id} summary={hubSummary} />
+      ) : null}
 
       {/* ── Lembrete de evolução ── */}
       {lastEvolution && (() => {
@@ -468,7 +777,7 @@ export function PatientDetailPage() {
 
       {/* ── Tabs ── */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex gap-1" aria-label="Abas do paciente">
+        <nav className="-mb-px flex gap-1" aria-label="Abas do aluno">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -511,7 +820,7 @@ export function PatientDetailPage() {
             </div>
           )}
 
-          <Card title="Dados do paciente" padding="md">
+          <Card title="Dados do aluno" padding="md">
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InfoRow label="Data de nascimento" value={formatDate(patient.birthDate)} />
               <InfoRow label="CPF" value={patient.cpf} />
@@ -682,7 +991,7 @@ export function PatientDetailPage() {
                   to={`/sessions?patientId=${id}`}
                   className="text-body-sm font-medium text-primary hover:underline"
                 >
-                  Ver todas as avaliações deste paciente →
+                  Ver todas as avaliações deste aluno →
                 </Link>
               </div>
             </>
@@ -767,7 +1076,7 @@ export function PatientDetailPage() {
                   to={`/training-plans?patientId=${id}`}
                   className="text-body-sm font-medium text-primary hover:underline"
                 >
-                  Ver todos os planos deste paciente →
+                  Ver todos os planos deste aluno →
                 </Link>
               </div>
             </Card>
@@ -994,7 +1303,7 @@ export function PatientDetailPage() {
           ) : photos.length === 0 ? (
             <Card padding="md">
               <p className="text-body text-content-muted">
-                Nenhuma foto de progresso registrada para este paciente.
+                Nenhuma foto de progresso registrada para este aluno.
               </p>
             </Card>
           ) : (
@@ -1036,7 +1345,7 @@ export function PatientDetailPage() {
       {activeTab === 'metas' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-body font-semibold text-content">Metas do paciente</h3>
+            <h3 className="text-body font-semibold text-content">Metas do aluno</h3>
             <Link to={`/goals/new?patientId=${id}`}>
               <Button size="sm">Nova meta</Button>
             </Link>
@@ -1049,7 +1358,7 @@ export function PatientDetailPage() {
           ) : goals.length === 0 ? (
             <Card padding="md">
               <p className="text-body text-content-muted">
-                Nenhuma meta cadastrada para este paciente.
+                Nenhuma meta cadastrada para este aluno.
               </p>
               <Link to={`/goals/new?patientId=${id}`} className="mt-3 inline-block">
                 <Button size="sm">Criar meta</Button>
@@ -1190,6 +1499,80 @@ export function PatientDetailPage() {
         }}
         onCancel={() => setPendingDelete(null)}
       />
+
+      {/* ── Invite Modal ─────────────────────────────────────────────── */}
+      {showInviteModal && inviteData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border-muted bg-surface p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-content">Convidar aluno para o app</h3>
+            <p className="mt-1 text-body-sm text-content-muted">
+              Envie o link para o aluno baixar o app e se registrar.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-body-sm font-medium text-content-muted">
+                  Link de convite
+                </label>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    readOnly
+                    value={inviteData.inviteLink}
+                    className="flex-1 truncate rounded-input border border-border bg-surface-muted px-3 py-2 text-body-sm text-content"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteData.inviteLink);
+                      toast.success('Link copiado!');
+                    }}
+                  >
+                    Copiar
+                  </Button>
+                </div>
+              </div>
+              <a
+                href={inviteData.whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-button bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+              >
+                Enviar por WhatsApp
+              </a>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  if (!id) return;
+                  try {
+                    const res = await invitePatient(id, true);
+                    if (res.emailSent) {
+                      toast.success('Email enviado com sucesso!');
+                    } else {
+                      toast.error('SMTP não configurado. Use o link ou WhatsApp.');
+                    }
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Erro ao enviar email');
+                  }
+                }}
+              >
+                Enviar por email
+              </Button>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setShowInviteModal(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -90,7 +90,8 @@ describe('Patient portal /me and my-notifications (P2, P4)', () => {
       },
     });
     expect(registerRes.statusCode).toBe(201);
-    const patient2Id = registerRes.json().id;
+    const registerBody = registerRes.json();
+    const patient2Id = registerBody.user.patientId;
 
     await app.prisma.patientNotification.create({
       data: {
@@ -106,7 +107,7 @@ describe('Patient portal /me and my-notifications (P2, P4)', () => {
       url: '/v1/patient-portal/login',
       headers: { 'x-tenant-id': tenantId, 'content-type': 'application/json' },
       payload: {
-        email: registerRes.json().email,
+        email: registerBody.user.email,
         password: STRONG_PASSWORD,
       },
     });

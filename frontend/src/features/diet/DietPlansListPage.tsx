@@ -92,7 +92,7 @@ export function DietPlansListPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-content-muted">
-          Gerencie os planos alimentares dos seus pacientes.
+          Gerencie os planos alimentares dos seus alunos.
         </p>
         <Link to="/diet-plans/new">
           <Button variant="primary">+ Novo Plano de Dieta</Button>
@@ -139,7 +139,7 @@ export function DietPlansListPage() {
             <span className="text-4xl">🥗</span>
             <p className="mt-3 font-medium text-content">Nenhum plano de dieta encontrado</p>
             <p className="mt-1 text-body-sm text-content-muted">
-              Crie o primeiro plano para começar a acompanhar a nutrição dos pacientes.
+              Crie o primeiro plano para começar a acompanhar a nutrição dos alunos.
             </p>
             <Link to="/diet-plans/new" className="mt-4 inline-block">
               <Button variant="primary">Criar Plano</Button>

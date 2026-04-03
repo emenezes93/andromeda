@@ -144,6 +144,20 @@ export interface Translations {
     updateSuccess: string;
     deleteSuccess: string;
   };
+  invite?: {
+    title: string;
+    subtitle: string;
+    button: string;
+    linkLabel: string;
+    copyLink: string;
+    copied: string;
+    sendWhatsApp: string;
+    sendEmail: string;
+    emailSent: string;
+    noEmail: string;
+    success: string;
+    close: string;
+  };
 }
 
 export const ptBR: Translations = {
@@ -151,7 +165,7 @@ export const ptBR: Translations = {
     dashboard: 'Dashboard',
     templates: 'Templates',
     sessions: 'Avaliações',
-    patients: 'Pacientes',
+    patients: 'Alunos',
     trainingPlans: 'Planos de Treino',
     dietPlans: 'Planos de Dieta',
     scheduledQuestionnaires: 'Agendamentos',
@@ -163,13 +177,13 @@ export const ptBR: Translations = {
     security: 'Segurança',
     notifications: 'Notificações',
     taskInicio: 'Início',
-    taskPacientes: 'Pacientes',
+    taskPacientes: 'Alunos',
     taskAvaliacoes: 'Avaliações',
     taskQuestionarios: 'Questionários',
     taskPlanos: 'Planos',
     taskRelatorios: 'Relatórios',
     tooltipInicio: 'Visão geral e próximas ações',
-    tooltipPacientes: 'Cadastro e histórico de pacientes',
+    tooltipPacientes: 'Cadastro e histórico dos alunos',
     tooltipAvaliacoes: 'Sessões e questionários de anamnese',
     tooltipQuestionarios: 'Modelos de questionário',
     tooltipPlanos: 'Planos de dieta, treino e agendamentos',
@@ -208,7 +222,7 @@ export const ptBR: Translations = {
     newSession: 'Nova avaliação',
     totalSessions: 'Total de avaliações',
     activeTemplates: 'Templates ativos',
-    patients: 'Pacientes',
+    patients: 'Alunos',
     activeGoals: 'Metas ativas',
     recentSessions: 'Avaliações recentes',
     noSessionsYet: 'Nenhuma avaliação ainda. Que tal iniciar a primeira?',
@@ -232,15 +246,15 @@ export const ptBR: Translations = {
     releaseR1Message2: 'Seu painel de Próximas Ações: veja o que fazer agora e vá direto para cada tarefa.',
     releaseR1Dismiss: 'Fechar',
     releaseR2Title: 'O menu mudou (para ficar mais simples)',
-    releaseR2Message: 'Organizamos por tarefas: Pacientes, Avaliações, Relatórios e mais. Faça um tour de 30s.',
+    releaseR2Message: 'Organizamos por tarefas: Alunos, Avaliações, Relatórios e mais. Faça um tour de 30s.',
     releaseR2CtaTour: 'Fazer tour',
     releaseR2Dismiss: 'Fechar',
     tourR2Title: 'Menu por tarefas',
-    tourR2Summary: 'Uso diário: Início, Pacientes, Avaliações, Questionários, Planos (dieta, treino, agendamentos), Relatórios (histórico, uso de IA), Ajuda. Administração no final: Usuários, Organizações, Assinatura, Segurança.',
+    tourR2Summary: 'Uso diário: Início, Alunos, Avaliações, Questionários, Planos (dieta, treino, agendamentos), Relatórios (histórico, uso de IA), Ajuda. Administração no final: Usuários, Organizações, Assinatura, Segurança.',
     tourR2Understand: 'Entendi',
     tourR2ViewArticle: 'Ver artigo "Onde encontro X agora?"',
     releaseR3Title: 'Novidades',
-    releaseR3MessageSearch: 'Busca e filtros melhorados: encontre pacientes e sessões mais rápido, mesmo com listas grandes.',
+    releaseR3MessageSearch: 'Busca e filtros melhorados: encontre alunos e avaliações mais rápido, mesmo com listas grandes.',
     releaseR3MessageHelp: 'Ajuda dentro do app: consulte artigos e resolva dúvidas sem sair daqui.',
     releaseR3Dismiss: 'Fechar',
   },
@@ -286,6 +300,20 @@ export const ptBR: Translations = {
     createSuccess: 'Exercício criado.',
     updateSuccess: 'Exercício atualizado.',
     deleteSuccess: 'Exercício excluído.',
+  },
+  invite: {
+    title: 'Convidar para o app',
+    subtitle: 'Envie o convite para o aluno baixar o app e se registrar.',
+    button: 'Convidar para o app',
+    linkLabel: 'Link de convite',
+    copyLink: 'Copiar link',
+    copied: 'Link copiado!',
+    sendWhatsApp: 'Enviar por WhatsApp',
+    sendEmail: 'Enviar por email',
+    emailSent: 'Email enviado com sucesso!',
+    noEmail: 'Aluno sem email cadastrado.',
+    success: 'Convite gerado com sucesso!',
+    close: 'Fechar',
   },
 };
 
@@ -430,6 +458,20 @@ export const enUS: Translations = {
     createSuccess: 'Exercise created.',
     updateSuccess: 'Exercise updated.',
     deleteSuccess: 'Exercise deleted.',
+  },
+  invite: {
+    title: 'Invite to app',
+    subtitle: 'Send an invite for the student to download the app and register.',
+    button: 'Invite to app',
+    linkLabel: 'Invite link',
+    copyLink: 'Copy link',
+    copied: 'Link copied!',
+    sendWhatsApp: 'Send via WhatsApp',
+    sendEmail: 'Send via email',
+    emailSent: 'Email sent successfully!',
+    noEmail: 'Patient has no email registered.',
+    success: 'Invite generated successfully!',
+    close: 'Close',
   },
 };
 

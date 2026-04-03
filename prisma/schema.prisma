@@ -1,5 +1,5 @@
-// Multi-tenant Anamnese PaaS V2 - Prisma Schema
-// RLS is applied via init-rls.sql; Prisma does not set session variable automatically.
+// Fit Insight (Andromeda) — Prisma schema
+// RLS: PostgreSQL policies on tenant-scoped tables (see prisma/migrations); app sets app.tenant_id per request.
 // All routes must validate x-tenant-id and queries must include tenantId in where clauses.
 
 generator client {
@@ -187,6 +187,8 @@ model Patient {
   consentVersion    String?   @map("consent_version")   // versão do termo LGPD aceito
   consentAcceptedAt DateTime? @map("consent_accepted_at")
   userId          String?   @map("user_id") // vínculo com conta de usuário (portal do aluno) - pode ter múltiplos pacientes por usuário em diferentes tenants
+  pushToken       String?   @map("push_token")
+  pushPlatform    String?   @map("push_platform") // ios | android
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")

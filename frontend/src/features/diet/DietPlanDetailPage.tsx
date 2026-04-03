@@ -151,7 +151,7 @@ export function DietPlanDetailPage() {
             <Badge variant={plan.active ? 'success' : 'default'}>{plan.active ? 'Ativo' : 'Inativo'}</Badge>
           </div>
           <p className="mt-1 text-body-sm text-content-muted">
-            Paciente:{' '}
+            Aluno:{' '}
             <Link to={`/patients/${plan.patientId}`} className="text-primary hover:underline">
               {plan.patientName}
             </Link>
